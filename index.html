@@ -6,82 +6,330 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta name="description" content="SCW Commerce documentation for sales reps and administrators">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Base theme -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
+
   <style>
     :root {
-      --theme-color: #1B5078;
-      --theme-color-secondary: #ED8326;
-      --sidebar-nav-link-color--active: #ED8326;
-      --sidebar-nav-link-border-color--active: #ED8326;
-      --sidebar-nav-link-font-weight--active: bold;
-      --sidebar-width: 280px;
-      --sidebar-nav-strong-color: #1B5078;
-      --sidebar-nav-strong-font-size: 0.9em;
-      --sidebar-nav-strong-text-transform: uppercase;
-      --sidebar-nav-strong-letter-spacing: 0.05em;
+      /* Brand colors */
+      --scw-navy: #1B5078;
+      --scw-navy-dark: #0D3B5E;
+      --scw-orange: #ED8326;
+      --scw-orange-hover: #d97520;
+
+      /* Theme */
+      --theme-color: var(--scw-navy);
+      --base-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --base-font-size: 15px;
-      --heading-h1-color: #1B5078;
-      --heading-h2-color: #1B5078;
-      --heading-h3-color: #333;
-      --blockquote-border-color: #ED8326;
-      --notice-tip-border-color: #ED8326;
-      --table-cell-border-color: #e5e7eb;
+      --base-line-height: 1.7;
+      --base-color: #1a1a2e;
+
+      /* Content */
+      --content-max-width: 860px;
+
+      /* Headings */
+      --heading-h1-font-weight: 700;
+      --heading-h1-color: var(--scw-navy);
+      --heading-h1-font-size: 2em;
+      --heading-h2-font-weight: 600;
+      --heading-h2-color: var(--scw-navy);
+      --heading-h2-font-size: 1.5em;
+      --heading-h2-border-color: #e5e7eb;
+      --heading-h2-border-width: 1px;
+      --heading-h2-margin: 2.5em 0 1em;
+      --heading-h2-padding: 0 0 0.5em 0;
+      --heading-h3-font-weight: 600;
+      --heading-h3-color: #1f2937;
+      --heading-h3-font-size: 1.2em;
+
+      /* Sidebar */
+      --sidebar-width: 280px;
+      --sidebar-background: #fafbfc;
+      --sidebar-border-color: #e5e7eb;
+      --sidebar-border-width: 0 1px 0 0;
+      --sidebar-padding: 24px 20px 20px;
+      --sidebar-nav-link-color: #4b5563;
+      --sidebar-nav-link-font-size: 0.88em;
+      --sidebar-nav-link-font-weight: 500;
+      --sidebar-nav-link-color--active: var(--scw-orange);
+      --sidebar-nav-link-border-color--active: var(--scw-orange);
+      --sidebar-nav-link-border-width--active: 3px;
+      --sidebar-nav-link-font-weight--active: 600;
+      --sidebar-nav-link-text-decoration--active: none;
+      --sidebar-nav-link-color--hover: var(--scw-navy);
+      --sidebar-nav-link-text-decoration--hover: none;
+      --sidebar-nav-link-margin: 0 0 2px;
+      --sidebar-nav-link-padding: 6px 12px;
+      --sidebar-nav-link-border-style: solid;
+      --sidebar-nav-link-border-width: 0 0 0 3px;
+      --sidebar-nav-link-border-color: transparent;
+      --sidebar-nav-strong-color: var(--scw-navy);
+      --sidebar-nav-strong-font-size: 0.72em;
+      --sidebar-nav-strong-text-transform: uppercase;
+      --sidebar-nav-strong-letter-spacing: 0.08em;
+      --sidebar-nav-strong-margin: 24px 0 8px 12px;
+
+      /* Blockquotes (screenshot placeholders) */
+      --blockquote-border-color: var(--scw-orange);
+      --blockquote-border-width: 0 0 0 4px;
+      --blockquote-background: #fff7ed;
+      --blockquote-border-radius: 0 8px 8px 0;
+
+      /* Code */
+      --code-font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      --code-font-size: 0.82em;
+      --code-inline-background: #f1f5f9;
+      --code-inline-border-radius: 4px;
+      --code-inline-color: #0f172a;
+      --code-inline-padding: 2px 6px;
+      --code-block-border-radius: 8px;
+      --code-block-padding: 20px 24px;
+
+      /* Notice/tip */
+      --notice-tip-border-color: var(--scw-orange);
+      --notice-important-border-color: #ef4444;
     }
 
-    /* SCW branding */
-    .sidebar .app-name-link img {
-      max-width: 180px;
+    /* ── Global ─────────────────────────────── */
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Better table styling */
+    /* ── Sidebar brand ──────────────────────── */
+    .sidebar .app-name-link {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.15em;
+      color: var(--scw-navy) !important;
+      letter-spacing: -0.02em;
+      padding: 8px 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar .app-name-link::before {
+      content: '';
+      width: 32px;
+      height: 32px;
+      background: var(--scw-navy);
+      border-radius: 8px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .sidebar .search {
+      margin: 0 0 16px;
+    }
+
+    .sidebar .search input {
+      border-radius: 8px !important;
+      border: 1px solid #d1d5db !important;
+      padding: 8px 12px !important;
+      font-size: 0.85em !important;
+      background: white !important;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .sidebar .search input:focus {
+      border-color: var(--scw-orange) !important;
+      box-shadow: 0 0 0 3px rgba(237, 131, 38, 0.15) !important;
+      outline: none !important;
+    }
+
+    /* ── Content area ───────────────────────── */
+    .markdown-section {
+      padding: 40px 48px 80px !important;
+    }
+
+    .markdown-section h1:first-child {
+      margin-top: 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--scw-navy);
+    }
+
+    /* ── Tables ──────────────────────────────── */
     table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      margin: 1.5em 0;
+      font-size: 0.9em;
     }
     table th {
-      background: #f3f4f6;
+      background: #f8fafc;
       font-weight: 600;
       text-align: left;
-    }
-    table td, table th {
-      padding: 10px 14px;
-      border: 1px solid #e5e7eb;
-    }
-    table tr:nth-child(even) {
-      background: #f9fafb;
-    }
-
-    /* Code block in tables */
-    table code {
-      background: #f3f4f6;
-      padding: 2px 6px;
-      border-radius: 3px;
+      color: var(--scw-navy);
+      border-bottom: 2px solid #e2e8f0;
+      padding: 12px 16px;
       font-size: 0.85em;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    table tr:last-child td {
+      border-bottom: none;
+    }
+    table tr:hover td {
+      background: #f8fafc;
+    }
+    table code {
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-weight: 500;
     }
 
-    /* Screenshot placeholder styling */
-    blockquote p:first-child {
+    /* ── Blockquotes (screenshot placeholders) ── */
+    blockquote {
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 1.5em 0;
+    }
+    blockquote p {
       font-style: italic;
-      color: #6b7280;
+      color: #92400e;
+      font-size: 0.88em;
+      margin: 0;
     }
 
-    /* Diagram styling */
-    pre code {
+    /* ── Code blocks ─────────────────────────── */
+    .markdown-section pre {
+      background: #0f172a !important;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    }
+    .markdown-section pre code {
+      color: #e2e8f0 !important;
       font-size: 0.82em;
-      line-height: 1.4;
+      line-height: 1.6;
     }
 
-    /* Cover page */
+    /* ── Links ────────────────────────────────── */
+    .markdown-section a {
+      color: var(--scw-orange);
+      font-weight: 500;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .markdown-section a:hover {
+      border-bottom-color: var(--scw-orange);
+    }
+
+    /* ── HR ───────────────────────────────────── */
+    .markdown-section hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 2.5em 0;
+    }
+
+    /* ── Strong text in lists ────────────────── */
+    .markdown-section li strong {
+      color: #1f2937;
+    }
+
+    /* ── Pagination ──────────────────────────── */
+    .docsify-pagination-container {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 3em;
+      padding-top: 1.5em;
+    }
+    .pagination-item-title {
+      font-weight: 600;
+      color: var(--scw-navy);
+    }
+
+    /* ── Cover page ──────────────────────────── */
     section.cover {
-      background: linear-gradient(135deg, #1B5078 0%, #00547A 100%) !important;
+      background: linear-gradient(135deg, #0f172a 0%, var(--scw-navy) 50%, var(--scw-navy-dark) 100%) !important;
     }
-    section.cover .cover-main a {
-      border-color: #ED8326 !important;
-      color: #ED8326 !important;
+    section.cover h1 {
+      font-size: 3em;
+      font-weight: 800;
+      letter-spacing: -0.03em;
     }
-    section.cover .cover-main a:hover {
-      background: #ED8326 !important;
+    section.cover blockquote p {
+      color: rgba(255, 255, 255, 0.7) !important;
+      font-style: normal;
+      font-size: 1.2em;
+    }
+    section.cover ul {
+      list-style: none;
+      padding: 0;
+    }
+    section.cover ul li {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.95em;
+      padding: 4px 0;
+    }
+    section.cover ul li::before {
+      content: '→ ';
+      color: var(--scw-orange);
+      font-weight: 600;
+    }
+    section.cover .cover-main > a:first-of-type {
+      background: var(--scw-orange) !important;
+      border: none !important;
       color: white !important;
+      border-radius: 8px !important;
+      padding: 12px 32px !important;
+      font-weight: 600 !important;
+      font-size: 1em !important;
+      transition: background 0.2s !important;
+    }
+    section.cover .cover-main > a:first-of-type:hover {
+      background: var(--scw-orange-hover) !important;
+    }
+    section.cover .cover-main > a:last-of-type {
+      border: 1px solid rgba(255,255,255,0.3) !important;
+      color: rgba(255,255,255,0.8) !important;
+      border-radius: 8px !important;
+      padding: 12px 32px !important;
+      font-weight: 500 !important;
+    }
+    section.cover .cover-main > a:last-of-type:hover {
+      border-color: white !important;
+      color: white !important;
+    }
+
+    /* ── Scrollbar ────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 768px) {
+      .markdown-section {
+        padding: 24px 20px 60px !important;
+      }
     }
   </style>
 </head>
@@ -89,10 +337,11 @@
   <div id="app"></div>
   <script>
     window.$docsify = {
-      name: 'SCW Commerce',
+      name: '<span style="display:flex;align-items:center;gap:10px"><img src="https://www.getscw.com/images/logo/scw-logo.svg" alt="SCW" style="height:28px;filter:brightness(0) saturate(100%) invert(26%) sepia(50%) saturate(700%) hue-rotate(175deg)"> Docs</span>',
+      nameLink: '/',
       repo: '',
       loadSidebar: true,
-      subMaxLevel: 3,
+      subMaxLevel: 2,
       auto2top: true,
       search: {
         placeholder: 'Search docs...',
@@ -106,13 +355,6 @@
         crossChapter: true,
         crossChapterText: true,
       },
-      tabs: {
-        persist: true,
-        sync: true,
-        theme: 'classic',
-        tabComments: true,
-        tabHeadings: true,
-      },
     }
   </script>
 
@@ -123,7 +365,6 @@
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-tabs@1/dist/docsify-tabs.min.js"></script>
 
   <!-- Syntax highlighting -->
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
