@@ -1,0 +1,157 @@
+# Admin Actions — Invoicing & Order Management
+
+## Overview
+
+For offline payment methods (Purchase Order, Check, Wire), the order sits in **Pending Payment** until an admin confirms the payment and invoices the order. This page covers the admin's day-to-day workflow.
+
+---
+
+## Finding Pending Payment Orders
+
+### In HubSpot
+
+1. Navigate to **Ecommerce Orders** from the top menu
+2. Click **Filters** → **Status** → select **Pending**
+3. The list shows all orders waiting for admin action
+
+You can also add the **Payment Method Type** column to the table view:
+1. Click **Edit columns**
+2. Add **Payment Method Type** and **PO Number**
+3. Save the view
+
+> [SCREENSHOT: Ecommerce Orders filtered by Status = Pending, with Payment Method Type column visible]
+
+### Identifying the Payment Type
+
+| Payment Method Type | What to Do |
+|---|---|
+| `purchase_order` | Verify the PO Number against the customer's credit limit, then invoice |
+| `check` | Wait for the check to arrive and clear, then invoice |
+| `ach_wire` | Check the bank portal for the transfer (match by Order #), then invoice |
+| `credit_card` | Should not be in Pending — investigate if you see this |
+
+---
+
+## Invoicing an Order
+
+When you've confirmed payment has been received (check cleared, wire arrived, PO approved):
+
+### Step 1: Find the Order
+
+Click on the Ecommerce Order in HubSpot to open the detail view.
+
+Verify:
+- **Status:** Pending
+- **Payment Method Type:** The offline method used
+- **PO Number:** (for Purchase Orders) — verify against the customer's credit limit
+- **Total:** Matches the payment received
+
+> [SCREENSHOT: Ecommerce Order detail page showing Pending status with payment method info]
+
+### Step 2: Invoice the Order
+
+Call the invoice endpoint. This can be done via:
+
+**Option A: HubSpot Invoice Button** *(coming soon)*
+- Click the **"Invoice Order"** button on the Ecommerce Order record
+- The button calls the SCW Commerce API automatically
+
+**Option B: Direct API Call** *(current method)*
+```
+POST https://hubspot.getscw.com/api/admin/orders/{ORDER_ID}/invoice
+```
+
+Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecommerce Order).
+
+> [SCREENSHOT: Ecommerce Order showing eo_source_id property]
+
+### Step 3: What Happens After Invoicing
+
+When the invoice endpoint is called, the following happens automatically:
+
+1. **Invoice created** in SCW Commerce database
+2. **Order status** changes from `pending_payment` → `processing`
+3. **HubSpot Ecommerce Order** status updates to `processing`
+4. **ShipEdge** receives the order for fulfillment
+5. The shipping team can now pick, pack, and ship the order
+
+From this point, the order follows the normal fulfillment flow — ShipEdge creates a shipping label, tracking syncs back, and the customer gets a shipping notification.
+
+> [SCREENSHOT: Ecommerce Order after invoicing — status changed to Processing]
+
+---
+
+## Cancelling an Order
+
+### Automatic Cancellation (Check & Wire Only)
+
+- **Check orders:** Automatically cancelled after **14 days** in Pending Payment
+- **Wire orders:** Automatically cancelled after **21 days** in Pending Payment
+- **Purchase Orders:** Never auto-cancelled — admin must act manually
+
+This runs daily at 3 AM UTC. When an order is auto-cancelled:
+- Status changes to `cancelled` in SCW Commerce
+- HubSpot Ecommerce Order status updates to `cancelled`
+- Inventory is released (if held)
+
+### Manual Cancellation
+
+To cancel an order manually before the auto-cancel deadline, update the order status through the admin API or database.
+
+---
+
+## Reviewing a Purchase Order
+
+When a PO order comes in:
+
+1. **Check the PO Number** on the Ecommerce Order (`eo_po_number` property)
+2. **Check the customer's credit limit** — go to the associated Contact, find "Credit Limit" property
+3. **Verify the order total** doesn't exceed the credit limit
+4. **Check existing open PO orders** for this customer — make sure total outstanding credit doesn't exceed the limit
+5. If everything checks out, **invoice the order**
+
+> [SCREENSHOT: Contact record showing Approved for Credit Terms = Yes and Credit Limit value]
+
+### Demo PO Orders
+
+If a customer enters "demo" as the PO number, the order should still be processed normally. The admin team handles these by applying a special "Demo" template to the invoice rather than standard NET30 branding.
+
+---
+
+## Verifying a Wire Transfer
+
+When a wire/ACH order comes in:
+
+1. **Note the Order Number** from the Ecommerce Order (e.g., `SCW-20260406-A1B2`)
+2. **Check the bank portal** for an incoming transfer with that order number in the memo
+3. **Verify the amount** matches the order total
+4. If funds are confirmed, **invoice the order**
+5. If the customer emailed a remittance advice, that can serve as additional confirmation
+
+---
+
+## Verifying a Check
+
+When a check order comes in:
+
+1. **Wait for the physical check** to arrive at: 11 Richland Street, Asheville, NC 28806
+2. **Verify the check amount** matches the order total
+3. **Verify the order number** is referenced on the check
+4. **Deposit the check** and wait for it to clear
+5. Once cleared, **invoice the order**
+
+> **Tip:** If a check has arrived but hasn't cleared yet, and the 14-day deadline is approaching, you can prevent auto-cancellation by manually moving the order to `processing` status.
+
+---
+
+## Quick Reference: Admin Actions by Payment Method
+
+| Scenario | Action | Result |
+|---|---|---|
+| PO order received, PO verified | Invoice the order | Status → Processing → Ships |
+| Check received and cleared | Invoice the order | Status → Processing → Ships |
+| Wire transfer confirmed in bank | Invoice the order | Status → Processing → Ships |
+| Check not received in 14 days | Nothing — auto-cancels | Status → Cancelled |
+| Wire not received in 21 days | Nothing — auto-cancels | Status → Cancelled |
+| Customer wants to cancel | Cancel the order manually | Status → Cancelled |
+| Check arrived but not cleared, 14-day deadline near | Move to Processing manually | Prevents auto-cancel |
