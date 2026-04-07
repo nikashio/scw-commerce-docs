@@ -10,7 +10,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Base theme -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
@@ -20,10 +20,12 @@
       /* Brand colors */
       --scw-navy: #1B5078;
       --scw-navy-dark: #0D3B5E;
+      --scw-navy-deeper: #091e36;
       --scw-orange: #ED8326;
       --scw-orange-hover: #d97520;
+      --scw-orange-glow: rgba(237, 131, 38, 0.3);
 
-      /* Theme */
+      /* Theme overrides */
       --theme-color: var(--scw-navy);
       --base-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --base-font-size: 15px;
@@ -75,7 +77,7 @@
       --sidebar-nav-strong-letter-spacing: 0.08em;
       --sidebar-nav-strong-margin: 24px 0 8px 12px;
 
-      /* Blockquotes (screenshot placeholders) */
+      /* Blockquotes */
       --blockquote-border-color: var(--scw-orange);
       --blockquote-border-width: 0 0 0 4px;
       --blockquote-background: #fff7ed;
@@ -91,7 +93,7 @@
       --code-block-border-radius: 8px;
       --code-block-padding: 20px 24px;
 
-      /* Notice/tip */
+      /* Notice */
       --notice-tip-border-color: var(--scw-orange);
       --notice-important-border-color: #ef4444;
     }
@@ -102,31 +104,157 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    /* ══════════════════════════════════════════
+       COVER PAGE — Nuclear specificity overrides
+       ══════════════════════════════════════════ */
+
+    /* Kill the Docsify theme overlay/mask */
+    section.cover::before,
+    section.cover::after,
+    .cover-main::before,
+    .cover-main::after {
+      display: none !important;
+      content: none !important;
+    }
+
+    /* The actual cover background */
+    section.cover {
+      background: #091e36 !important;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(27, 80, 120, 0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(237, 131, 38, 0.08) 0%, transparent 50%),
+        linear-gradient(180deg, #0a1f37 0%, #091e36 40%, #060f1e 100%) !important;
+      min-height: 100vh !important;
+    }
+
+    section.cover.show {
+      background: #091e36 !important;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(27, 80, 120, 0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(237, 131, 38, 0.08) 0%, transparent 50%),
+        linear-gradient(180deg, #0a1f37 0%, #091e36 40%, #060f1e 100%) !important;
+    }
+
+    /* Cover mask — completely transparent */
+    section.cover .mask {
+      background: none !important;
+      opacity: 0 !important;
+    }
+
+    /* Title */
+    section.cover h1 {
+      font-size: 3.5em !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.04em !important;
+      color: #ffffff !important;
+      margin: 0 0 0.3em !important;
+      line-height: 1.1 !important;
+      text-shadow: 0 2px 40px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Subtitle */
+    section.cover blockquote {
+      border: none !important;
+      background: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    section.cover blockquote p {
+      color: rgba(255, 255, 255, 0.6) !important;
+      font-style: normal !important;
+      font-size: 1.25em !important;
+      font-weight: 300 !important;
+      letter-spacing: 0.01em !important;
+      margin: 0 0 2em !important;
+    }
+
+    /* Bullet list */
+    section.cover ul {
+      list-style: none !important;
+      padding: 0 !important;
+      margin: 0 0 2.5em !important;
+      text-align: center !important;
+    }
+    section.cover ul li {
+      color: rgba(255, 255, 255, 0.45) !important;
+      font-size: 0.92em !important;
+      padding: 5px 0 !important;
+      font-weight: 400 !important;
+    }
+    section.cover ul li::before {
+      content: '' !important;
+      display: inline-block !important;
+      width: 6px !important;
+      height: 6px !important;
+      background: var(--scw-orange) !important;
+      border-radius: 50% !important;
+      margin-right: 10px !important;
+      vertical-align: middle !important;
+    }
+
+    /* CTA Buttons */
+    section.cover .cover-main > a {
+      transition: all 0.25s ease !important;
+    }
+
+    section.cover .cover-main > a:first-of-type {
+      background: var(--scw-orange) !important;
+      border: none !important;
+      color: white !important;
+      border-radius: 10px !important;
+      padding: 14px 40px !important;
+      font-weight: 600 !important;
+      font-size: 1em !important;
+      letter-spacing: 0.02em !important;
+      box-shadow: 0 4px 24px rgba(237, 131, 38, 0.35), 0 0 0 0 rgba(237, 131, 38, 0) !important;
+      text-decoration: none !important;
+    }
+    section.cover .cover-main > a:first-of-type:hover {
+      background: var(--scw-orange-hover) !important;
+      box-shadow: 0 6px 32px rgba(237, 131, 38, 0.45), 0 0 0 4px rgba(237, 131, 38, 0.1) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    section.cover .cover-main > a:last-of-type {
+      border: 1px solid rgba(255,255,255,0.2) !important;
+      color: rgba(255,255,255,0.7) !important;
+      border-radius: 10px !important;
+      padding: 14px 40px !important;
+      font-weight: 500 !important;
+      text-decoration: none !important;
+      backdrop-filter: blur(4px) !important;
+    }
+    section.cover .cover-main > a:last-of-type:hover {
+      border-color: rgba(255,255,255,0.5) !important;
+      color: white !important;
+      background: rgba(255,255,255,0.05) !important;
+    }
+
     /* ── Sidebar brand ──────────────────────── */
     .sidebar .app-name-link {
-      font-family: 'Inter', sans-serif;
-      font-weight: 700;
-      font-size: 1.15em;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 1.15em !important;
       color: var(--scw-navy) !important;
-      letter-spacing: -0.02em;
-      padding: 8px 12px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      letter-spacing: -0.02em !important;
+      padding: 8px 12px 20px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
     }
 
     .sidebar .app-name-link::before {
-      content: '';
-      width: 32px;
-      height: 32px;
-      background: var(--scw-navy);
-      border-radius: 8px;
-      display: inline-block;
-      flex-shrink: 0;
+      content: '' !important;
+      width: 32px !important;
+      height: 32px !important;
+      background: var(--scw-navy) !important;
+      border-radius: 8px !important;
+      display: inline-block !important;
+      flex-shrink: 0 !important;
     }
 
     .sidebar .search {
-      margin: 0 0 16px;
+      margin: 0 0 16px !important;
     }
 
     .sidebar .search input {
@@ -135,7 +263,7 @@
       padding: 8px 12px !important;
       font-size: 0.85em !important;
       background: white !important;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s !important;
     }
 
     .sidebar .search input:focus {
@@ -197,7 +325,7 @@
       font-weight: 500;
     }
 
-    /* ── Blockquotes (screenshot placeholders) ── */
+    /* ── Blockquotes ────────────────────────── */
     blockquote {
       border-radius: 0 8px 8px 0;
       padding: 16px 20px;
@@ -257,59 +385,6 @@
       color: var(--scw-navy);
     }
 
-    /* ── Cover page ──────────────────────────── */
-    section.cover {
-      background: linear-gradient(135deg, #0f172a 0%, var(--scw-navy) 50%, var(--scw-navy-dark) 100%) !important;
-    }
-    section.cover h1 {
-      font-size: 3em;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-    section.cover blockquote p {
-      color: rgba(255, 255, 255, 0.7) !important;
-      font-style: normal;
-      font-size: 1.2em;
-    }
-    section.cover ul {
-      list-style: none;
-      padding: 0;
-    }
-    section.cover ul li {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 0.95em;
-      padding: 4px 0;
-    }
-    section.cover ul li::before {
-      content: '→ ';
-      color: var(--scw-orange);
-      font-weight: 600;
-    }
-    section.cover .cover-main > a:first-of-type {
-      background: var(--scw-orange) !important;
-      border: none !important;
-      color: white !important;
-      border-radius: 8px !important;
-      padding: 12px 32px !important;
-      font-weight: 600 !important;
-      font-size: 1em !important;
-      transition: background 0.2s !important;
-    }
-    section.cover .cover-main > a:first-of-type:hover {
-      background: var(--scw-orange-hover) !important;
-    }
-    section.cover .cover-main > a:last-of-type {
-      border: 1px solid rgba(255,255,255,0.3) !important;
-      color: rgba(255,255,255,0.8) !important;
-      border-radius: 8px !important;
-      padding: 12px 32px !important;
-      font-weight: 500 !important;
-    }
-    section.cover .cover-main > a:last-of-type:hover {
-      border-color: white !important;
-      color: white !important;
-    }
-
     /* ── Scrollbar ────────────────────────────── */
     ::-webkit-scrollbar {
       width: 6px;
@@ -329,6 +404,9 @@
     @media (max-width: 768px) {
       .markdown-section {
         padding: 24px 20px 60px !important;
+      }
+      section.cover h1 {
+        font-size: 2.2em !important;
       }
     }
   </style>
