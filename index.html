@@ -10,32 +10,26 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Base theme -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
 
   <style>
     :root {
-      /* Brand colors */
       --scw-navy: #1B5078;
       --scw-navy-dark: #0D3B5E;
       --scw-navy-deeper: #091e36;
       --scw-orange: #ED8326;
       --scw-orange-hover: #d97520;
-      --scw-orange-glow: rgba(237, 131, 38, 0.3);
 
-      /* Theme overrides */
       --theme-color: var(--scw-navy);
       --base-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --base-font-size: 15px;
       --base-line-height: 1.7;
       --base-color: #1a1a2e;
-
-      /* Content */
       --content-max-width: 860px;
 
-      /* Headings */
       --heading-h1-font-weight: 700;
       --heading-h1-color: var(--scw-navy);
       --heading-h1-font-size: 2em;
@@ -50,7 +44,6 @@
       --heading-h3-color: #1f2937;
       --heading-h3-font-size: 1.2em;
 
-      /* Sidebar */
       --sidebar-width: 280px;
       --sidebar-background: #fafbfc;
       --sidebar-border-color: #e5e7eb;
@@ -77,13 +70,11 @@
       --sidebar-nav-strong-letter-spacing: 0.08em;
       --sidebar-nav-strong-margin: 24px 0 8px 12px;
 
-      /* Blockquotes */
       --blockquote-border-color: var(--scw-orange);
       --blockquote-border-width: 0 0 0 4px;
       --blockquote-background: #fff7ed;
       --blockquote-border-radius: 0 8px 8px 0;
 
-      /* Code */
       --code-font-family: 'JetBrains Mono', 'Fira Code', monospace;
       --code-font-size: 0.82em;
       --code-inline-background: #f1f5f9;
@@ -93,7 +84,6 @@
       --code-block-border-radius: 8px;
       --code-block-padding: 20px 24px;
 
-      /* Notice */
       --notice-tip-border-color: var(--scw-orange);
       --notice-important-border-color: #ef4444;
     }
@@ -105,10 +95,10 @@
     }
 
     /* ══════════════════════════════════════════
-       COVER PAGE — Nuclear specificity overrides
+       COVER PAGE
        ══════════════════════════════════════════ */
 
-    /* Kill the Docsify theme overlay/mask */
+    /* Kill theme overlays */
     section.cover::before,
     section.cover::after,
     .cover-main::before,
@@ -117,39 +107,93 @@
       content: none !important;
     }
 
-    /* The actual cover background */
-    section.cover {
-      background: #091e36 !important;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(27, 80, 120, 0.5) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(237, 131, 38, 0.08) 0%, transparent 50%),
-        linear-gradient(180deg, #0a1f37 0%, #091e36 40%, #060f1e 100%) !important;
-      min-height: 100vh !important;
-    }
-
-    section.cover.show {
-      background: #091e36 !important;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(27, 80, 120, 0.5) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(237, 131, 38, 0.08) 0%, transparent 50%),
-        linear-gradient(180deg, #0a1f37 0%, #091e36 40%, #060f1e 100%) !important;
-    }
-
-    /* Cover mask — completely transparent */
     section.cover .mask {
       background: none !important;
       opacity: 0 !important;
     }
 
+    /* Dark background + layered radial glows */
+    section.cover,
+    section.cover.show {
+      background: #060e1a !important;
+      background-image:
+        radial-gradient(ellipse 120% 70% at 50% -10%, rgba(27, 80, 120, 0.6) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 50%, rgba(237, 131, 38, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 20% 60%, rgba(27, 80, 120, 0.15) 0%, transparent 50%) !important;
+      min-height: 100vh !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+
+    /* Subtle dot grid pattern */
+    section.cover .cover-main {
+      position: relative !important;
+      z-index: 2 !important;
+    }
+
+    /* Animated floating orb - top right */
+    section.cover.show::before {
+      display: block !important;
+      content: '' !important;
+      position: absolute !important;
+      width: 600px !important;
+      height: 600px !important;
+      top: -200px !important;
+      right: -150px !important;
+      background: radial-gradient(circle, rgba(27, 80, 120, 0.25) 0%, transparent 70%) !important;
+      border-radius: 50% !important;
+      animation: float-orb 8s ease-in-out infinite !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Second orb - bottom left */
+    section.cover.show::after {
+      display: block !important;
+      content: '' !important;
+      position: absolute !important;
+      width: 400px !important;
+      height: 400px !important;
+      bottom: -100px !important;
+      left: -100px !important;
+      background: radial-gradient(circle, rgba(237, 131, 38, 0.1) 0%, transparent 70%) !important;
+      border-radius: 50% !important;
+      animation: float-orb 10s ease-in-out infinite reverse !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+    }
+
+    @keyframes float-orb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 15px) scale(0.95); }
+    }
+
     /* Title */
     section.cover h1 {
-      font-size: 3.5em !important;
-      font-weight: 800 !important;
-      letter-spacing: -0.04em !important;
+      font-size: 4.5em !important;
+      font-weight: 900 !important;
+      letter-spacing: -0.05em !important;
       color: #ffffff !important;
-      margin: 0 0 0.3em !important;
-      line-height: 1.1 !important;
-      text-shadow: 0 2px 40px rgba(0, 0, 0, 0.3) !important;
+      margin: 0 0 0.25em !important;
+      line-height: 1.05 !important;
+      background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      background-clip: text !important;
+      position: relative !important;
+    }
+
+    /* Orange accent bar above title */
+    section.cover h1::before {
+      content: '' !important;
+      display: block !important;
+      width: 60px !important;
+      height: 4px !important;
+      background: var(--scw-orange) !important;
+      border-radius: 2px !important;
+      margin: 0 auto 24px !important;
+      box-shadow: 0 0 20px rgba(237, 131, 38, 0.4) !important;
     }
 
     /* Subtitle */
@@ -160,26 +204,28 @@
       padding: 0 !important;
     }
     section.cover blockquote p {
-      color: rgba(255, 255, 255, 0.6) !important;
+      color: rgba(255, 255, 255, 0.5) !important;
       font-style: normal !important;
-      font-size: 1.25em !important;
+      font-size: 1.3em !important;
       font-weight: 300 !important;
       letter-spacing: 0.01em !important;
-      margin: 0 0 2em !important;
+      margin: 0 0 2.5em !important;
+      line-height: 1.5 !important;
     }
 
     /* Bullet list */
     section.cover ul {
       list-style: none !important;
       padding: 0 !important;
-      margin: 0 0 2.5em !important;
+      margin: 0 0 3em !important;
       text-align: center !important;
     }
     section.cover ul li {
-      color: rgba(255, 255, 255, 0.45) !important;
-      font-size: 0.92em !important;
-      padding: 5px 0 !important;
+      color: rgba(255, 255, 255, 0.35) !important;
+      font-size: 0.95em !important;
+      padding: 6px 0 !important;
       font-weight: 400 !important;
+      letter-spacing: 0.02em !important;
     }
     section.cover ul li::before {
       content: '' !important;
@@ -188,49 +234,59 @@
       height: 6px !important;
       background: var(--scw-orange) !important;
       border-radius: 50% !important;
-      margin-right: 10px !important;
+      margin-right: 12px !important;
       vertical-align: middle !important;
+      box-shadow: 0 0 8px rgba(237, 131, 38, 0.4) !important;
     }
 
     /* CTA Buttons */
     section.cover .cover-main > a {
-      transition: all 0.25s ease !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      display: inline-block !important;
+      margin: 0 8px !important;
     }
 
     section.cover .cover-main > a:first-of-type {
-      background: var(--scw-orange) !important;
+      background: linear-gradient(135deg, var(--scw-orange) 0%, #e07015 100%) !important;
       border: none !important;
       color: white !important;
-      border-radius: 10px !important;
-      padding: 14px 40px !important;
+      border-radius: 12px !important;
+      padding: 16px 48px !important;
       font-weight: 600 !important;
-      font-size: 1em !important;
+      font-size: 1.05em !important;
       letter-spacing: 0.02em !important;
-      box-shadow: 0 4px 24px rgba(237, 131, 38, 0.35), 0 0 0 0 rgba(237, 131, 38, 0) !important;
+      box-shadow:
+        0 4px 24px rgba(237, 131, 38, 0.3),
+        0 0 0 1px rgba(237, 131, 38, 0.1),
+        inset 0 1px 0 rgba(255,255,255,0.15) !important;
       text-decoration: none !important;
     }
     section.cover .cover-main > a:first-of-type:hover {
-      background: var(--scw-orange-hover) !important;
-      box-shadow: 0 6px 32px rgba(237, 131, 38, 0.45), 0 0 0 4px rgba(237, 131, 38, 0.1) !important;
-      transform: translateY(-1px) !important;
+      box-shadow:
+        0 8px 40px rgba(237, 131, 38, 0.45),
+        0 0 0 1px rgba(237, 131, 38, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.15) !important;
+      transform: translateY(-2px) !important;
     }
 
     section.cover .cover-main > a:last-of-type {
-      border: 1px solid rgba(255,255,255,0.2) !important;
-      color: rgba(255,255,255,0.7) !important;
-      border-radius: 10px !important;
-      padding: 14px 40px !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      color: rgba(255,255,255,0.6) !important;
+      border-radius: 12px !important;
+      padding: 16px 48px !important;
       font-weight: 500 !important;
       text-decoration: none !important;
-      backdrop-filter: blur(4px) !important;
+      background: rgba(255,255,255,0.03) !important;
+      backdrop-filter: blur(8px) !important;
     }
     section.cover .cover-main > a:last-of-type:hover {
-      border-color: rgba(255,255,255,0.5) !important;
+      border-color: rgba(255,255,255,0.35) !important;
       color: white !important;
-      background: rgba(255,255,255,0.05) !important;
+      background: rgba(255,255,255,0.06) !important;
+      transform: translateY(-2px) !important;
     }
 
-    /* ── Sidebar brand ──────────────────────── */
+    /* ── Sidebar ────────────────────────────── */
     .sidebar .app-name-link {
       font-family: 'Inter', sans-serif !important;
       font-weight: 700 !important;
@@ -256,7 +312,6 @@
     .sidebar .search {
       margin: 0 0 16px !important;
     }
-
     .sidebar .search input {
       border-radius: 8px !important;
       border: 1px solid #d1d5db !important;
@@ -265,11 +320,19 @@
       background: white !important;
       transition: border-color 0.2s, box-shadow 0.2s !important;
     }
-
     .sidebar .search input:focus {
       border-color: var(--scw-orange) !important;
       box-shadow: 0 0 0 3px rgba(237, 131, 38, 0.15) !important;
       outline: none !important;
+    }
+
+    /* Sidebar nav - subtle hover backgrounds */
+    .sidebar nav li a {
+      border-radius: 6px !important;
+      transition: all 0.15s ease !important;
+    }
+    .sidebar nav li a:hover {
+      background: rgba(27, 80, 120, 0.05) !important;
     }
 
     /* ── Content area ───────────────────────── */
@@ -288,22 +351,23 @@
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      border-radius: 8px;
+      border-radius: 10px;
       overflow: hidden;
       border: 1px solid #e5e7eb;
       margin: 1.5em 0;
       font-size: 0.9em;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     table th {
-      background: #f8fafc;
+      background: linear-gradient(180deg, #f8fafc, #f1f5f9);
       font-weight: 600;
       text-align: left;
       color: var(--scw-navy);
       border-bottom: 2px solid #e2e8f0;
       padding: 12px 16px;
-      font-size: 0.85em;
+      font-size: 0.82em;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.05em;
     }
     table td {
       padding: 11px 16px;
@@ -311,12 +375,8 @@
       vertical-align: top;
       line-height: 1.5;
     }
-    table tr:last-child td {
-      border-bottom: none;
-    }
-    table tr:hover td {
-      background: #f8fafc;
-    }
+    table tr:last-child td { border-bottom: none; }
+    table tr:hover td { background: #fafbfd; }
     table code {
       background: #f1f5f9;
       padding: 2px 7px;
@@ -327,9 +387,10 @@
 
     /* ── Blockquotes ────────────────────────── */
     blockquote {
-      border-radius: 0 8px 8px 0;
+      border-radius: 0 10px 10px 0;
       padding: 16px 20px;
       margin: 1.5em 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     blockquote p {
       font-style: italic;
@@ -338,11 +399,17 @@
       margin: 0;
     }
 
+    /* ── Tip/Warning callouts ─────────────── */
+    .markdown-section p > strong:first-child {
+      display: inline-block;
+    }
+
     /* ── Code blocks ─────────────────────────── */
     .markdown-section pre {
       background: #0f172a !important;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
     }
     .markdown-section pre code {
       color: #e2e8f0 !important;
@@ -356,10 +423,39 @@
       font-weight: 500;
       text-decoration: none;
       border-bottom: 1px solid transparent;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
     .markdown-section a:hover {
       border-bottom-color: var(--scw-orange);
+    }
+
+    /* ── Numbered list styling for guide structure */
+    .markdown-section ol {
+      counter-reset: guide-counter;
+      list-style: none;
+      padding-left: 0;
+    }
+    .markdown-section ol > li {
+      counter-increment: guide-counter;
+      padding: 8px 0 8px 36px;
+      position: relative;
+    }
+    .markdown-section ol > li::before {
+      content: counter(guide-counter);
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 24px;
+      height: 24px;
+      background: var(--scw-navy);
+      color: white;
+      border-radius: 6px;
+      font-size: 0.75em;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
 
     /* ── HR ───────────────────────────────────── */
@@ -369,7 +465,7 @@
       margin: 2.5em 0;
     }
 
-    /* ── Strong text in lists ────────────────── */
+    /* ── Strong text ─────────────────────────── */
     .markdown-section li strong {
       color: #1f2937;
     }
@@ -386,28 +482,16 @@
     }
 
     /* ── Scrollbar ────────────────────────────── */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
     /* ── Responsive ──────────────────────────── */
     @media (max-width: 768px) {
-      .markdown-section {
-        padding: 24px 20px 60px !important;
-      }
-      section.cover h1 {
-        font-size: 2.2em !important;
-      }
+      .markdown-section { padding: 24px 20px 60px !important; }
+      section.cover h1 { font-size: 2.5em !important; }
+      section.cover .cover-main > a { padding: 14px 32px !important; }
     }
   </style>
 </head>
