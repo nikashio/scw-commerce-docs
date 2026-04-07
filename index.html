@@ -449,6 +449,153 @@
     @media (min-width: 861px) {
       .overlay { display: none; }
     }
+
+    /* ══════════════════════════════════════════
+       DARK THEME
+       ══════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --gray-50: #1a1d23;
+      --gray-100: #21252b;
+      --gray-200: #2d3139;
+      --gray-300: #3d4350;
+      --gray-400: #6b7280;
+      --gray-500: #9ca3af;
+      --gray-600: #c9cdd4;
+      --gray-700: #d1d5db;
+      --gray-800: #e5e7eb;
+      --gray-900: #f3f4f6;
+      --navy: #5b9bd5;
+      --navy-dark: #4a8bc4;
+    }
+
+    [data-theme="dark"] body {
+      background: #0f1117;
+      color: var(--gray-800);
+    }
+
+    [data-theme="dark"] .header {
+      background: rgba(15, 17, 23, 0.85);
+      border-bottom-color: var(--gray-200);
+    }
+    [data-theme="dark"] .header-brand { color: #e5e7eb; }
+    [data-theme="dark"] .header-brand img {
+      filter: brightness(0) invert(1) opacity(0.85);
+    }
+    [data-theme="dark"] .header-search input {
+      background-color: var(--gray-100);
+      border-color: var(--gray-200);
+      color: #e5e7eb;
+    }
+    [data-theme="dark"] .header-search input:focus {
+      border-color: var(--navy);
+      background-color: var(--gray-50);
+    }
+
+    [data-theme="dark"] .sidebar {
+      background: #13161c;
+      border-right-color: var(--gray-200);
+    }
+
+    [data-theme="dark"] .nav-link { color: var(--gray-500); }
+    [data-theme="dark"] .nav-link:hover {
+      background: var(--gray-100);
+      color: #e5e7eb;
+    }
+    [data-theme="dark"] .nav-link.active {
+      background: rgba(91, 155, 213, 0.1);
+      color: var(--navy);
+    }
+
+    [data-theme="dark"] .content h1 {
+      color: #e5e7eb;
+      border-bottom-color: var(--gray-200);
+    }
+    [data-theme="dark"] .content h2 {
+      color: var(--navy);
+      border-bottom-color: var(--gray-200);
+    }
+    [data-theme="dark"] .content h3,
+    [data-theme="dark"] .content h4 { color: #d1d5db; }
+    [data-theme="dark"] .content strong { color: #f3f4f6; }
+
+    [data-theme="dark"] .content table {
+      border-color: var(--gray-200);
+      box-shadow: none;
+    }
+    [data-theme="dark"] .content th {
+      background: var(--gray-100);
+      color: var(--navy);
+      border-bottom-color: var(--gray-200);
+    }
+    [data-theme="dark"] .content td {
+      border-bottom-color: var(--gray-200);
+    }
+    [data-theme="dark"] .content tr:hover td {
+      background: var(--gray-50);
+    }
+
+    [data-theme="dark"] .content code {
+      background: var(--gray-100);
+      color: #e5e7eb;
+    }
+    [data-theme="dark"] .content pre {
+      background: #0a0d14 !important;
+      border-color: var(--gray-200);
+    }
+
+    [data-theme="dark"] .content blockquote {
+      background: rgba(237, 131, 38, 0.08);
+      border-left-color: var(--orange);
+    }
+    [data-theme="dark"] .content blockquote p {
+      color: #d4956a;
+    }
+
+    [data-theme="dark"] .page-link {
+      border-color: var(--gray-200);
+    }
+    [data-theme="dark"] .page-link:hover {
+      border-color: var(--navy);
+      box-shadow: 0 2px 8px rgba(91,155,213,0.08);
+    }
+    [data-theme="dark"] .page-link-title { color: var(--navy); }
+
+    [data-theme="dark"] .overlay.open {
+      background: rgba(0,0,0,0.5);
+    }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--gray-500);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover {
+      border-color: var(--gray-300);
+      color: var(--gray-700);
+      background: var(--gray-50);
+    }
+    .theme-toggle svg { display: block; }
+    .theme-toggle .icon-moon { display: block; }
+    .theme-toggle .icon-sun { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+    [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+
+    /* Smooth transition for theme switch */
+    body, .header, .sidebar, .content, .nav-link, .page-link,
+    .content h1, .content h2, .content h3, .content th, .content td,
+    .content code, .content blockquote {
+      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
   </style>
 </head>
 <body>
@@ -469,6 +616,10 @@
   </div>
   <div class="header-right">
     <a href="https://github.com/nikashio/scw-commerce-docs" class="header-link" target="_blank">GitHub</a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+      <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
   </div>
 </header>
 
@@ -646,6 +797,25 @@ document.addEventListener('click', function(e) {
     location.hash = '#/' + slug;
   }
 });
+
+// ── Theme toggle ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('scw-docs-theme', next);
+}
+
+// Restore saved theme (or respect system preference)
+(function() {
+  const saved = localStorage.getItem('scw-docs-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
 
 // ── Listen for hash changes ──
 window.addEventListener('hashchange', () => loadPage(getSlug()));
