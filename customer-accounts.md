@@ -37,6 +37,8 @@ Customers migrated from Magento have a special first-login flow:
 
 ## Customer Registration
 
+### Self-Registration (customer-initiated)
+
 1. Customer clicks **Create Account** or navigates to `/register`
 2. Fills in: First Name, Last Name, Email, Password
 3. Account created in Cognito + local database
@@ -44,9 +46,53 @@ Customers migrated from Magento have a special first-login flow:
 
 > [SCREENSHOT: Registration page]
 
+### Auto-Provisioned by Sales Rep (via HubSpot webhook)
+
+When a sales rep creates a new Contact in HubSpot, the customer account is **automatically created** in SCW Commerce within seconds:
+
+1. Rep creates a Contact in HubSpot (enters email, name, company, etc.)
+2. HubSpot fires a webhook to SCW Commerce (`POST /api/webhooks/hubspot/contact`)
+3. SCW Commerce:
+   - Fetches the full contact details from HubSpot API
+   - Creates a Cognito login account (with temporary password)
+   - Creates a customer record in the local database, linked to the HubSpot Contact
+   - Sends a welcome email: **"Your SCW Account Has Been Created"** with a "Set Your Password" button
+4. The customer can set their password whenever they want — no urgency
+5. The sales rep can immediately use Payment Links or the Quote Builder for this customer
+
+**What the customer receives:**
+- A welcome email explaining their account was created by their sales representative
+- A link to set their password at `/reset-password`
+
+**What the rep can do immediately:**
+- Build a quote and generate a payment link for the customer
+- Check out on behalf of the customer (the order is assigned to the customer's record)
+
+### Property Sync (real-time via webhook)
+
+When a rep updates a Contact in HubSpot, changes are synced to SCW Commerce in real-time:
+
+| HubSpot Property | SCW Commerce Field | Effect |
+|---|---|---|
+| `email` | `customers.email` | Updates login email |
+| `firstname` | `customers.firstName` | Updates profile |
+| `lastname` | `customers.lastName` | Updates profile |
+| `company` | `customers.company` | Updates profile |
+| `phone` | `customers.phone` | Updates profile |
+| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | Enables/disables Purchase Order payment option |
+| `credit_limit` | `customers.creditLimit` | Sets PO credit limit |
+
+### Contact Deletion
+
+When a Contact is deleted in HubSpot, the customer account is **NOT deleted** (they may have order history). The HubSpot link is removed (`hubspotContactId` set to null).
+
 ### When Does the Customer Get a HubSpot Contact?
 
-A HubSpot Contact is **not** created at registration. It is created when the customer places their **first order**. At checkout, the system:
+There are two paths:
+
+**Path A (sales-initiated):** The rep creates the Contact in HubSpot first → webhook auto-creates the SCW account. The HubSpot Contact exists from the start.
+
+**Path B (self-registration):** The customer registers on the website → a HubSpot Contact is created when they place their **first order**. At checkout, the system:
 1. Checks if a HubSpot Contact exists for this email
 2. If not, creates one
 3. Associates the Ecommerce Order with the Contact
@@ -140,6 +186,32 @@ Saved addresses are available:
 
 ## Account Lifecycle — How Data Flows
 
+### Path A: Sales-Initiated (most B2B customers)
+
+```
+Sales rep creates Contact in HubSpot
+  │
+  ├── Webhook fires → SCW auto-provisions:
+  │     ├── Cognito: user created (temp password)
+  │     ├── Local DB: customer record created, linked to HubSpot
+  │     └── Welcome email sent with "Set Your Password" link
+  │
+  ▼
+Sales rep builds quote → sends payment link
+  │
+  ├── Customer clicks link → logs in (or sets password first) → completes checkout
+  ├── HubSpot: Ecommerce Order created, linked to Contact
+  └── ShipEdge: order pushed for fulfillment (if invoiced)
+  │
+  ▼
+Sales rep updates credit terms in HubSpot
+  │
+  ├── Webhook fires → SCW updates instantly
+  └── PO option appears at checkout for this customer
+```
+
+### Path B: Self-Service (website registration)
+
 ```
 Customer registers on SCW Commerce
   │
@@ -153,10 +225,4 @@ Customer places first order
   ├── HubSpot: Contact created (or matched if already exists)
   ├── HubSpot: Ecommerce Order created, linked to Contact
   └── Local DB: order linked to customer via customerId
-         │
-         ▼
-Sales rep approves for credit terms (in HubSpot)
-  │
-  ├── HubSpot: Contact property updated (approved_for_credit_terms = true)
-  └── Daily sync: local DB updated → PO option appears at checkout
 ```

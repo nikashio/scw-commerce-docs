@@ -114,14 +114,15 @@ The customer does everything themselves. No rep involvement. This is the standar
 ### Sales-Assisted (Rep Builds Quote)
 
 ```
-Rep builds quote in HubSpot → Generates payment link → 
-  Either:
-    A) Sends link to customer → Customer checks out
-    B) Rep opens link and checks out on behalf of customer (e.g., phone order)
-→ Order ships
+Rep creates Contact in HubSpot → Customer account auto-provisioned (webhook)
+  → Rep builds quote → Generates payment link → 
+    Either:
+      A) Sends link to customer → Customer logs in → Checks out
+      B) Rep opens link and checks out on behalf of customer (e.g., phone order)
+  → Order ships
 ```
 
-The rep uses the **Quote Builder** in HubSpot to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
+The rep starts by creating a Contact in HubSpot. A webhook **automatically creates** the customer's login account in SCW Commerce (Cognito + database) and sends them a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
 
 ---
 
@@ -132,7 +133,7 @@ This is important to understand. The same order exists in multiple systems, but 
 | Data | Source of Truth | Also Exists In | Notes |
 |---|---|---|---|
 | **Customer account** (login, password) | AWS Cognito | — | Passwords are managed by Cognito, never stored locally |
-| **Customer profile** (name, email, addresses) | SCW Commerce DB | HubSpot (as Contact) | Profile is local, Contact is synced on first order |
+| **Customer profile** (name, email, addresses) | SCW Commerce DB | HubSpot (as Contact) | Auto-synced via webhook when rep creates/updates Contact in HubSpot |
 | **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB | HubSpot (as Products) | Synced every 15 minutes |
 | **Inventory / stock levels** | ShipEdge | — | Real-time check on add-to-cart and checkout |
 | **Quotes** | HubSpot (Ecommerce Quotes) | — | Quotes only exist in HubSpot |
@@ -152,7 +153,8 @@ The systems stay in sync through automated processes that run on a schedule:
 |---|---|---|
 | **Product sync** | Every 15 minutes | Syncs product catalog changes between HubSpot and storefront |
 | **ShipEdge order status sync** | Every 5 minutes | Checks ShipEdge for status changes (shipped, delivered) and updates storefront + HubSpot |
-| **Credit terms sync** | Daily at 2 AM UTC | Syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront |
+| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly |
+| **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
 | **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check orders older than 14 days and Wire orders older than 21 days |
 | **DLQ retry** | Every 5 minutes | Retries failed sync operations (HubSpot API errors, etc.) |
 
