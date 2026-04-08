@@ -103,3 +103,72 @@ In a future version, the checkout could:
 - Reject PO orders that would exceed the limit
 
 For V1, the admin uses their judgment when reviewing PO orders.
+
+---
+
+## Tax Exemptions
+
+### Overview
+
+Tax exemptions allow qualifying B2B customers to check out without paying sales tax in states where they hold a valid exemption. Common exempt customer types include wholesale/reseller businesses, government entities, and non-profit organizations. Exemptions are managed in HubSpot and synced to TaxJar, which applies $0 tax automatically during checkout.
+
+---
+
+### Setting Up a Tax-Exempt Customer in HubSpot
+
+1. Open the customer's **Contact record** in HubSpot
+2. Find the **"Tax Exemption Type"** property and set it to one of:
+   - `Wholesale` — Wholesale or reseller customers
+   - `Government` — Government entities
+   - `Other` — Non-profits or other exempt types
+3. Find the **"Tax Exempt Regions"** property and enter the applicable state codes as a comma-separated list (e.g., `CA,NY,TX`)
+4. Save the Contact — the daily sync will pick up the changes
+
+> **Note:** If you don't see these properties in the default Contact view, click **"View all properties"** and search for "tax exempt".
+
+---
+
+### How the Sync Works
+
+1. A daily cron job reads `tax_exemption_type` and `tax_exempt_regions` from HubSpot Contacts
+2. Updates the local SCW Commerce database with the latest exemption data
+3. Syncs the customer's exemption to the **TaxJar Customer API**
+4. TaxJar applies $0 tax automatically for exempt states during checkout
+
+The sync is one-way: **HubSpot → SCW Commerce → TaxJar**.
+
+| Direction | What Syncs | Frequency |
+|---|---|---|
+| HubSpot → Storefront | `tax_exemption_type`, `tax_exempt_regions` | Daily at 2 AM UTC |
+| Storefront → TaxJar | Customer exemption record | Daily at 2 AM UTC |
+
+---
+
+### What the Customer Sees
+
+- At checkout, if the customer is exempt in the shipping destination state, sales tax shows as **$0**
+- No special action is required from the customer — the exemption applies automatically
+- If the customer is not exempt in the shipping state, normal tax rates apply
+
+---
+
+### Exemption Types
+
+| Type | Description |
+|---|---|
+| `wholesale` | Wholesale or reseller customers purchasing for resale |
+| `government` | Federal, state, or local government entities |
+| `other` | Non-profits or other qualifying exempt organizations |
+
+---
+
+### Important Notes
+
+- **Exemptions are state-specific.** A customer can be exempt in CA but fully taxed in NY. Always set the correct states in `Tax Exempt Regions`.
+- **Changes take up to 24 hours.** The daily cron runs at 2 AM UTC. Plan ahead for new customers.
+- **To apply immediately,** an admin can trigger the sync manually:
+  ```
+  GET https://hubspot.getscw.com/api/cron/sync-tax-exemptions
+  ```
+  with the cron authorization header.
+- **Revoking an exemption** works the same way — remove the state codes from `Tax Exempt Regions` (or clear `Tax Exemption Type`) in HubSpot and wait for the next sync.
