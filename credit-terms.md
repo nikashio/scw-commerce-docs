@@ -172,3 +172,122 @@ The sync is one-way: **HubSpot → SCW Commerce → TaxJar**.
   ```
   with the cron authorization header.
 - **Revoking an exemption** works the same way — remove the state codes from `Tax Exempt Regions` (or clear `Tax Exemption Type`) in HubSpot and wait for the next sync.
+
+---
+
+### Complete System Flow
+
+Here is the full end-to-end flow of how tax exemptions work across all three systems:
+
+```
+HUBSPOT (Sales Rep manages)
+  Contact Properties:
+    ├── tax_exemption_type: wholesale / government / other / non_exempt
+    └── tax_exempt_regions: "CA,NY,TX" (comma-separated state codes)
+        │
+        ▼  Daily cron (2 AM UTC)
+        
+SCW COMMERCE DATABASE (local storage)
+  customers table:
+    ├── exemption_type: varchar(30)
+    ├── exempt_regions: text (comma-separated)
+    └── taxjar_customer_id: varchar(50)
+        │
+        ▼  Same cron pushes changes to TaxJar
+        
+TAXJAR CUSTOMER API (tax engine)
+  POST/PUT /v2/customers/{id}
+    ├── exemption_type: "wholesale"
+    ├── exempt_regions: [{country: "US", state: "CA"}, ...]
+    └── customer_id: "3419"
+        │
+        ▼  At checkout
+        
+TAX CALCULATION
+  POST /v2/taxes
+    ├── customer_id: "3419"  ← TaxJar looks up exemption
+    ├── to_state: "CA"       ← checks if exempt in this state
+    └── Returns: amount_to_collect: 0.00  ← $0 tax!
+```
+
+---
+
+### How Tax Calculation Works at Checkout
+
+When a customer reaches checkout and enters a shipping address, the system:
+
+1. **Checks nexus** — Does SCW have a sales tax obligation in that state? SCW has nexus in 29 states. If no nexus, tax is always $0 (no API call needed).
+
+2. **Builds the request** — Sends to TaxJar:
+   - **From address:** SCW warehouse in Asheville, NC
+   - **To address:** Customer's shipping address
+   - **Line items:** Each product with quantity, price, and product tax code
+   - **Shipping amount:** After discounts
+   - **Customer ID:** Links to the customer's TaxJar exemption record
+
+3. **TaxJar processes** — For each line item, TaxJar:
+   - Looks up the customer's exemption type and exempt regions
+   - Checks if the product tax code has state-specific rules
+   - Calculates tax by jurisdiction (state, county, city, special district)
+   - Returns $0 for exempt items/states
+
+4. **Tax is displayed** — The checkout shows the total tax. Exempt customers see $0 in their exempt states.
+
+---
+
+### Product Tax Codes
+
+Most SCW products are standard taxable goods. However, some product types are taxed differently by state:
+
+| Product Type | Tax Code | Examples | Tax Treatment |
+|---|---|---|---|
+| **Hardware** (cameras, NVRs, cables) | Default | All cameras, recorders, accessories | Standard sales tax in all nexus states |
+| **SaaS / Software Licensing** | `30070` | SCW AI Licenses, OpenPath Licenses, VSAAS Cloud | Some states exempt software; others tax at reduced rates |
+| **Installation Services** | `10040` | (Not currently sold online) | Service tax rules vary by state |
+
+Product tax codes are automatically mapped from the product's `tax_class_id` field. No manual configuration is needed — the system handles this at checkout.
+
+---
+
+### SCW Nexus States (29 states)
+
+SCW is registered to collect sales tax in these states:
+
+```
+AK  AZ  CA  CO  FL  GA  HI  ID  IL  IN
+KS  KY  LA  MA  MD  MI  MO  NC  ND  NJ
+OH  OK  PA  SC  TN  TX  VA  WA  WI
+```
+
+Orders shipping to states **not** on this list are never taxed, regardless of exemption status.
+
+---
+
+### Current Exempt Customer Data
+
+The system was seeded with **599 exempt customers** migrated from the previous Magento 2 platform:
+
+| Exemption Type | Count |
+|---|---|
+| Wholesale | 558 |
+| Other | 31 |
+| Government | 10 |
+
+Each customer has their exempt regions (specific US states) already configured. New exemptions are managed through HubSpot going forward.
+
+---
+
+### Troubleshooting
+
+**Customer says they should be tax-exempt but are seeing tax:**
+1. Check the Contact in HubSpot — is `Tax Exemption Type` set?
+2. Check `Tax Exempt Regions` — does it include the shipping state?
+3. Check if the daily sync has run since the properties were set
+4. If urgent, trigger manual sync via the cron endpoint
+
+**Tax is $0 for a customer who shouldn't be exempt:**
+1. Check the Contact in HubSpot — make sure `Tax Exemption Type` is `non_exempt` or empty
+2. Verify the shipping state is in SCW's nexus list (non-nexus states always show $0)
+
+**How to check a customer's exemption status in the database:**
+An admin can verify by checking the customer's record in the SCW Commerce database for `exemption_type` and `exempt_regions` fields.
