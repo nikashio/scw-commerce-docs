@@ -276,6 +276,32 @@
 
     .content strong { color: var(--gray-900); }
 
+    /* ── IMAGES ────────────────────────────── */
+    .content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid var(--gray-200);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin: 0.5em 0;
+    }
+    .content p > img {
+      display: block;
+      max-width: 680px;
+    }
+    .content p > img + br,
+    .content p:has(> img) + p > em {
+      display: block;
+      font-size: 0.82em;
+      color: var(--gray-500);
+      margin-top: -0.3em;
+      margin-bottom: 1.5em;
+    }
+    [data-theme="dark"] .content img {
+      border-color: var(--gray-200);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
     .content hr {
       border: none;
       border-top: 1px solid var(--gray-200);
