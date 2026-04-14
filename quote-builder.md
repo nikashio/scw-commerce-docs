@@ -10,14 +10,27 @@ The Quote Builder is a HubSpot CRM extension that lets sales reps create quotes,
 
 The Quote Builder lives on the **Ecommerce Quote** object in HubSpot.
 
+### From the CRM Sidebar (Recommended)
+
+1. Click the **CRM** icon in the left sidebar
+2. Scroll down to find **Ecommerce Quotes** in the object list
+3. Click to open the Ecommerce Quotes grid — this shows all quotes
+4. Click **Create Ecommerce Quote** to start a new quote, or click an existing quote to open it
+5. The **Quote Builder** tab appears on the Ecommerce Quote record
+
+### From a Contact Record
+
+You can also access quotes linked to a specific customer:
+
 1. Navigate to a **Contact** record in HubSpot
-2. In the right sidebar, find **Ecommerce Quotes**
-3. Click **+ Add** to create a new quote, or click an existing quote
-4. The **Quote Builder** tab appears on the Ecommerce Quote record
+2. In the right sidebar, find the **Ecommerce Quotes** association
+3. Click **+ Add** to create a new quote linked to that contact, or click an existing quote
 
-> [SCREENSHOT: HubSpot Contact record showing Ecommerce Quotes section in sidebar]
+![Ecommerce Quotes grid view in HubSpot CRM](images/quote-builder-grid.png)
+*The Ecommerce Quotes grid — shows all quotes with customer email, status, total, and more.*
 
-> [SCREENSHOT: Ecommerce Quote record with Quote Builder tab visible]
+![Ecommerce Quote record with Quote Builder tab](images/quote-builder-record.png)
+*An individual Ecommerce Quote record showing the Quote Builder tab, product list, summary, and shipping details.*
 
 ---
 
