@@ -43,61 +43,7 @@ SCW Commerce is not a single application — it's a set of connected systems, ea
 
 ## How the Systems Connect
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         HUBSPOT CRM                                 │
-│                                                                     │
-│  ┌──────────────┐    ┌─────────────────┐    ┌──────────────────┐   │
-│  │   Contacts    │    │ Ecommerce Quotes │    │ Ecommerce Orders │   │
-│  │              │    │ (Quote Builder)  │    │ (Order tracking) │   │
-│  └──────────────┘    └────────┬─────────┘    └────────▲─────────┘   │
-│                               │                       │             │
-│                    Generate    │              Order     │             │
-│                  Payment Link  │              synced    │             │
-│                               │              back      │             │
-└───────────────────────────────┼────────────────────────┼─────────────┘
-                                │                        │
-                                ▼                        │
-┌─────────────────────────────────────────────────────────────────────┐
-│                     SCW COMMERCE STOREFRONT                         │
-│                                                                     │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────┐    │
-│  │  Product  │   │   Cart   │   │ Checkout │   │    Orders     │    │
-│  │  Catalog  │   │          │   │          │   │  & Invoices   │    │
-│  └──────────┘   └──────────┘   └─────┬────┘   └──────┬───────┘    │
-│                                      │               │             │
-│                          ┌───────────┼───────────┐   │             │
-│                          │           │           │   │             │
-│                          ▼           ▼           ▼   │             │
-│                   ┌───────────┐ ┌────────┐ ┌───────┐ │             │
-│                   │Authorize  │ │ TaxJar │ │ No    │ │             │
-│                   │.net       │ │        │ │Payment│ │             │
-│                   │(CC only)  │ │(tax)   │ │(PO,   │ │             │
-│                   │           │ │        │ │Check, │ │             │
-│                   │           │ │        │ │Wire)  │ │             │
-│                   └───────────┘ └────────┘ └───────┘ │             │
-│                                                      │             │
-│                                    ┌─────────────────┘             │
-│                                    │ Order ready to ship?          │
-│                                    │ (status = processing)         │
-│                                    ▼                               │
-└────────────────────────────────────┼───────────────────────────────┘
-                                     │
-                                     ▼
-                    ┌────────────────────────────────────┐
-                    │          SHIPEDGE (WMS)             │
-                    │                                    │
-                    │  Receives order → Warehouse picks  │
-                    │  → Packs → Creates shipping label  │
-                    │  → Tracking # syncs back to SCW    │
-                    │                                    │
-                    │  Also provides:                    │
-                    │  • Real-time inventory levels      │
-                    │  • Shipment tracking data          │
-                    └────────────────────────────────────┘
-```
-
-> [SCREENSHOT: This is a good place for a Loom video — "2 minute overview of how the systems work together"]
+<img src="images/system-architecture.svg" alt="SCW Commerce System Architecture" style="width:100%;max-width:800px;margin:1em 0;" />
 
 ---
 

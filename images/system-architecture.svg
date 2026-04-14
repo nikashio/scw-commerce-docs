@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 620" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="hubspotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff7a59;stop-opacity:0.08"/>
+      <stop offset="100%" style="stop-color:#ff7a59;stop-opacity:0.02"/>
+    </linearGradient>
+    <linearGradient id="scwGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1B5078;stop-opacity:0.06"/>
+      <stop offset="100%" style="stop-color:#1B5078;stop-opacity:0.02"/>
+    </linearGradient>
+    <linearGradient id="shipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.06"/>
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- HubSpot CRM Block -->
+  <rect x="40" y="20" width="720" height="160" rx="12" fill="url(#hubspotGrad)" stroke="#ff7a59" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="#ff7a59" letter-spacing="0.08em">HUBSPOT CRM</text>
+
+  <!-- HubSpot sub-boxes -->
+  <rect x="72" y="65" width="140" height="50" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="142" y="86" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2937">Contacts</text>
+  <text x="142" y="102" text-anchor="middle" font-size="9" fill="#9ca3af">Customer profiles</text>
+
+  <rect x="240" y="65" width="160" height="50" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="320" y="86" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2937">Ecommerce Quotes</text>
+  <text x="320" y="102" text-anchor="middle" font-size="9" fill="#9ca3af">Quote Builder</text>
+
+  <rect x="428" y="65" width="170" height="50" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="513" y="86" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2937">Ecommerce Orders</text>
+  <text x="513" y="102" text-anchor="middle" font-size="9" fill="#9ca3af">Order tracking</text>
+
+  <rect x="626" y="65" width="115" height="50" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="683" y="86" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2937">Invoices</text>
+  <text x="683" y="102" text-anchor="middle" font-size="9" fill="#9ca3af">Credit Memos</text>
+
+  <!-- Arrows: HubSpot down to SCW -->
+  <line x1="320" y1="135" x2="320" y2="155" stroke="#ff7a59" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="320" y="150" text-anchor="middle" font-size="9" fill="#ff7a59" font-weight="500">Payment Link</text>
+
+  <line x1="513" y1="115" x2="513" y2="155" stroke="#1B5078" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="575" y="148" text-anchor="middle" font-size="9" fill="#1B5078" font-weight="500">Order synced back</text>
+
+  <!-- Down arrows -->
+  <polygon points="320,175 316,168 324,168" fill="#ff7a59"/>
+  <polygon points="513,168 509,175 517,175" fill="#1B5078" transform="rotate(180 513 171.5)"/>
+
+  <!-- SCW Commerce Block -->
+  <rect x="40" y="195" width="720" height="240" rx="12" fill="url(#scwGrad)" stroke="#1B5078" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="222" text-anchor="middle" font-size="11" font-weight="600" fill="#1B5078" letter-spacing="0.08em">SCW COMMERCE STOREFRONT</text>
+
+  <!-- SCW sub-boxes row 1 -->
+  <rect x="72" y="238" width="120" height="44" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="132" y="256" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2937">Products</text>
+  <text x="132" y="272" text-anchor="middle" font-size="9" fill="#9ca3af">Catalog</text>
+
+  <rect x="210" y="238" width="100" height="44" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="260" y="256" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2937">Cart</text>
+  <text x="260" y="272" text-anchor="middle" font-size="9" fill="#9ca3af">Sessions</text>
+
+  <rect x="328" y="238" width="110" height="44" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="383" y="256" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2937">Checkout</text>
+  <text x="383" y="272" text-anchor="middle" font-size="9" fill="#9ca3af">Payment flow</text>
+
+  <rect x="456" y="238" width="135" height="44" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="523" y="256" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2937">Orders</text>
+  <text x="523" y="272" text-anchor="middle" font-size="9" fill="#9ca3af">Invoices &amp; Shipments</text>
+
+  <rect x="609" y="238" width="130" height="44" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="674" y="256" text-anchor="middle" font-size="11" font-weight="600" fill="#1f2937">Customers</text>
+  <text x="674" y="272" text-anchor="middle" font-size="9" fill="#9ca3af">Auth &amp; Accounts</text>
+
+  <!-- Payment services row -->
+  <line x1="383" y1="282" x2="383" y2="305" stroke="#e5e7eb" stroke-width="1"/>
+  <polygon points="383,308 379,302 387,302" fill="#9ca3af"/>
+
+  <rect x="120" y="312" width="130" height="48" rx="8" fill="#fff7ed" stroke="#ED8326" stroke-width="1"/>
+  <text x="185" y="332" text-anchor="middle" font-size="11" font-weight="600" fill="#ED8326">Authorize.net</text>
+  <text x="185" y="348" text-anchor="middle" font-size="9" fill="#92400e">Credit card only</text>
+
+  <rect x="270" y="312" width="110" height="48" rx="8" fill="#f0fdf4" stroke="#10b981" stroke-width="1"/>
+  <text x="325" y="332" text-anchor="middle" font-size="11" font-weight="600" fill="#059669">TaxJar</text>
+  <text x="325" y="348" text-anchor="middle" font-size="9" fill="#065f46">Sales tax (29 states)</text>
+
+  <rect x="400" y="312" width="140" height="48" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1"/>
+  <text x="470" y="332" text-anchor="middle" font-size="11" font-weight="600" fill="#64748b">Offline Payments</text>
+  <text x="470" y="348" text-anchor="middle" font-size="9" fill="#94a3b8">PO, Check, Wire</text>
+
+  <!-- Lines from checkout to payment services -->
+  <line x1="350" y1="308" x2="185" y2="312" stroke="#ED8326" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="383" y1="308" x2="325" y2="312" stroke="#10b981" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="416" y1="308" x2="470" y2="312" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 2"/>
+
+  <!-- Order ready to ship -->
+  <rect x="260" y="380" width="280" height="40" rx="8" fill="white" stroke="#1B5078" stroke-width="1"/>
+  <text x="400" y="400" text-anchor="middle" font-size="11" fill="#1B5078" font-weight="500">Order ready to ship?</text>
+  <text x="400" y="415" text-anchor="middle" font-size="9" fill="#9ca3af">status = processing</text>
+
+  <!-- Arrow down to ShipEdge -->
+  <line x1="400" y1="435" x2="400" y2="475" stroke="#10b981" stroke-width="1.5"/>
+  <polygon points="400,478 396,472 404,472" fill="#10b981"/>
+
+  <!-- ShipEdge Block -->
+  <rect x="160" y="485" width="480" height="120" rx="12" fill="url(#shipGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="512" text-anchor="middle" font-size="11" font-weight="600" fill="#059669" letter-spacing="0.08em">SHIPEDGE (WMS)</text>
+
+  <!-- ShipEdge flow -->
+  <rect x="195" y="525" width="410" height="60" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+
+  <circle cx="230" cy="547" r="4" fill="#10b981"/>
+  <text x="242" y="542" font-size="10" fill="#374151" font-weight="500">Receive order</text>
+  <text x="242" y="556" font-size="9" fill="#9ca3af">Warehouse picks</text>
+
+  <text x="340" y="549" font-size="14" fill="#d1d5db">&#8594;</text>
+
+  <circle cx="370" cy="547" r="4" fill="#10b981"/>
+  <text x="382" y="542" font-size="10" fill="#374151" font-weight="500">Pack &amp; Label</text>
+  <text x="382" y="556" font-size="9" fill="#9ca3af">Shipping label</text>
+
+  <text x="460" y="549" font-size="14" fill="#d1d5db">&#8594;</text>
+
+  <circle cx="490" cy="547" r="4" fill="#10b981"/>
+  <text x="502" y="542" font-size="10" fill="#374151" font-weight="500">Ship &amp; Track</text>
+  <text x="502" y="556" font-size="9" fill="#9ca3af">Tracking # → SCW</text>
+
+  <!-- Inventory arrow back up -->
+  <line x1="640" y1="545" x2="674" y2="545" stroke="#10b981" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="674" y1="545" x2="674" y2="282" stroke="#10b981" stroke-width="1" stroke-dasharray="3 2"/>
+  <polygon points="674,282 670,288 678,288" fill="#10b981"/>
+  <text x="695" y="420" font-size="9" fill="#059669" transform="rotate(90 695 420)" text-anchor="middle">Inventory levels</text>
+
+</svg>
