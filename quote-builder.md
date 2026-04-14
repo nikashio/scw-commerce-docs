@@ -10,13 +10,14 @@ The Quote Builder is a HubSpot CRM extension that lets sales reps create quotes,
 
 The Quote Builder lives on the **Ecommerce Quote** object in HubSpot.
 
-### From the CRM Sidebar (Recommended)
+### From Any CRM Page (Recommended)
 
-1. Click the **CRM** icon in the left sidebar
-2. Scroll down to find **Ecommerce Quotes** in the object list
-3. Click to open the Ecommerce Quotes grid — this shows all quotes
-4. Click **Create Ecommerce Quote** to start a new quote, or click an existing quote to open it
-5. The **Quote Builder** tab appears on the Ecommerce Quote record
+1. Navigate to any CRM page (e.g., Contacts, Deals)
+2. Click the **Object Type Selector** dropdown at the top-left of the page (it shows the current object name, e.g., "Contacts")
+3. Select **Ecommerce Quotes** from the list
+4. This opens the Ecommerce Quotes grid — showing all quotes with status, totals, and customer info
+5. Click **Create Ecommerce Quote** to start a new quote, or click an existing quote to open it
+6. The **Quote Builder** card appears on the Ecommerce Quote record page
 
 ### From a Contact Record
 
@@ -44,9 +45,8 @@ You can also access quotes linked to a specific customer:
 4. Set the quantity and price
 5. The product is added to the quote's line items
 
-> [SCREENSHOT: Product search panel in Quote Builder]
-
-> [SCREENSHOT: Product options modal (if applicable)]
+![Add Products panel in Quote Builder](images/quote-builder-add-products.png)
+*The "Add products" panel — search for products by name or SKU to add them to the quote.*
 
 ### Editing Line Items
 
@@ -59,7 +59,8 @@ Each line item in the quote shows:
 
 Click **Edit** on any line item to change the quantity, price, or apply a line-level discount.
 
-> [SCREENSHOT: Quote Builder with line items showing Edit button]
+![Quote Builder with line items, summary, shipping, and payment link](images/quote-builder-line-items.png)
+*A quote with a line item showing product name, quantity, price, Edit/Remove actions, total summary, shipping address, and Payment Link section.*
 
 ### Quote Summary
 
@@ -69,15 +70,11 @@ The right side of the Quote Builder shows:
 - **Discount** — quote-level discount (click "Edit discount" to apply)
 - **Total** — final amount the customer will pay
 
-> [SCREENSHOT: Quote summary panel showing subtotal, tax, discount, total]
-
 ### Customer Address
 
 The Quote Builder can auto-populate the customer's billing and shipping address from their HubSpot Contact record. The address is used for:
 - Tax calculation (TaxJar needs a shipping address)
 - Pre-filling the checkout form when the payment link is opened
-
-> [SCREENSHOT: Address picker panel in Quote Builder]
 
 ---
 
@@ -89,7 +86,7 @@ Once the quote is complete:
 2. The system validates the quote and generates a checkout URL
 3. The payment link appears with **Open** and **Copy** buttons
 
-> [SCREENSHOT: Payment Link section showing "Ready" status with Open and Copy buttons]
+The Payment Link, Shipping, and Address sections are visible in the quote screenshot above.
 
 ### What Happens When the Link is Generated
 
@@ -114,7 +111,7 @@ The rep opens the link themselves (e.g., while on a phone call with the customer
 
 The order is associated with the **customer's account** (not the rep's), so it appears in the customer's order history.
 
-> [SCREENSHOT: Checkout page opened from payment link showing customer's saved addresses]
+<!-- TODO: Add screenshot of checkout page opened from payment link -->
 
 ---
 
@@ -130,9 +127,8 @@ After a successful checkout from a payment link:
 | **Ecommerce Line Items** | Each product in the order is created as a line item |
 | **Ecommerce Invoice** | Created if payment was processed immediately (credit card) |
 
-> [SCREENSHOT: Ecommerce Quote showing linked Ecommerce Order in sidebar]
-
-> [SCREENSHOT: Ecommerce Order showing linked Ecommerce Quote in sidebar]
+<!-- TODO: Add screenshot of Ecommerce Quote with linked Order in sidebar -->
+<!-- TODO: Add screenshot of Ecommerce Order with linked Quote in sidebar -->
 
 ---
 
