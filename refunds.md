@@ -154,12 +154,51 @@ This happens automatically — no manual action needed.
 
 ## Offline Payment Refunds
 
-For orders paid via **Check/Money Order**, **ACH/Wire Transfer**, or **Purchase Order (NET30)**:
+For orders paid via **Check/Money Order**, **ACH/Wire Transfer**, or **Purchase Order (NET30)**, the system processes refunds without calling a payment gateway.
 
-- These orders use Authorize.net for tracking but may not have a gateway transaction to refund
-- The system will create the Credit Memo record and send the email
-- The actual fund return may need to be handled manually (write a check, wire the funds back, etc.)
-- The admin should note the manual refund method in the reason field
+### How It Works
+
+When you click **Create Refund** on an invoice, the system checks the order's payment method and automatically selects the correct flow:
+
+| Payment Method | Flow | What Happens |
+|---|---|---|
+| **Credit Card (Authorize.net)** | Online refund | Funds reversed through Authorize.net automatically |
+| **Check / Money Order** | Offline cash refund | Credit memo created, awaiting manual payout confirmation |
+| **ACH / Wire Transfer** | Offline cash refund | Credit memo created, awaiting manual payout confirmation |
+| **Purchase Order (NET30)** | Credit-only memo | Credit memo created immediately — no payout needed (reduces accounts receivable) |
+
+### Cash Refund Flow (Check / ACH / Wire)
+
+1. Admin creates refund from the Credit Memo card on the invoice
+2. System creates a credit memo with status **Pending Settlement**
+3. Admin manually processes the payout (writes a check, initiates wire, etc.)
+4. Admin confirms settlement via the API: `PATCH /api/admin/refunds/{id}` with `status: "processed"`
+5. System sends refund confirmation email to customer and reports to TaxJar
+
+### Credit-Only Flow (Purchase Order / NET30)
+
+1. Admin creates refund from the Credit Memo card on the invoice
+2. System creates a credit memo and marks it **Processed** immediately
+3. Customer receives email confirmation
+4. The credit reduces the outstanding accounts receivable — no cash payout needed
+
+### Customer Notes
+
+The refund form includes a **Notes to Customer** field. Use this for:
+- RMA numbers
+- Restocking fee explanations
+- Return shipping instructions
+- Approval status details
+
+These notes appear in the customer's refund confirmation email and are stored on the HubSpot Credit Memo record.
+
+### Refund Adjustments
+
+Both online and offline refunds support:
+- **Shipping Refund** — amount of shipping to refund
+- **Restocking Fee** — deducted from the refund total (up to 30% of item value)
+
+Formula: `Refund Total = Item Subtotal + Shipping Refund - Restocking Fee`
 
 ---
 
@@ -170,8 +209,8 @@ For orders paid via **Check/Money Order**, **ACH/Wire Transfer**, or **Purchase 
 | **ShipEdge not auto-cancelled** | Admin must manually cancel fulfillment in ShipEdge if items haven't shipped |
 | **Partial refund doesn't update order status** | Admin manually updates order status if needed |
 | **No customer-facing refund tracking** | Customer gets email confirmation but can't check refund status in their account |
-| **Restocking fees not supported** | Reduce the refund amount manually to account for restocking |
 | **No refund reversal** | Once processed, a refund cannot be undone — issue a new invoice if needed |
+| **Settlement confirmation is API-only** | Offline cash refund settlement must be confirmed via API call (no UI button yet) |
 
 ---
 
