@@ -39,6 +39,21 @@ SCW Commerce is not a single application — it's a set of connected systems, ea
 **What it is:** Calculates sales tax based on the shipping destination. SCW has tax nexus in 29 states.
 **Who uses it:** Automatic — tax is calculated at checkout and when quotes are saved with a shipping address.
 
+### Meilisearch (Search)
+**What it is:** Self-hosted search engine powering autocomplete and full-text search across the storefront.
+**Who uses it:** All site visitors — automatically triggered when typing in the search bar.
+**What it indexes:** Products (with images and pricing), CMS pages, and categories.
+
+Key features:
+- **Autocomplete dropdown** in the header — shows matching pages, categories, and products with images as you type
+- **Full results page** — with filters (product type, manufacturer) and sort options
+- **Typo tolerance** — built-in, handles common misspellings
+- **Re-indexes automatically** — on every deploy and on the 15-minute product sync cron (incremental)
+
+**Infrastructure:** Docker container running on the EC2 server at `127.0.0.1:7700` (not exposed publicly). Re-indexing can be triggered manually with `npm run search:reindex`.
+
+**Future:** Semantic/vector search via pgvector is planned as a future enhancement.
+
 ---
 
 ## How the Systems Connect
@@ -79,15 +94,16 @@ This is important to understand. The same order exists in multiple systems, but 
 | Data | Source of Truth | Also Exists In | Notes |
 |---|---|---|---|
 | **Customer account** (login, password) | AWS Cognito | — | Passwords are managed by Cognito, never stored locally |
-| **Customer profile** (name, email, addresses) | SCW Commerce DB | HubSpot (as Contact) | Auto-synced via webhook when rep creates/updates Contact in HubSpot |
-| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB | HubSpot (as Products) | Synced every 15 minutes |
+| **Customer profile** (name, email, addresses) | SCW Commerce DB (AWS RDS) | HubSpot (as Contact) | Auto-synced via webhook when rep creates/updates Contact in HubSpot |
+| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB (AWS RDS) | HubSpot (as Products) | Synced every 15 minutes |
 | **Inventory / stock levels** | ShipEdge | — | Real-time check on add-to-cart and checkout |
 | **Quotes** | HubSpot (Ecommerce Quotes) | — | Quotes only exist in HubSpot |
-| **Orders** | SCW Commerce DB | HubSpot (Ecommerce Orders) | Created locally, synced to HubSpot |
-| **Invoices** | SCW Commerce DB | HubSpot (Ecommerce Invoices) | Created locally, synced to HubSpot |
+| **Orders** | SCW Commerce DB (AWS RDS) | HubSpot (Ecommerce Orders) | Created locally, synced to HubSpot |
+| **Invoices** | SCW Commerce DB (AWS RDS) | HubSpot (Ecommerce Invoices) | Created locally, synced to HubSpot |
 | **Shipments / Tracking** | ShipEdge | SCW Commerce DB + HubSpot | ShipEdge creates, synced every 5 minutes |
 | **Tax calculation** | TaxJar | — | Calculated in real-time, not stored permanently |
 | **Credit terms approval** | HubSpot (Contact property) | SCW Commerce DB | Set in HubSpot, synced daily to storefront |
+| **Search index** | Meilisearch | — | Rebuilt from DB + CMS files on deploy and product sync |
 
 ---
 
@@ -97,7 +113,7 @@ The systems stay in sync through automated processes that run on a schedule:
 
 | Process | Frequency | What It Does |
 |---|---|---|
-| **Product sync** | Every 15 minutes | Syncs product catalog changes between HubSpot and storefront |
+| **Product sync** | Every 15 minutes | Syncs product catalog changes between HubSpot and storefront; also updates Meilisearch search index (incremental) |
 | **ShipEdge order status sync** | Every 5 minutes | Checks ShipEdge for status changes (shipped, delivered) and updates storefront + HubSpot |
 | **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly |
 | **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
