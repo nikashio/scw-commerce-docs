@@ -118,29 +118,53 @@ Tax exemptions allow qualifying B2B customers to check out without paying sales 
 
 1. Open the customer's **Contact record** in HubSpot
 2. Find the **"Tax Exemption Type"** property and set it to one of:
-   - `Wholesale` — Wholesale or reseller customers
-   - `Government` — Government entities
-   - `Other` — Non-profits or other exempt types
-3. Find the **"Tax Exempt Regions"** property and enter the applicable state codes as a comma-separated list (e.g., `CA,NY,TX`)
-4. Save the Contact — the daily sync will pick up the changes
+   - `Non-Exempt` — Default, pays sales tax (no certificate required)
+   - `Wholesale` — Resellers buying for resale (needs a resale certificate on file)
+   - `Government` — Gov agencies, public schools, public universities (needs an exemption cert / PO)
+   - `Other` — 501(c)(3) nonprofits, churches, diplomats, qualifying manufacturers (needs the specific exemption cert)
+3. Set **"Tax Exempt Regions"** — this is now a **multi-select dropdown** listing all 29 SCW nexus states. Tick every state where the customer holds a valid certificate.
+   - **Leave all boxes UNCHECKED** to exempt the customer in **every nexus state** (blanket exemption).
+   - **Tick specific states** for partial exemption (e.g., a wholesaler with a KY cert but not NC → tick only Kentucky → they'll pay NC tax).
+4. Save the Contact.
 
-> **Note:** If you don't see these properties in the default Contact view, click **"View all properties"** and search for "tax exempt".
+> **Warning:** Never flip a contact to an exempt type without a valid exemption certificate on file. If the customer is audited, SCW pays the unpaid tax.
+
+> **Note:** If these properties aren't in the default Contact view, click **"View all properties"** and search "tax exempt", or pin them via *About this contact → Actions → Edit default properties*.
 
 ---
 
 ### How the Sync Works
 
-1. A daily cron job reads `tax_exemption_type` and `tax_exempt_regions` from HubSpot Contacts
-2. Updates the local SCW Commerce database with the latest exemption data
-3. Syncs the customer's exemption to the **TaxJar Customer API**
-4. TaxJar applies $0 tax automatically for exempt states during checkout
+Two sync paths run HubSpot → SCW Commerce → TaxJar, but tax exemption properties currently use only the **daily cron**:
 
-The sync is one-way: **HubSpot → SCW Commerce → TaxJar**.
-
-| Direction | What Syncs | Frequency |
+| Property change | Path | Latency |
 |---|---|---|
-| HubSpot → Storefront | `tax_exemption_type`, `tax_exempt_regions` | Daily at 2 AM UTC |
-| Storefront → TaxJar | Customer exemption record | Daily at 2 AM UTC |
+| `email`, `firstname`, `lastname`, `company`, `phone`, `approved_for_credit_terms`, `credit_limit` | Real-time webhook (`POST /api/webhooks/hubspot/contact`) | 2–3 seconds |
+| `tax_exemption_type`, `tax_exempt_regions` | **Daily cron at 2 AM UTC** (≈ 6 AM Tbilisi / 10 PM ET) | Up to 24 hours |
+
+The cron (`GET /api/cron/sync-tax-exemptions`):
+
+1. Reads `tax_exemption_type` and `tax_exempt_regions` from HubSpot for every linked customer
+2. Updates `customers.exemption_type` / `customers.exempt_regions` in the SCW Commerce database
+3. For any customer whose exemption changed and is not `non_exempt`, pushes the customer record to **TaxJar Customer API** (`POST /v2/customers`) — this is what makes TaxJar apply $0 tax during calculation
+4. Stores the returned TaxJar customer id on `customers.taxjar_customer_id`
+
+The sync is one-way: **HubSpot → SCW Commerce → TaxJar**. Edits made directly in TaxJar or in the SCW Commerce database will be overwritten on the next cron run.
+
+---
+
+### Applying Changes Immediately (Manual Sync)
+
+If a customer needs their exemption active before the next 2 AM UTC run, an admin can trigger the cron on demand:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  https://hubspot.getscw.com/api/cron/sync-tax-exemptions
+```
+
+This runs the same job the scheduler would run — reads HubSpot, updates the DB, pushes to TaxJar. Typical runtime: 1–5 seconds per customer × N linked contacts.
+
+> **Note for engineering:** extending the existing HubSpot contact webhook (`POST /api/webhooks/hubspot/contact`) to handle `tax_exemption_type` and `tax_exempt_regions` property changes would make tax exemption updates real-time like the other customer profile fields. The endpoint and signature verification already exist; only the `handlePropertyChange` switch in `hubspot-webhook.service.ts` needs two new cases plus a call to `syncCustomerExemption`.
 
 ---
 
@@ -164,14 +188,36 @@ The sync is one-way: **HubSpot → SCW Commerce → TaxJar**.
 
 ### Important Notes
 
-- **Exemptions are state-specific.** A customer can be exempt in CA but fully taxed in NY. Always set the correct states in `Tax Exempt Regions`.
-- **Changes take up to 24 hours.** The daily cron runs at 2 AM UTC. Plan ahead for new customers.
-- **To apply immediately,** an admin can trigger the sync manually:
-  ```
-  GET https://hubspot.getscw.com/api/cron/sync-tax-exemptions
-  ```
-  with the cron authorization header.
-- **Revoking an exemption** works the same way — remove the state codes from `Tax Exempt Regions` (or clear `Tax Exemption Type`) in HubSpot and wait for the next sync.
+- **Exemptions are state-specific by default.** If you tick specific states in `Tax Exempt Regions`, the customer is exempt **only** in those states. To exempt a customer in **every** SCW nexus state, leave all state boxes **unchecked**.
+- **Changes take up to 24 hours** via the daily cron at 2 AM UTC. Profile properties (name, email, credit terms) sync in real-time via webhook — tax exemption properties do not, yet.
+- **Customer must be linked to a HubSpot contact.** Only customers with `hubspot_contact_id` set in the SCW Commerce database are picked up by the cron. Brand-new contacts in HubSpot who have never placed an order won't have a customer row until their first order; the *next* cron run will then sync their exemption.
+- **To apply immediately,** an admin can trigger the sync manually (see *Applying Changes Immediately* above).
+- **Revoking an exemption** works the same way — uncheck all regions (or set `Tax Exemption Type` back to `Non-Exempt`) in HubSpot and wait for the next sync (or trigger manually).
+
+---
+
+### Troubleshooting — Tax Still Charged When Customer Is Marked Exempt
+
+If a quote or order is still charging tax for a customer you set as exempt, work through these in order:
+
+1. **Is the exempt region the same as the ship-to state?**
+   - A customer exempt only in TN (ticked Tennessee) will still pay IL tax on an IL order. This is correct behavior.
+   - Fix: uncheck the restrictive state(s) for a blanket exemption, or add the ship-to state.
+
+2. **Has the sync actually run since the HubSpot edit?**
+   - Check `customers.exemption_type` in the SCW Commerce database by email:
+     ```sql
+     SELECT id, email, exemption_type, exempt_regions, taxjar_customer_id
+     FROM customers WHERE email = '<customer-email>';
+     ```
+   - If `exemption_type` is still `non_exempt` → the cron hasn't run since the edit. Trigger it manually or wait for the next run.
+   - If `taxjar_customer_id` is empty → the TaxJar customer record was never created. The cron creates it only when the exemption changes to non-`non_exempt`. Manually trigger after setting the exemption type.
+
+3. **Are you on staging with sandbox TaxJar?**
+   - Sandbox and production TaxJar have **separate customer records**. A customer synced to prod TaxJar does **not** exist in sandbox TaxJar. The manual cron trigger creates/updates whichever environment staging is currently pointed at.
+
+4. **Is the customer linked to a HubSpot contact?**
+   - The cron only pulls for customers with a `hubspot_contact_id`. Brand-new HubSpot contacts who've never ordered won't have a customer row yet.
 
 ---
 
@@ -183,22 +229,23 @@ Here is the full end-to-end flow of how tax exemptions work across all three sys
 HUBSPOT (Sales Rep manages)
   Contact Properties:
     ├── tax_exemption_type: wholesale / government / other / non_exempt
-    └── tax_exempt_regions: "CA,NY,TX" (comma-separated state codes)
+    └── tax_exempt_regions: multi-select of 29 nexus states
+                            (empty = exempt in all nexus states)
         │
         ▼  Daily cron (2 AM UTC)
         
 SCW COMMERCE DATABASE (local storage)
   customers table:
-    ├── exemption_type: varchar(30)
-    ├── exempt_regions: text (comma-separated)
-    └── taxjar_customer_id: varchar(50)
+    ├── exemption_type: varchar(30)       — "wholesale" / "government" / "other" / "non_exempt"
+    ├── exempt_regions: text              — comma-separated codes, e.g. "CA,NY,TX" (NULL = all states)
+    └── taxjar_customer_id: varchar(50)   — populated on first successful TaxJar sync
         │
         ▼  Same cron pushes changes to TaxJar
         
 TAXJAR CUSTOMER API (tax engine)
   POST/PUT /v2/customers/{id}
     ├── exemption_type: "wholesale"
-    ├── exempt_regions: [{country: "US", state: "CA"}, ...]
+    ├── exempt_regions: [{country: "US", state: "CA"}, ...]   (omitted if all states)
     └── customer_id: "3419"
         │
         ▼  At checkout
