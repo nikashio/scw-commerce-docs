@@ -70,17 +70,32 @@ When a sales rep creates a new Contact in HubSpot, the customer account is **aut
 
 ### Property Sync (real-time via webhook)
 
-When a rep updates a Contact in HubSpot, changes are synced to SCW Commerce in real-time:
+When a rep updates a Contact in HubSpot, the HubSpot private app (**"Frantic-Actor / claude code key"**, app id `35018267` on portal `51265320`) fires a signed webhook at **`POST https://hubspot.getscw.com/api/webhooks/hubspot/contact`**. SCW Commerce verifies the signature, dedupes events, and updates the matching `customers` row.
 
-| HubSpot Property | SCW Commerce Field | Effect |
-|---|---|---|
-| `email` | `customers.email` | Updates login email |
-| `firstname` | `customers.firstName` | Updates profile |
-| `lastname` | `customers.lastName` | Updates profile |
-| `company` | `customers.company` | Updates profile |
-| `phone` | `customers.phone` | Updates profile |
-| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | Enables/disables Purchase Order payment option |
-| `credit_limit` | `customers.creditLimit` | Sets PO credit limit |
+| HubSpot Property | SCW Commerce Field | Webhook Subscribed? | Handler? |
+|---|---|---|---|
+| `email` | `customers.email` | ✅ | ✅ |
+| `firstname` | `customers.firstName` | ✅ | ✅ |
+| `lastname` | `customers.lastName` | ✅ | ✅ |
+| `company` | `customers.company` | ❌ not subscribed — add in HubSpot if needed | ✅ |
+| `phone` | `customers.phone` | ❌ not subscribed — add in HubSpot if needed | ✅ |
+| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | ✅ | ✅ |
+| `credit_limit` | `customers.creditLimit` | ✅ | ✅ |
+| `tax_exemption_type` | `customers.exemptionType` + TaxJar Customer API | ⚠️ subscription required (add in HubSpot) | ✅ |
+| `tax_exempt_regions` | `customers.exemptRegions` + TaxJar Customer API | ⚠️ subscription required (add in HubSpot) | ✅ |
+
+Properties not in the list above **are not synced** — the daily cron only covers tax-exemption fields, and profile fields only flow via the webhook. If a sales rep edits something outside this list, it stays in HubSpot.
+
+### Viewing & Editing Webhook Subscriptions
+
+1. HubSpot → gear icon (Settings) → **Integrations → Private Apps**
+2. Open the **"Frantic-Actor / claude code key"** app
+3. **Webhooks** tab → scroll to **Event subscriptions → Contact**
+4. To add a new property subscription: **Create subscription** → Object type: *Contact* → Event: *Property change* → pick the property → Save, then **Activate** at the top.
+
+Direct link (sandbox portal): `https://app.hubspot.com/private-apps/51265320/35018267/webhooks`
+
+> **Error counts shown in the HubSpot webhooks tab** (e.g., 19/28 errors on `email` changes) indicate events where SCW Commerce returned a non-200. Common causes: signature clock drift, timeouts, or the matching customer row not existing yet. Check `/logs/api.log` on staging for the matching `event=webhook_contact_error` entries when triaging.
 
 ### Contact Deletion
 

@@ -135,12 +135,13 @@ Tax exemptions allow qualifying B2B customers to check out without paying sales 
 
 ### How the Sync Works
 
-Two sync paths run HubSpot → SCW Commerce → TaxJar, but tax exemption properties currently use only the **daily cron**:
+Two sync paths run HubSpot → SCW Commerce → TaxJar:
 
-| Property change | Path | Latency |
-|---|---|---|
-| `email`, `firstname`, `lastname`, `company`, `phone`, `approved_for_credit_terms`, `credit_limit` | Real-time webhook (`POST /api/webhooks/hubspot/contact`) | 2–3 seconds |
-| `tax_exemption_type`, `tax_exempt_regions` | **Daily cron at 2 AM UTC** (≈ 6 AM Tbilisi / 10 PM ET) | Up to 24 hours |
+| Property change | Path | Latency | Requires HubSpot subscription |
+|---|---|---|---|
+| `email`, `firstname`, `lastname`, `approved_for_credit_terms`, `credit_limit` | Real-time webhook (`POST /api/webhooks/hubspot/contact`) | 2–3 seconds | ✅ already subscribed |
+| `tax_exemption_type`, `tax_exempt_regions` | Real-time webhook (same endpoint) | 2–3 seconds | ⚠️ **subscription must be added** in HubSpot — see *Viewing & Editing Webhook Subscriptions* in [Customer Accounts](customer-accounts.md#viewing--editing-webhook-subscriptions). Without it, only the daily cron below will sync these. |
+| Any of the above (fallback / reconciliation) | Daily cron at 2 AM UTC (≈ 6 AM Tbilisi / 10 PM ET) | Up to 24 hours | — |
 
 The cron (`GET /api/cron/sync-tax-exemptions`):
 
