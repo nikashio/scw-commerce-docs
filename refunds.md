@@ -38,12 +38,14 @@ On the Invoice record, click the **Credit Memo** tab. This shows:
 5. Click **Create Refund**
 
 The system will:
-1. Process the payment reversal through Authorize.net
-2. Create a Credit Memo record in HubSpot (linked to the order, invoice, and contact)
+1. Process the payment reversal through Authorize.net (credit card) or mark as offline refund (check/wire/PO)
+2. Enqueue a HubSpot Credit Memo creation on the `hubspot_outbox` — delivered within ~1 minute with automatic retry on failure
 3. Send a refund confirmation email to the customer
-4. Report the refund to TaxJar for tax compliance
+4. Report the refund to TaxJar as a negative transaction (with proportional tax)
 5. Update the invoice status to "Refunded" (if fully refunded)
 6. Update the order status to "Cancelled" (for full refunds)
+
+**Double-click safe:** Every refund request carries an idempotency key. If the card is clicked twice or the Lambda retries, SCW returns the existing refund instead of creating a duplicate. No risk of the customer being refunded twice.
 
 ---
 
@@ -107,17 +109,22 @@ When a refund is processed, the customer receives an email with:
 
 ```
 Pending → Approved → Processed
-                  ↘ Failed → Pending (retry)
+       ↘         ↘ Pending Settlement → Processed    (offline cash refunds)
+        Failed → Pending (retry)
 ```
 
 | Status | Meaning |
 |---|---|
 | **Pending** | Refund created, awaiting processing |
 | **Approved** | Validated, ready to execute payment reversal |
-| **Processed** | Payment reversed, email sent, complete |
+| **Pending Settlement** | Offline refund awaiting manual payout confirmation (check written, wire sent) |
+| **Processed** | Payment reversed, email sent, complete. HubSpot Credit Memo enqueued for sync. |
 | **Failed** | Payment gateway error — can be retried |
 
-In practice, when initiated from HubSpot, refunds go through all stages automatically in one step: Pending → Approved → Processed.
+In practice, when initiated from HubSpot:
+- **Credit-card refunds**: Pending → Approved → Processed automatically in one step.
+- **Offline cash refunds** (check / wire): Pending → Approved → Processed (when SCW records the offline payout).
+- **Offline credit memos** (PO / NET30): Pending → Approved → Processed (no payout, just reduces A/R).
 
 ---
 
@@ -148,7 +155,19 @@ Every refund is automatically reported to **TaxJar** as a negative transaction. 
 - TaxJar's filing reports reflect the correct net tax for each jurisdiction
 - State/county/city tax amounts are adjusted accurately
 
-This happens automatically — no manual action needed.
+### Proportional Tax on Partial Refunds
+
+For **partial** and **per-item** refunds, the system refunds tax proportional to the goods returned. Formula:
+
+```
+taxRefund = invoice.taxAmount × (refundSubtotal + refundShipping) / (invoice.subtotal + invoice.shippingAmount)
+```
+
+Example: an invoice of $100 subtotal + $10 shipping + $7.70 tax ($117.70 total). Customer returns $50 of goods. Tax refund is `7.70 × 50 / 110 = $3.50`. The customer gets $53.50 back; TaxJar shows `-$3.50` sales tax. Without proportional math, TaxJar would see $0 refunded tax and SCW would over-remit $3.50 to the state.
+
+### Retry on Failure
+
+If TaxJar is unreachable at the moment of refund, the report is enqueued in the DLQ and retried every 5 minutes with exponential backoff. The refund itself still succeeds — TaxJar reconciles when it comes back online.
 
 ---
 
@@ -223,9 +242,18 @@ Formula: `Refund Total = Item Subtotal + Shipping Refund - Restocking Fee`
 - Retry from the Credit Memo Card
 
 **Credit Memo not showing in HubSpot:**
-- The Lambda creates the HubSpot object after SCW Commerce processes the refund
-- Check if the refund was successful in SCW Commerce (status = processed)
-- Check Lambda logs for errors
+- Credit memos are created asynchronously via the HubSpot outbox. Delivery normally takes under a minute.
+- Check `hubspot_outbox` for the refund row:
+  ```sql
+  SELECT id, event_type, status, attempt_count, last_error_code, last_error_message
+  FROM hubspot_outbox
+  WHERE entity_type = 'refund' AND entity_id = '<refundId>';
+  ```
+- Status meanings:
+  - `pending` / `processing` — about to deliver, check again in 1 min
+  - `retrying` — HubSpot returned a transient error, will auto-retry with backoff
+  - `abandoned` — non-retryable error (e.g. HubSpot 400) after 9 attempts; needs human attention. Check `last_error_message`.
+  - `delivered` — successfully created in HubSpot; refresh the HubSpot record
 
 **Customer didn't receive refund email:**
 - Check the customer's email address on the order

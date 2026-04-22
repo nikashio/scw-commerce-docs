@@ -9,6 +9,7 @@
 - **Order Management**
   - [Order Lifecycle & Status Flow](order-lifecycle.md)
   - [Admin Actions](admin-actions.md)
+  - [Refunds & Credit Memos](refunds.md)
 
 - **Configuration**
   - [Credit Terms Management](credit-terms.md)

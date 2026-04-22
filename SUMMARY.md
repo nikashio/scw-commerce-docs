@@ -14,6 +14,7 @@
 
 * [Order Lifecycle & Status Flow](order-lifecycle.md)
 * [Admin Actions — Invoicing & Order Management](admin-actions.md)
+* [Refunds & Credit Memos](refunds.md)
 
 ## Configuration
 

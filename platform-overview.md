@@ -113,11 +113,39 @@ The systems stay in sync through automated processes that run on a schedule:
 
 | Process | Frequency | What It Does |
 |---|---|---|
+| **HubSpot entity sync (outbox)** | Every 1 minute | Delivers every order, invoice, shipment, and credit-memo change to HubSpot. Retries on failure with exponential backoff (1m→120m). See "How HubSpot sync works" below. |
+| **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. |
 | **Product sync** | Every 15 minutes | Syncs product catalog changes between HubSpot and storefront; also updates Meilisearch search index (incremental) |
 | **ShipEdge order status sync** | Every 5 minutes | Checks ShipEdge for status changes (shipped, delivered) and updates storefront + HubSpot |
 | **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly |
 | **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
+| **Tax exemption sync** | Daily at 2 AM UTC | Pushes customer tax-exemption certificates to TaxJar |
 | **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check orders older than 14 days and Wire orders older than 21 days |
-| **DLQ retry** | Every 5 minutes | Retries failed sync operations (HubSpot API errors, etc.) |
+| **DLQ retry** | Every 5 minutes | Retries failed non-outbox syncs (Cognito user provisioning, ShipEdge order push, TaxJar refund reporting) |
 
 These processes are fully automatic — no manual intervention needed unless something fails (which is logged and retried automatically).
+
+---
+
+## How HubSpot Sync Works
+
+All SCW Commerce → HubSpot data flow goes through a single durable outbox pattern. When something changes in SCW Commerce (new order, invoice paid, refund processed, shipment created), the change is atomically recorded in a `hubspot_outbox` table along with the business mutation. A cron worker picks up pending rows every minute and delivers them to HubSpot.
+
+**Why this matters:**
+- **Reliability:** If HubSpot is down or returns a transient error, the sync retries automatically (1m → 2m → 4m → 8m → 16m → 30m → 60m → 120m — up to 9 attempts over ~4 hours). No manual re-sync needed for transient failures.
+- **Observability:** Every sync event has a row in the database with its status (pending / processing / delivered / retrying / abandoned), attempt count, delivery latency, and last error. One SQL query answers "did this sync?" without digging through logs.
+- **Idempotency:** Retries and duplicate triggers never create duplicate HubSpot records — handlers check for existing objects by source ID before creating.
+- **Atomicity:** The outbox row commits in the same database transaction as the business change. If the order is saved, the HubSpot sync is guaranteed to fire. No silent drift.
+
+**Events delivered:**
+
+| Event | When it fires | What it does in HubSpot |
+|---|---|---|
+| `order.created` | New order inserted | Upsert Ecommerce Order + Line Items, associate to Contact |
+| `order.status_changed` | Order transitions status | Update Ecommerce Order status |
+| `invoice.created` | New invoice | Upsert Ecommerce Invoice |
+| `invoice.paid` | Invoice marked paid | Update Ecommerce Invoice status |
+| `shipment.created` | ShipEdge creates a shipment | Upsert Ecommerce Shipment |
+| `refund.processed` | Refund reaches Processed status | Create Credit Memo, associate to Order / Invoice / Contact |
+
+Admins and engineers can inspect sync health at any time by querying the `hubspot_outbox` table on the production database (see **Key Concepts → Outbox** for the exact queries).
