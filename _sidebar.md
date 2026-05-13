@@ -14,3 +14,6 @@
 - **Configuration**
   - [Credit Terms Management](credit-terms.md)
   - [Customer Accounts](customer-accounts.md)
+
+- **Developer Reference**
+  - [Admin API](api-admin.md)
