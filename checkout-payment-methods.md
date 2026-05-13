@@ -35,8 +35,27 @@ The standard payment method. Available to all customers.
 | Payment processed | Status → `paid` | — | — |
 | ShipEdge accepts | Status → `processing` | Ecommerce Order created: `status = processing` | Order received in queue |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
+| Carrier delivers | Status → `delivered` | Status → `delivered` | — |
+| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
 
 > [SCREENSHOT: Credit card form at checkout]
+
+### Auth-Only Mode (Manual Capture)
+
+For some orders — typically high-value ones or ones that need internal review — the card is **authorized but not charged** at checkout. The customer's card has the amount on hold but no money moves until an admin captures it from the Order Actions card on the Ecommerce Order in HubSpot.
+
+This is an admin-initiated mode; it is not a customer choice at checkout.
+
+| Step | SCW Commerce DB | HubSpot | ShipEdge |
+|---|---|---|---|
+| Order placed | Order created: `status = authorized`, card authorization held | — | — |
+| Admin captures (Order Actions card, see [Admin Actions](admin-actions.md)) | Status → `paid`, Invoice created | Ecommerce Order created: `status = processing` | Order pushed to ShipEdge |
+| ShipEdge accepts | Status → `processing` | Status → `processing` | Order received in queue |
+| Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
+| Carrier delivers | Status → `delivered` | Status → `delivered` | — |
+| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+
+See [Order Lifecycle](order-lifecycle.md) for the full auth-only status flow.
 
 ---
 
@@ -67,6 +86,8 @@ If the customer is not approved, this option is hidden — they only see Credit 
 | Order placed | Order created: `status = pending_payment`, `payment_method = purchase_order`, `po_number = PO-2026-0412` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = purchase_order`, `eo_po_number = PO-2026-0412` | **Nothing** — order is NOT sent to ShipEdge |
 | Admin invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
+| Carrier delivers | Status → `delivered` | Status → `delivered` | — |
+| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
 
 > [SCREENSHOT: Ecommerce Order in HubSpot showing Payment Method Type = Purchase Order and PO Number]
 
@@ -101,9 +122,11 @@ Available to all customers. The customer mails a physical check.
 | Step | SCW Commerce DB | HubSpot | ShipEdge |
 |---|---|---|---|
 | Order placed | Order created: `status = pending_payment`, `payment_method = check` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = check` | **Nothing** |
-| Check received — admin invoices | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
+| Check received — admin invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
 | **14 days pass without invoice** | **Status → `cancelled` (automatic)** | **Status → `cancelled`** | — |
 | Warehouse ships (if invoiced) | Status → `shipped` | Status → `shipped` | Tracking number created |
+| Carrier delivers | Status → `delivered` | Status → `delivered` | — |
+| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
 
 > [SCREENSHOT: Payment instruction email for Check order]
 
@@ -137,9 +160,11 @@ Available to all customers. The customer sends a wire transfer.
 | Step | SCW Commerce DB | HubSpot | ShipEdge |
 |---|---|---|---|
 | Order placed | Order created: `status = pending_payment`, `payment_method = ach_wire` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = ach_wire` | **Nothing** |
-| Admin verifies funds — invoices | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
+| Admin verifies funds — invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
 | **21 days pass without invoice** | **Status → `cancelled` (automatic)** | **Status → `cancelled`** | — |
 | Warehouse ships (if invoiced) | Status → `shipped` | Status → `shipped` | Tracking number created |
+| Carrier delivers | Status → `delivered` | Status → `delivered` | — |
+| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
 
 > [SCREENSHOT: Bank details payment instruction email]
 
