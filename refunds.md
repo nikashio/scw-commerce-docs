@@ -42,8 +42,8 @@ The system will:
 2. Enqueue a HubSpot Credit Memo creation on the `hubspot_outbox` — delivered within ~1 minute with automatic retry on failure
 3. Send a refund confirmation email to the customer
 4. Report the refund to TaxJar as a negative transaction (with proportional tax)
-5. Update the invoice status to "Refunded" (if fully refunded)
-6. Update the order status to "Cancelled" (for full refunds)
+5. Update the local invoice status to `refunded` if the invoice is fully refunded. HubSpot's Ecommerce Invoice enum has no refunded state, so the Credit Memo is the refund record there.
+6. Update the order status to `cancelled` for full refunds. Partial and per-item refunds do not change order status automatically.
 
 **Double-click safe:** Every refund request carries an idempotency key. If the card is clicked twice or the Lambda retries, SCW returns the existing refund instead of creating a duplicate. No risk of the customer being refunded twice.
 
@@ -111,7 +111,7 @@ When a refund is processed, the customer receives an email with:
   <div class="modern-flow__header">
     <div>
       <span class="modern-flow__eyebrow">Refund lifecycle</span>
-      <span class="modern-flow__title">Refunds either process automatically, wait for offline settlement, or retry after failure</span>
+      <span class="modern-flow__title">Refunds process automatically, record offline credits, or retry after failure</span>
     </div>
     <span class="modern-flow__badge">Credit Memo</span>
   </div>
@@ -126,9 +126,9 @@ When a refund is processed, the customer receives an email with:
     <div class="modern-flow__branch">
       <span class="modern-flow__branch-title">Offline cash refund</span>
       <div class="modern-flow__track">
-        <span class="modern-flow__node modern-flow__node--wait">Pending Settlement<small>Check written or wire sent</small></span>
+        <span class="modern-flow__node modern-flow__node--wait">Operational payout<small>Check or wire handled by finance</small></span>
         <span class="modern-flow__arrow" aria-hidden="true"></span>
-        <span class="modern-flow__node modern-flow__node--done">Processed<small>Offline payout confirmed</small></span>
+        <span class="modern-flow__node modern-flow__node--done">Processed<small>Credit memo recorded in SCW</small></span>
       </div>
     </div>
     <div class="modern-flow__branch">
@@ -146,13 +146,13 @@ When a refund is processed, the customer receives an email with:
 |---|---|
 | **Pending** | Refund created, awaiting processing |
 | **Approved** | Validated, ready to execute payment reversal |
-| **Pending Settlement** | Offline refund awaiting manual payout confirmation (check written, wire sent) |
-| **Processed** | Payment reversed, email sent, complete. HubSpot Credit Memo enqueued for sync. |
+| **Pending Settlement** | Supported state for a manually staged offline refund. HubSpot-created offline refunds currently skip this and process immediately when the credit memo is created. |
+| **Processed** | Payment reversed or offline credit recorded, email sent, complete. HubSpot Credit Memo enqueued for sync. |
 | **Failed** | Payment gateway error — can be retried |
 
 In practice, when initiated from HubSpot:
 - **Credit-card refunds**: Pending → Approved → Processed automatically in one step.
-- **Offline cash refunds** (check / wire): Pending → Approved → Processed (when SCW records the offline payout).
+- **Offline cash refunds** (check / wire): Pending → Approved → Processed immediately when the admin creates the credit memo. Create it only after the offline payout is approved/issued operationally.
 - **Offline credit memos** (PO / NET30): Pending → Approved → Processed (no payout, just reduces A/R).
 
 ---
@@ -211,17 +211,16 @@ When you click **Create Refund** on an invoice, the system checks the order's pa
 | Payment Method | Flow | What Happens |
 |---|---|---|
 | **Credit Card (Authorize.net)** | Online refund | Funds reversed through Authorize.net automatically |
-| **Check / Money Order** | Offline cash refund | Credit memo created, awaiting manual payout confirmation |
-| **ACH / Wire Transfer** | Offline cash refund | Credit memo created, awaiting manual payout confirmation |
+| **Check / Money Order** | Offline cash refund | Credit memo created and marked processed; finance handles the external payout operationally |
+| **ACH / Wire Transfer** | Offline cash refund | Credit memo created and marked processed; finance handles the external payout operationally |
 | **Purchase Order (NET30)** | Credit-only memo | Credit memo created immediately — no payout needed (reduces accounts receivable) |
 
 ### Cash Refund Flow (Check / ACH / Wire)
 
 1. Admin creates refund from the Credit Memo card on the invoice
-2. System creates a credit memo with status **Pending Settlement**
-3. Admin manually processes the payout (writes a check, initiates wire, etc.)
-4. Admin confirms settlement via the API: `PATCH /api/admin/refunds/{id}` with `status: "processed"`
-5. System sends refund confirmation email to customer and reports to TaxJar
+2. System creates a credit memo and marks it **Processed** immediately
+3. Admin/finance handles the actual payout operationally (writes a check, initiates wire, etc.)
+4. System sends refund confirmation email to customer and reports to TaxJar
 
 ### Credit-Only Flow (Purchase Order / NET30)
 
@@ -238,7 +237,7 @@ The refund form includes a **Notes to Customer** field. Use this for:
 - Return shipping instructions
 - Approval status details
 
-These notes appear in the customer's refund confirmation email and are stored on the HubSpot Credit Memo record.
+These notes are stored on the refund record and synced to the HubSpot Credit Memo. The current customer email template does not include those notes yet.
 
 ### Refund Adjustments
 
@@ -258,7 +257,7 @@ Formula: `Refund Total = Item Subtotal + Shipping Refund - Restocking Fee`
 | **Partial refund doesn't update order status** | Admin manually updates order status if needed |
 | **No customer-facing refund tracking** | Customer gets email confirmation but can't check refund status in their account |
 | **No refund reversal** | Once processed, a refund cannot be undone — issue a new invoice if needed |
-| **Settlement confirmation is API-only** | Offline cash refund settlement must be confirmed via API call (no UI button yet) |
+| **No separate payout tracker for offline cash refunds** | SCW records the credit memo as processed when created; finance tracks the external check/wire payout operationally |
 
 ---
 

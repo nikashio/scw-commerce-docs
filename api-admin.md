@@ -28,7 +28,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 
 - **JSON only.** Success responses use either `{ ...data }` or `{ success: true, data: { ... } }`. Errors use `{ error: "...", code?: "..." }`.
 - **Path params named `id`** accept the numeric primary key OR the human-readable identifier (order number `SCW-...`, invoice number, etc.) on endpoints that explicitly note both.
-- **Outbox side effects.** Any endpoint that mutates an order, invoice, refund, or shipment automatically enqueues a HubSpot sync event via the outbox; you do not need to call `/sync` explicitly.
+- **Outbox side effects.** Most order, invoice, refund, and shipment mutations enqueue HubSpot sync through the outbox. A few coordinated flows intentionally skip individual syncs and rely on a later status event or manual `/sync`; those exceptions are called out below.
 - **Idempotency.** Refund creation endpoints accept an `Idempotency-Key` header to guarantee at-most-once processing across retries.
 
 ---
@@ -48,12 +48,12 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `POST /api/admin/orders/from-quote`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Create an order from a HubSpot quote without taking payment. Used for offline methods (Check, Wire, PO).
+- **Purpose:** Create a `pending_payment` order from a HubSpot quote for offline payment methods (`check`, `ach_wire`, `purchase_order`). Used when the HubSpot/Lambda side sends the full quote payload rather than sending a customer through the payment-link checkout.
 - **Path params:** none
 - **Query params:** none
-- **Request body:** `{ customerEmail, shippingAddress, billingAddress, items[], subtotal, grandTotal, paymentMethod }`
-- **Response (200):** `{ success, data: { orderId, orderNumber, status } }`
-- **Side effects:** DB write; sends order confirmation + payment instructions emails; order created in `pending_payment`.
+- **Request body:** `{ customerEmail, customerFirstName?, customerLastName?, billingAddress, shippingAddress, items[], subtotal, shippingAmount, taxAmount, grandTotal, shippingMethod?, paymentMethod, poNumber?, hubspotQuoteId?, hubspotContactId?, internalNotes? }`
+- **Response (200):** `{ success, data: { orderId, orderNumber, status: 'pending_payment' } }`
+- **Side effects:** Creates local order and pending payment record, links/heals the customer by HubSpot contact ID or email, sends confirmation/payment-instruction emails. It intentionally does **not** invoice or push to ShipEdge; admin invoicing is still required after payment/PO verification.
 
 #### `GET /api/admin/orders/stats`
 
@@ -83,7 +83,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Query params:** none
 - **Request body:** none
 - **Response (200):** `{ message, payment, invoice }`
-- **Side effects:** Authorize.net gateway call; DB writes (payment + invoice + order status); ShipEdge sync triggered; HubSpot outbox enqueue.
+- **Side effects:** Authorize.net gateway call; DB writes (payment + local invoice + order status); ShipEdge sync triggered. The subsequent `processing` status update can enqueue an order-status sync when the order already has a HubSpot object; the invoice itself is not explicitly enqueued by this route, so use `/api/admin/orders/[id]/sync` for the invoice if it does not appear in HubSpot.
 
 #### `POST /api/admin/orders/[id]/invoice`
 
@@ -176,12 +176,12 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `POST /api/admin/refunds/from-hubspot`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Full refund flow triggered by the HubSpot Refund Manager card via the lambda backend. Validates, processes via Authorize.net (online payments) or directly (offline), updates the order. Idempotent via `Idempotency-Key`.
+- **Purpose:** Refund flow triggered by the HubSpot Refund Manager card via the lambda backend. Supports full, partial-dollar, and per-item refunds; processes via Authorize.net for online payments or directly for offline payments. Full refunds attempt to cancel the order. Idempotent via `Idempotency-Key`.
 - **Path params:** none
 - **Query params:** none
 - **Request body:** `hubspotRefundRequestSchema`
 - **Response (201):** `{ success, refundNumber, refundId, refundAmount, status, orderId, invoiceId }`
-- **Side effects:** DB writes (refund + items + event log); Authorize.net gateway call (online payments only); TaxJar report queued (offline refunds); order status updated if a full refund; HubSpot outbox enqueue.
+- **Side effects:** DB writes (refund + items + event log); Authorize.net gateway call (online payments only); TaxJar refund report queued/retried; order status updated if a full refund; HubSpot outbox enqueue.
 
 #### `POST /api/admin/refunds/offline`
 
@@ -407,4 +407,4 @@ Future **Developer Reference** pages will cover:
 
 - **Customer / Storefront API** — `/api/cart/*`, `/api/checkout/*`, `/api/orders/*`, `/api/products/*`, `/api/search/*`, `/api/customers/*`, `/api/auth/*`, `/api/categories/*`, `/api/invitations/*`, `/api/tax/*`, `/api/shipping/*`, `/api/deals/*`.
 - **Cron jobs and webhook receivers** — `/api/cron/*` (auth via `Authorization: Bearer <CRON_SECRET>`) and `/api/webhooks/*` (signed payloads).
-- **HubSpot Lambda backend** — `quoteRoutes`, `dealCartRoutes`, `invoiceOrderRoutes`, `refundRoutes`, `productRoutes`, `syncRoutes`, `calculatorRoutes`, `configRoutes` (lives in the separate `hubspotapp` repo on the `origin/main` branch).
+- **HubSpot Lambda/backend apps** — current SCW Commerce endpoints include signed Ecommerce Quote payment-link checkout and order-from-quote creation. Older HubSpot app repos may still contain legacy Magento quote automation, so verify the deployed HubSpot extension before changing quote-card behavior.

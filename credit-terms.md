@@ -2,7 +2,7 @@
 
 ## Overview
 
-Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. The approval is managed entirely in HubSpot and synced daily to the storefront.
+Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. The approval is managed in HubSpot, synced to the storefront by the contact webhook in real time, and reconciled daily as a fallback.
 
 ---
 
@@ -31,9 +31,9 @@ If you don't see these properties in the default view:
 3. Set the values
 4. Optionally, click **"Actions" → "Customize properties"** to pin them to the default view
 
-### Step 3: Wait for Sync (or Trigger Manually)
+### Step 3: Save and Verify
 
-The storefront syncs credit terms from HubSpot **daily at 2 AM UTC**. After the sync:
+The storefront updates from the HubSpot contact webhook within a few seconds when the webhook subscription is active. A daily **2 AM UTC** cron also reconciles the same fields in case a webhook was missed. After the update:
 - The customer's storefront account is updated with the approval flag
 - Next time they go to checkout, the **Purchase Order (NET30)** option appears
 
@@ -51,7 +51,7 @@ To remove a customer's ability to use Purchase Orders:
 
 1. Open their Contact in HubSpot
 2. Set **"Approved for Credit Terms"** to **No**
-3. Wait for the daily sync (or trigger manually)
+3. Wait for the webhook update, or trigger the reconciliation sync manually if needed
 4. The Purchase Order option will no longer appear at their checkout
 
 > **Note:** Revoking credit terms does not affect existing orders. Any PO orders already placed will remain in their current status.
@@ -76,9 +76,9 @@ The Purchase Order option is completely hidden — the customer has no way to se
 
 ## How the Sync Works (Technical)
 
-1. A daily cron job runs at **2 AM UTC**
-2. It queries all customers in the SCW Commerce database that have a `hubspot_contact_id`
-3. For each customer, it fetches two properties from the HubSpot Contact:
+1. The HubSpot contact webhook updates the local customer row when subscribed contact properties change.
+2. A daily cron job runs at **2 AM UTC** as reconciliation for every customer with a `hubspot_contact_id`.
+3. For each customer, the cron fetches two properties from the HubSpot Contact:
    - `approved_for_credit_terms`
    - `credit_limit`
 4. If the values differ from what's stored locally, it updates the customer record
@@ -88,7 +88,7 @@ The Purchase Order option is completely hidden — the customer has no way to se
 
 | Direction | What Syncs | Frequency |
 |---|---|---|
-| HubSpot → Storefront | `approved_for_credit_terms`, `credit_limit` | Daily at 2 AM UTC |
+| HubSpot → Storefront | `approved_for_credit_terms`, `credit_limit` | Real-time webhook + daily 2 AM UTC reconciliation |
 | Storefront → HubSpot | Nothing (one-way sync) | — |
 
 ---
@@ -140,7 +140,7 @@ Two sync paths run HubSpot → SCW Commerce → TaxJar:
 | Property change | Path | Latency | Requires HubSpot subscription |
 |---|---|---|---|
 | `email`, `firstname`, `lastname`, `approved_for_credit_terms`, `credit_limit` | Real-time webhook (`POST /api/webhooks/hubspot/contact`) | 2–3 seconds | ✅ already subscribed |
-| `tax_exemption_type`, `tax_exempt_regions` | Real-time webhook (same endpoint) | 2–3 seconds | ⚠️ **subscription must be added** in HubSpot — see *Viewing & Editing Webhook Subscriptions* in [Customer Accounts](customer-accounts.md#viewing--editing-webhook-subscriptions). Without it, only the daily cron below will sync these. |
+| `tax_exemption_type`, `tax_exempt_regions` | Real-time webhook (same endpoint) | 2–3 seconds | Handler is implemented; HubSpot property subscriptions must be active. See *Viewing & Editing Webhook Subscriptions* in [Customer Accounts](customer-accounts.md#viewing--editing-webhook-subscriptions). Without those subscriptions, only the daily cron below will sync these. |
 | Any of the above (fallback / reconciliation) | Daily cron at 2 AM UTC (≈ 6 AM Tbilisi / 10 PM ET) | Up to 24 hours | — |
 
 The cron (`GET /api/cron/sync-tax-exemptions`):
@@ -165,10 +165,6 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
 
 This runs the same job the scheduler would run — reads HubSpot, updates the DB, pushes to TaxJar. Typical runtime: 1–5 seconds per customer × N linked contacts.
 
-> **Note for engineering:** extending the existing HubSpot contact webhook (`POST /api/webhooks/hubspot/contact`) to handle `tax_exemption_type` and `tax_exempt_regions` property changes would make tax exemption updates real-time like the other customer profile fields. The endpoint and signature verification already exist; only the `handlePropertyChange` switch in `hubspot-webhook.service.ts` needs two new cases plus a call to `syncCustomerExemption`.
-
----
-
 ### What the Customer Sees
 
 - At checkout, if the customer is exempt in the shipping destination state, sales tax shows as **$0**
@@ -190,7 +186,7 @@ This runs the same job the scheduler would run — reads HubSpot, updates the DB
 ### Important Notes
 
 - **Exemptions are state-specific by default.** If you tick specific states in `Tax Exempt Regions`, the customer is exempt **only** in those states. To exempt a customer in **every** SCW nexus state, leave all state boxes **unchecked**.
-- **Changes take up to 24 hours** via the daily cron at 2 AM UTC. Profile properties (name, email, credit terms) sync in real-time via webhook — tax exemption properties do not, yet.
+- **Changes usually apply in seconds** when the HubSpot webhook subscriptions are active. The daily 2 AM UTC cron is the fallback and can take up to 24 hours if a webhook was missed or the subscription is not active.
 - **Customer must be linked to a HubSpot contact.** Only customers with `hubspot_contact_id` set in the SCW Commerce database are picked up by the cron. Brand-new contacts in HubSpot who have never placed an order won't have a customer row until their first order; the *next* cron run will then sync their exemption.
 - **To apply immediately,** an admin can trigger the sync manually (see *Applying Changes Immediately* above).
 - **Revoking an exemption** works the same way — uncheck all regions (or set `Tax Exemption Type` back to `Non-Exempt`) in HubSpot and wait for the next sync (or trigger manually).
@@ -232,7 +228,7 @@ Here is the full end-to-end flow of how tax exemptions work across all three sys
       <span class="modern-flow__eyebrow">Tax exemption system flow</span>
       <span class="modern-flow__title">HubSpot controls exemption settings, SCW stores them, TaxJar applies them at checkout</span>
     </div>
-    <span class="modern-flow__badge">2 AM UTC sync</span>
+    <span class="modern-flow__badge">Webhook + 2 AM UTC fallback</span>
   </div>
   <div class="modern-flow__track">
     <span class="modern-flow__node modern-flow__node--start">HubSpot Contact<small>tax_exemption_type and tax_exempt_regions managed by sales</small></span>
@@ -318,7 +314,7 @@ Each customer has their exempt regions (specific US states) already configured. 
 **Customer says they should be tax-exempt but are seeing tax:**
 1. Check the Contact in HubSpot — is `Tax Exemption Type` set?
 2. Check `Tax Exempt Regions` — does it include the shipping state?
-3. Check if the daily sync has run since the properties were set
+3. Check whether the webhook subscription is active for the tax properties, or whether the daily reconciliation has run since the properties were set
 4. If urgent, trigger manual sync via the cron endpoint
 
 **Tax is $0 for a customer who shouldn't be exempt:**

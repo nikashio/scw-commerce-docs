@@ -142,14 +142,14 @@ This is important to understand. The same order exists in multiple systems, but 
 |---|---|---|---|
 | **Customer account** (login, password) | AWS Cognito | — | Passwords are managed by Cognito, never stored locally |
 | **Customer profile** (name, email, addresses) | SCW Commerce DB (AWS RDS) | HubSpot (as Contact) | Auto-synced via webhook when rep creates/updates Contact in HubSpot |
-| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB (AWS RDS) | HubSpot (as Products) | Synced every 15 minutes |
+| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB (AWS RDS) | HubSpot (as Products) + Meilisearch | Active changed products sync from SCW Commerce to HubSpot every 15 minutes; search index updates after the sync |
 | **Inventory / stock levels** | ShipEdge | — | Real-time check on add-to-cart and checkout |
 | **Quotes** | HubSpot (Ecommerce Quotes) | — | Quotes only exist in HubSpot |
 | **Orders** | SCW Commerce DB (AWS RDS) | HubSpot (Ecommerce Orders) | Created locally, synced to HubSpot |
 | **Invoices** | SCW Commerce DB (AWS RDS) | HubSpot (Ecommerce Invoices) | Created locally, synced to HubSpot |
-| **Shipments / Tracking** | ShipEdge | SCW Commerce DB + HubSpot | ShipEdge creates, synced every 5 minutes |
+| **Shipments / Tracking** | ShipEdge | SCW Commerce DB + HubSpot | ShipEdge creates, webhook updates in real time when configured; 5-minute cron is the fallback/reconciliation path |
 | **Tax calculation** | TaxJar | — | Calculated in real-time, not stored permanently |
-| **Credit terms approval** | HubSpot (Contact property) | SCW Commerce DB | Set in HubSpot, synced daily to storefront |
+| **Credit terms approval** | HubSpot (Contact property) | SCW Commerce DB | Set in HubSpot, synced by contact webhook in real time with a daily 2 AM UTC reconciliation job |
 | **Search index** | Meilisearch | — | Rebuilt from DB + CMS files on deploy and product sync |
 
 ---
@@ -162,13 +162,13 @@ The systems stay in sync through automated processes that run on a schedule:
 |---|---|---|
 | **HubSpot entity sync (outbox)** | Every 1 minute | Delivers every order, invoice, shipment, and credit-memo change to HubSpot. Retries on failure with exponential backoff (1m→120m). See "How HubSpot sync works" below. |
 | **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. |
-| **Product sync** | Every 15 minutes | Syncs product catalog changes between HubSpot and storefront; also updates Meilisearch search index (incremental) |
-| **ShipEdge order status sync** | Every 5 minutes | Checks ShipEdge for status changes (shipped, delivered) and updates storefront + HubSpot |
-| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly |
+| **Product sync** | Every 15 minutes | Syncs changed active products from the SCW Commerce database to HubSpot Products; also updates the Meilisearch product index |
+| **ShipEdge order status sync** | Real-time webhook + every 5 minutes | ShipEdge webhooks update shipped/delivered/cancelled states through the same status-sync service; the 5-minute cron reconciles missed webhooks and open orders |
+| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms, and subscribed tax-exemption fields) instantly |
 | **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
-| **Tax exemption sync** | Daily at 2 AM UTC | Pushes customer tax-exemption certificates to TaxJar |
+| **Tax exemption sync** | Real-time webhook + daily at 2 AM UTC | Webhook-supported tax exemption edits update SCW Commerce and TaxJar immediately when the HubSpot subscriptions are active; the daily cron reconciles all linked customers |
 | **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check orders older than 14 days and Wire orders older than 21 days |
-| **DLQ retry** | Every 5 minutes | Retries failed non-outbox syncs (Cognito user provisioning, ShipEdge order push, TaxJar refund reporting) |
+| **DLQ retry** | Every 5 minutes | Retries failed non-outbox work such as ShipEdge order push, quote↔order association, TaxJar refund reporting, and bulk import jobs |
 
 These processes are fully automatic — no manual intervention needed unless something fails (which is logged and retried automatically).
 

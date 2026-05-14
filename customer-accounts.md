@@ -81,10 +81,10 @@ When a rep updates a Contact in HubSpot, the HubSpot private app (**"Frantic-Act
 | `phone` | `customers.phone` | ❌ not subscribed — add in HubSpot if needed | ✅ |
 | `approved_for_credit_terms` | `customers.approvedForCreditTerms` | ✅ | ✅ |
 | `credit_limit` | `customers.creditLimit` | ✅ | ✅ |
-| `tax_exemption_type` | `customers.exemptionType` + TaxJar Customer API | ⚠️ subscription required (add in HubSpot) | ✅ |
-| `tax_exempt_regions` | `customers.exemptRegions` + TaxJar Customer API | ⚠️ subscription required (add in HubSpot) | ✅ |
+| `tax_exemption_type` | `customers.exemptionType` + TaxJar Customer API | Subscription must be active in HubSpot | ✅ |
+| `tax_exempt_regions` | `customers.exemptRegions` + TaxJar Customer API | Subscription must be active in HubSpot | ✅ |
 
-Properties not in the list above **are not synced** — the daily cron only covers tax-exemption fields, and profile fields only flow via the webhook. If a sales rep edits something outside this list, it stays in HubSpot.
+Properties not in the list above **are not synced**. Daily reconciliation jobs cover credit terms and tax-exemption fields; profile fields flow only through the webhook. If a sales rep edits something outside this list, it stays in HubSpot.
 
 ### Viewing & Editing Webhook Subscriptions
 

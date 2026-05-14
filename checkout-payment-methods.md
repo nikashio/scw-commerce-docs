@@ -32,28 +32,28 @@ The standard payment method. Available to all customers.
 | Step | SCW Commerce DB | HubSpot | ShipEdge |
 |---|---|---|---|
 | Order placed | Order created: `status = pending` | — | — |
-| Payment processed | Status → `paid` | — | — |
-| ShipEdge accepts | Status → `processing` | Ecommerce Order created: `status = processing` | Order received in queue |
+| Payment processed | Status → `paid`; invoice created | Ecommerce Order and Invoice sync are enqueued; order displays as `processing` in HubSpot because HubSpot has no separate `paid` order status | — |
+| ShipEdge accepts | Status → `processing` | Status remains `processing` | Order received in queue |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
-| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+| Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 > [SCREENSHOT: Credit card form at checkout]
 
 ### Auth-Only Mode (Manual Capture)
 
-For some orders — typically high-value ones or ones that need internal review — the card is **authorized but not charged** at checkout. The customer's card has the amount on hold but no money moves until an admin captures it from the Order Actions card on the Ecommerce Order in HubSpot.
+For some orders — typically high-value ones or ones that need internal review — the card is **authorized but not charged** at checkout. The customer's card has the amount on hold but no money moves until an admin captures it through the HubSpot action or direct admin API.
 
 This is an admin-initiated mode; it is not a customer choice at checkout.
 
 | Step | SCW Commerce DB | HubSpot | ShipEdge |
 |---|---|---|---|
-| Order placed | Order created: `status = authorized`, card authorization held | — | — |
-| Admin captures (Order Actions card, see [Admin Actions](admin-actions.md)) | Status → `paid`, Invoice created | Ecommerce Order created: `status = processing` | Order pushed to ShipEdge |
+| Order placed | Order created: `status = authorized`, card authorization held | Ecommerce Order sync is enqueued and displays as `processing` in HubSpot | — |
+| Admin captures (HubSpot action or admin API, see [Admin Actions](admin-actions.md)) | Status → `paid`, Invoice created locally | Order remains `processing` in HubSpot | Order pushed to ShipEdge |
 | ShipEdge accepts | Status → `processing` | Status → `processing` | Order received in queue |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
-| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+| Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 See [Order Lifecycle](order-lifecycle.md) for the full auth-only status flow.
 
@@ -87,7 +87,7 @@ If the customer is not approved, this option is hidden — they only see Credit 
 | Admin invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
-| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+| Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 > [SCREENSHOT: Ecommerce Order in HubSpot showing Payment Method Type = Purchase Order and PO Number]
 
@@ -126,14 +126,14 @@ Available to all customers. The customer mails a physical check.
 | **14 days pass without invoice** | **Status → `cancelled` (automatic)** | **Status → `cancelled`** | — |
 | Warehouse ships (if invoiced) | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
-| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+| Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 > [SCREENSHOT: Payment instruction email for Check order]
 
 ### Important
-- **14-day auto-cancel:** A daily automated process runs at 3 AM UTC and cancels any Check orders still in "Pending Payment" after 14 days. This releases the inventory.
+- **14-day auto-cancel:** A daily automated process runs at 3 AM UTC and cancels any Check orders still in "Pending Payment" after 14 days. Because the order was never invoiced, it has not been pushed to ShipEdge.
 - If the check arrives late but before auto-cancel, the admin should invoice the order promptly.
-- If the admin needs more time (e.g., check arrived but hasn't cleared), they can manually move the order to "Processing" to prevent auto-cancellation.
+- If the admin needs more time (e.g., check arrived but hasn't cleared), escalate for an admin/engineering deadline extension. Do not move the order to "Processing" until payment has cleared.
 
 ---
 
@@ -164,7 +164,7 @@ Available to all customers. The customer sends a wire transfer.
 | **21 days pass without invoice** | **Status → `cancelled` (automatic)** | **Status → `cancelled`** | — |
 | Warehouse ships (if invoiced) | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
-| Admin cancels (any time before delivery) | Status → `cancelled` | Status → `cancelled` | Order removed from queue |
+| Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 > [SCREENSHOT: Bank details payment instruction email]
 

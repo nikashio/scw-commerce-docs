@@ -130,7 +130,7 @@ Each object represents a stage in the sales lifecycle.
 
 **What it is:** A fulfillment record. Created when the warehouse creates a shipping label in ShipEdge.
 
-**Created when:** ShipEdge fulfillment process creates a shipping label. The data syncs back to SCW Commerce every 5 minutes.
+**Created when:** ShipEdge fulfillment process creates a shipping label. The data syncs back to SCW Commerce through the ShipEdge webhook when configured, with the 5-minute cron as reconciliation.
 
 **Key properties:**
 - Tracking number
@@ -224,7 +224,7 @@ The most important status for admins is **Pending Payment** — these are the or
 | **ShipEdge** | The warehouse management system where orders are fulfilled (picked, packed, shipped) |
 | **Credit Terms** | The ability for a customer to buy now and pay later (NET30). Must be approved per customer in HubSpot. |
 | **PO Number** | Purchase Order number — the customer's internal reference for the order, required for NET30 payments |
-| **DLQ** | Dead Letter Queue — retry queue for non-outbox syncs (Cognito user provisioning, ShipEdge order push, TaxJar refund reporting). Runs every 5 minutes. |
+| **DLQ** | Dead Letter Queue — retry queue for non-outbox work such as ShipEdge order push, quote↔order association, TaxJar refund reporting, and import jobs. Runs every 5 minutes. |
 | **HubSpot Outbox** | Durable sync queue for all SCW → HubSpot data flow (orders, invoices, shipments, refunds). Runs every minute with exponential-backoff retry. Replaces the old inline-sync approach — every sync event leaves an auditable row in `hubspot_outbox`. See **Platform Overview → How HubSpot Sync Works**. |
 | **Ecommerce Objects** | Custom HubSpot objects (Quote, Order, Invoice, Shipment, Credit Memo, Line Item) that mirror the storefront data |
 | **Idempotency Key** | A unique identifier sent with every refund/sync request so retries and duplicates return the same result instead of creating duplicate records. Protects against double-clicks and Lambda retries. |

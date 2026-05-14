@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Quote Builder is a HubSpot CRM extension that lets sales reps create quotes, configure products, and generate payment links — all without leaving HubSpot. When a customer is ready to pay, the rep generates a payment link that takes the customer (or the rep) directly to checkout with all products pre-loaded.
+The Quote Builder is a HubSpot CRM extension that lets sales reps create quotes, configure products, and generate payment links — all without leaving HubSpot. When a customer is ready to pay, the rep generates a signed payment link that takes the customer (or the rep) to checkout with the quote loaded from trusted HubSpot data.
 
 ---
 
@@ -91,12 +91,16 @@ The Payment Link, Shipping, and Address sections are visible in the quote screen
 ### What Happens When the Link is Generated
 
 Behind the scenes:
-1. The Quote Builder sends the line items, prices, and customer email to the SCW Commerce backend
-2. A cart is created in the SCW Commerce database with:
+1. The HubSpot action creates a signed URL with the Ecommerce Quote ID and expiration. The URL does **not** carry editable prices or quantities.
+2. When the link is opened, SCW Commerce verifies the signature and fetches the quote, associated line items, and customer email from HubSpot server-side.
+3. SCW Commerce matches every quoted line item to a storefront product by SKU. If any item cannot be matched, checkout stops instead of silently dropping it.
+4. A cart is created in the SCW Commerce database with:
    - All products at the quoted prices (prices are **locked** — they won't change even if the catalog price updates)
-   - The customer's email (from the associated HubSpot Contact)
+   - The customer's email from the quote or associated HubSpot Contact, when available
    - A link back to the Ecommerce Quote ID
-3. The URL is saved to the `eq_payment_link` property on the Ecommerce Quote
+5. The customer is redirected to checkout with the new quote cart.
+
+If the HubSpot action stores the generated URL on `eq_payment_link`, that property is only the saved link; SCW Commerce still re-reads quote prices from HubSpot when the link is used.
 
 ### Two Ways to Use the Payment Link
 
@@ -105,13 +109,13 @@ Copy the link and send it to the customer via email, chat, or any channel. The c
 
 #### Option 2: Rep Checks Out on Behalf of Customer
 The rep opens the link themselves (e.g., while on a phone call with the customer). The checkout page:
-- Pre-fills the customer's email
-- Loads the customer's **saved addresses** from their account (if they have one)
-- The rep selects the shipping address, enters the customer's credit card (or selects an offline payment method), and completes the order
+- Pre-fills the customer's email when the quote or associated Contact has one
+- Links the cart to the customer's SCW account when the email matches an existing customer
+- Lets the rep select or enter the shipping address, enter the customer's credit card, or select an offline payment method
 
-The order is associated with the **customer's account** (not the rep's), so it appears in the customer's order history.
+When the quote email matches an SCW customer, the order is associated with the **customer's account** (not the rep's), so it appears in the customer's order history.
 
-<!-- TODO: Add screenshot of checkout page opened from payment link -->
+> [SCREENSHOT: Checkout page opened from a HubSpot quote payment link]
 
 ---
 
@@ -122,19 +126,21 @@ After a successful checkout from a payment link:
 | HubSpot Object | What Happens |
 |---|---|
 | **Ecommerce Order** | Created automatically with order number, status, totals, addresses |
-| **Ecommerce Quote ↔ Order** | Association created — you can see the order on the quote and vice versa |
+| **Ecommerce Quote ↔ Order** | Association is attempted after the HubSpot order object exists; failures retry through the DLQ |
 | **Contact** | Order is associated with the contact |
 | **Ecommerce Line Items** | Each product in the order is created as a line item |
 | **Ecommerce Invoice** | Created if payment was processed immediately (credit card) |
 
-<!-- TODO: Add screenshot of Ecommerce Quote with linked Order in sidebar -->
-<!-- TODO: Add screenshot of Ecommerce Order with linked Quote in sidebar -->
+> [SCREENSHOT: Ecommerce Quote with linked Order in the sidebar]
+
+> [SCREENSHOT: Ecommerce Order with linked Quote in the sidebar]
 
 ---
 
 ## Important Notes
 
-- **Payment links expire after 30 days.** If the customer doesn't use it in time, the rep needs to generate a new one.
-- **Each payment link creates a new cart.** If the rep generates multiple links for the same quote, only the latest one should be used.
+- **Payment links expire.** Signed quote links can expire, and the generated cart expires 30 days after the link is opened. If the customer doesn't use it in time, the rep needs to generate a new one.
+- **Each opened payment link creates a new cart.** If the rep opens or sends multiple links for the same quote, use the newest checkout session.
 - **Prices are locked.** The checkout uses the exact prices from the quote, not the current catalog prices. If a product's price changes after the quote is built, the customer still pays the quoted price.
-- **A contact must be associated with the quote.** The system requires a contact email to generate the payment link. If no contact is associated, the link generation will fail with an error message.
+- **Every quoted item must have a matching storefront SKU.** SCW Commerce blocks checkout if a HubSpot line item cannot be matched to a product.
+- **Contact email improves checkout.** The quote can fall back to the associated Contact email for prefill and account linking, but product pricing always comes from the HubSpot quote and line items.

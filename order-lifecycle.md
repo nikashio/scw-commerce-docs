@@ -89,7 +89,7 @@ Every order moves through a defined set of statuses. Each status transition is t
     </div>
   </div>
   <aside class="status-flow__cancel">
-    <strong>Cancellation path:</strong> any status except <code>delivered</code> can move to <code>cancelled</code> by manual admin cancel or auto-cancel for Check / Wire orders.
+    <strong>Cancellation path:</strong> Check / Wire orders auto-cancel from <code>pending_payment</code> when stale; manual cancellation is an internal admin/engineering correction and ShipEdge cancellation is separate once fulfillment has started.
   </aside>
 </section>
 
@@ -104,8 +104,8 @@ Every order moves through a defined set of statuses. Each status transition is t
 | `authorized` | Card authorized but not charged (auth-only mode) | System (rare — only for auth-only transactions) | Admin must capture to proceed |
 | `paid` | Payment successfully charged | System (Authorize.net confirms) | About to go to ShipEdge |
 | `processing` | Order accepted by ShipEdge, in the warehouse queue | System (ShipEdge confirms) or Admin (invoices offline order) | Warehouse team is picking & packing |
-| `shipped` | Shipping label created, package handed to carrier | ShipEdge sync (automatic, checked every 5 minutes) | Customer receives shipping notification email |
-| `delivered` | Carrier confirms delivery | ShipEdge sync (automatic) | Order complete |
+| `shipped` | Shipping label created, package handed to carrier | ShipEdge webhook or 5-minute sync fallback | Customer receives shipping notification email |
+| `delivered` | Carrier confirms delivery | ShipEdge webhook or 5-minute sync fallback | Order complete |
 | `cancelled` | Order cancelled | Admin (manual) or System (auto-cancel for Check/Wire) | No further action |
 
 ---
@@ -127,7 +127,7 @@ The SCW Commerce status is mapped to HubSpot Ecommerce Order status:
 
 **When the HubSpot Ecommerce Order is created**
 
-- **Credit Card orders** — the Ecommerce Order is created only when status reaches `processing` (after ShipEdge accepts). Before that, the order exists only in SCW Commerce.
+- **Credit Card orders** — the Ecommerce Order is enqueued after payment is approved. HubSpot displays local `paid` and `authorized` as `processing` because HubSpot has no separate paid/auth-only order status; ShipEdge acceptance then moves the local order to `processing`.
 - **Offline orders (Check, ACH / Wire, Purchase Order)** — the Ecommerce Order is created at checkout with status `pending`, and updates to `processing` after the admin invoices.
 
 > [SCREENSHOT: Ecommerce Orders list in HubSpot showing different statuses]
@@ -165,8 +165,8 @@ The standard credit card path. Payment is authorized and captured in one step at
 |---|---|---|
 | pending → paid | Authorize.net returns approval | Instant (at checkout) |
 | paid → processing | ShipEdge accepts the order | ~1 second after checkout |
-| processing → shipped | ShipEdge creates shipping label | When warehouse ships (checked every 5 min) |
-| shipped → delivered | Carrier confirms delivery | When delivered (checked every 5 min) |
+| processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
 **No admin action required.** The entire flow is automatic.
 
@@ -187,7 +187,7 @@ Used when an order should be authorized at checkout but not charged until an adm
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--wait">authorized<small>Card held, not charged</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--action">Admin Captures<small>Order Actions card in HubSpot</small></span>
+    <span class="modern-flow__node modern-flow__node--action">Admin Captures<small>HubSpot action or admin API</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--success">paid<small>Funds captured</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
@@ -198,10 +198,10 @@ Used when an order should be authorized at checkout but not charged until an adm
 | Transition | Trigger | Timing |
 |---|---|---|
 | pending → authorized | Authorize.net approves the auth-only request | Instant (at checkout) |
-| authorized → paid | **Admin clicks Capture** in the Order Actions card in HubSpot | When admin reviews and decides to charge |
+| authorized → paid | **Admin captures the authorization** through the HubSpot action or admin API | When admin reviews and decides to charge |
 | paid → processing | ShipEdge accepts the order | ~1 second after capture |
-| processing → shipped | ShipEdge creates shipping label | When warehouse ships |
-| shipped → delivered | Carrier confirms delivery | When delivered |
+| processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
 **Admin action required at the `authorized → paid` step.** See [Admin Actions](admin-actions.md).
 
@@ -229,9 +229,9 @@ For approved B2B customers paying on NET30 terms. The order is created immediate
 | Transition | Trigger | Timing |
 |---|---|---|
 | pending → pending_payment | Order placed with Purchase Order method | Instant (at checkout) |
-| pending_payment → processing | **Admin clicks Invoice** in the Order Actions card in HubSpot | When admin verifies the PO against the customer's credit limit |
-| processing → shipped | ShipEdge creates shipping label | When warehouse ships |
-| shipped → delivered | Carrier confirms delivery | When delivered |
+| pending_payment → processing | **Admin invoices the order** through the HubSpot action or admin API | When admin verifies the PO against the customer's credit limit |
+| processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
 **No auto-cancellation** for PO orders — the order stays in `pending_payment` until an admin acts. See [Admin Actions](admin-actions.md) and [Credit Terms Management](credit-terms.md).
 
@@ -260,10 +260,10 @@ The customer mails a physical check. The order waits until the admin confirms th
 | Transition | Trigger | Timing |
 |---|---|---|
 | pending → pending_payment | Order placed with Check / Money Order method | Instant (at checkout) |
-| pending_payment → processing | **Admin clicks Invoice** in the Order Actions card in HubSpot | When admin confirms the check has cleared |
+| pending_payment → processing | **Admin invoices the order** through the HubSpot action or admin API | When admin confirms the check has cleared |
 | pending_payment → cancelled | **No invoice action within 14 days** | Daily auto-cancel cron at 3 AM UTC |
-| processing → shipped | ShipEdge creates shipping label | When warehouse ships |
-| shipped → delivered | Carrier confirms delivery | When delivered |
+| processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
 See [Admin Actions](admin-actions.md).
 
@@ -292,10 +292,10 @@ The customer sends a wire transfer. The order waits until the admin verifies the
 | Transition | Trigger | Timing |
 |---|---|---|
 | pending → pending_payment | Order placed with ACH / Wire Transfer method | Instant (at checkout) |
-| pending_payment → processing | **Admin clicks Invoice** in the Order Actions card in HubSpot | When admin matches the incoming wire to the order |
+| pending_payment → processing | **Admin invoices the order** through the HubSpot action or admin API | When admin matches the incoming wire to the order |
 | pending_payment → cancelled | **No invoice action within 21 days** | Daily auto-cancel cron at 3 AM UTC |
-| processing → shipped | ShipEdge creates shipping label | When warehouse ships |
-| shipped → delivered | Carrier confirms delivery | When delivered |
+| processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
 **Why 21 days instead of 14?** Wire transfers — especially international — can take longer to settle. See [Admin Actions](admin-actions.md).
 
@@ -303,8 +303,8 @@ The customer sends a wire transfer. The order waits until the admin verifies the
 
 | Order Type | Auto-Cancel After | What Happens |
 |---|---|---|
-| Check / Money Order | **14 days** in `pending_payment` | Status → `cancelled`, inventory released |
-| ACH / Wire Transfer | **21 days** in `pending_payment` | Status → `cancelled`, inventory released |
+| Check / Money Order | **14 days** in `pending_payment` | Status → `cancelled`; no ShipEdge order exists because the order was not invoiced |
+| ACH / Wire Transfer | **21 days** in `pending_payment` | Status → `cancelled`; no ShipEdge order exists because the order was not invoiced |
 | Purchase Order (NET30) | **Never** | Stays in `pending_payment` until admin acts |
 | Credit Card | **Never** | Payment is immediate |
 
@@ -314,32 +314,32 @@ The auto-cancel process runs daily at 3 AM UTC.
 
 | How an order gets cancelled | Who triggers it | When it can happen |
 |---|---|---|
-| **Admin manual cancel** | Admin via the Order Actions card on the Ecommerce Order in HubSpot | Any time before delivery — from `pending`, `pending_payment`, `authorized`, `paid`, `processing`, or `shipped` |
+| **Manual cancel / correction** | Internal admin or engineering update | Any time before delivery — from `pending`, `pending_payment`, `authorized`, `paid`, `processing`, or `shipped` |
 | **Auto-cancel — Check / Money Order** | System (daily cron at 3 AM UTC) | After **14 days** in `pending_payment` |
 | **Auto-cancel — ACH / Wire Transfer** | System (daily cron at 3 AM UTC) | After **21 days** in `pending_payment` |
 | **No auto-cancel** | — | Credit Card orders (payment is immediate) and Purchase Order (NET30) orders (no time limit; waits for admin) |
 
-A cancelled order stays in HubSpot for reference, is removed from the ShipEdge queue if it had already been pushed, and inventory is released.
+A cancelled order stays in HubSpot for reference. If the order had already been pushed to ShipEdge, the warehouse/admin team must also cancel or stop fulfillment in ShipEdge.
 
 ### Refunds and Order Status
 
-A refund moves the related invoice to `refunded` but **does not** change the order's status by itself. If the order should also be stopped from shipping, the admin must cancel it separately. Refunds are issued from the Refund Manager card on the Ecommerce Invoice in HubSpot. See [Refunds & Credit Memos](refunds.md).
+Full refunds created through the refund APIs attempt to move the order to `cancelled` after the refund is processed. Partial and per-item refunds do **not** automatically change the order status; the admin decides whether any separate order correction is needed. Refunds are issued from the Refund Manager flow on the Ecommerce Invoice. See [Refunds & Credit Memos](refunds.md).
 
 ---
 
 ## Admin Action Reference
 
-Every admin action that changes order or payment state is performed in HubSpot via a custom card on the relevant CRM record. The HubSpot card calls SCW Commerce's admin API behind the scenes — SCW Commerce updates the database, talks to Authorize.net / ShipEdge / email, and HubSpot records the result on the related Ecommerce object.
+Admin payment actions are performed from the HubSpot action card when it is deployed, or by calling the SCW Commerce admin API directly. SCW Commerce updates the database, talks to Authorize.net / ShipEdge / email, and HubSpot records the result on the related Ecommerce object.
 
 | Admin action | Where to click | Status transition | Side effects |
 |---|---|---|---|
 | **Convert quote to order** | Quote Builder card on the Ecommerce Quote record | Creates a new order: `pending` (Credit Card) or `pending_payment` (offline) | HubSpot Ecommerce Order created; payment link generated for the customer |
-| **Invoice offline order** | Order Actions card on the Ecommerce Order record | `pending_payment` → `processing` | SCW Commerce creates the invoice and pushes the order to ShipEdge; HubSpot Ecommerce Invoice record created |
-| **Capture auth-only credit card** | Order Actions card on the Ecommerce Order record | `authorized` → `paid` | Authorize.net captures the held funds; SCW Commerce creates the invoice and pushes the order to ShipEdge |
-| **Cancel order** | Order Actions card on the Ecommerce Order record | Any pre-delivery status → `cancelled` | Order removed from the ShipEdge queue (if previously pushed); inventory released; HubSpot status updated |
-| **Issue refund (full / partial / per-item)** | Refund Manager card on the Ecommerce Invoice record | **No change to order status** | SCW Commerce processes the refund via Authorize.net and creates a refund record; HubSpot Credit Memo created; invoice marked `refunded` |
+| **Invoice offline order** | HubSpot action card or direct admin API | `pending_payment` → `processing` | SCW Commerce creates the invoice and pushes the order to ShipEdge; HubSpot Ecommerce Invoice record created |
+| **Capture auth-only credit card** | HubSpot action card or direct admin API | `authorized` → `paid` | Authorize.net captures the held funds; SCW Commerce creates the invoice and pushes the order to ShipEdge |
+| **Cancel order** | Internal admin / engineering action | Any pre-delivery status → `cancelled` | SCW Commerce updates the local order and HubSpot status; ShipEdge cancellation is separate if fulfillment already started |
+| **Issue refund (full / partial / per-item)** | Refund Manager card on the Ecommerce Invoice record | Full refund → `cancelled`; partial/per-item → no automatic order status change | SCW Commerce processes the refund via Authorize.net or the offline refund path, creates a refund record, syncs a HubSpot Credit Memo, and marks the local invoice `refunded` when the invoice is fully refunded |
 
-> [SCREENSHOT: HubSpot Order Actions card on an Ecommerce Order showing Invoice, Capture, and Cancel buttons]
+> [SCREENSHOT: HubSpot order action card on an Ecommerce Order showing Invoice and Capture actions]
 
 > [SCREENSHOT: HubSpot Refund Manager card on an Ecommerce Invoice record]
 

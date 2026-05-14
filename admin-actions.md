@@ -52,16 +52,17 @@ Verify:
 
 Call the invoice endpoint. This can be done via:
 
-**Option A: HubSpot Invoice Button** *(coming soon)*
+**Option A: HubSpot Invoice Button** *(if deployed in your portal)*
 - Click the **"Invoice Order"** button on the Ecommerce Order record
 - The button calls the SCW Commerce API automatically
 
-**Option B: Direct API Call** *(current method)*
+**Option B: Direct API Call**
 ```
 POST https://hubspot.getscw.com/api/admin/orders/{ORDER_ID}/invoice
 ```
 
 Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecommerce Order).
+The endpoint also accepts the SCW order number (`SCW-...`) when calling it directly.
 
 > [SCREENSHOT: Ecommerce Order showing eo_source_id property]
 
@@ -69,7 +70,7 @@ Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecom
 
 When the invoice endpoint is called, the following happens automatically:
 
-1. **Invoice created** in SCW Commerce database
+1. **Invoice created and marked paid** in SCW Commerce database
 2. **Order status** changes from `pending_payment` → `processing`
 3. **HubSpot Ecommerce Order** status updates to `processing`
 4. **ShipEdge** receives the order for fulfillment
@@ -92,11 +93,11 @@ From this point, the order follows the normal fulfillment flow — ShipEdge crea
 This runs daily at 3 AM UTC. When an order is auto-cancelled:
 - Status changes to `cancelled` in SCW Commerce
 - HubSpot Ecommerce Order status updates to `cancelled`
-- Inventory is released (if held)
+- Because pending-payment orders have not been invoiced, they have not been pushed to ShipEdge
 
 ### Manual Cancellation
 
-To cancel an order manually before the auto-cancel deadline, update the order status through the admin API or database.
+There is no public cancel button in the current documented admin workflow. For a manual cancellation before the auto-cancel deadline, use an internal admin/engineering status correction. If the order was already pushed to ShipEdge, coordinate the ShipEdge cancellation or stop-work separately.
 
 ---
 
@@ -140,7 +141,7 @@ When a check order comes in:
 4. **Deposit the check** and wait for it to clear
 5. Once cleared, **invoice the order**
 
-> **Tip:** If a check has arrived but hasn't cleared yet, and the 14-day deadline is approaching, you can prevent auto-cancellation by manually moving the order to `processing` status.
+> **Important:** Do not move a check order to `processing` just to avoid auto-cancellation. `processing` means payment has been confirmed and fulfillment can begin. If a check needs more time to clear near the 14-day deadline, leave the order in `pending_payment` and escalate for an admin/engineering extension instead of bypassing the invoice workflow.
 
 ---
 
@@ -153,5 +154,5 @@ When a check order comes in:
 | Wire transfer confirmed in bank | Invoice the order | Status → Processing → Ships |
 | Check not received in 14 days | Nothing — auto-cancels | Status → Cancelled |
 | Wire not received in 21 days | Nothing — auto-cancels | Status → Cancelled |
-| Customer wants to cancel | Cancel the order manually | Status → Cancelled |
-| Check arrived but not cleared, 14-day deadline near | Move to Processing manually | Prevents auto-cancel |
+| Customer wants to cancel | Escalate for internal admin/engineering cancellation | Status → Cancelled |
+| Check arrived but not cleared, 14-day deadline near | Escalate for deadline extension; do not move to Processing until cleared | Avoids bypassing invoice and ShipEdge workflow |
