@@ -8,65 +8,90 @@ Every order moves through a defined set of statuses. Each status transition is t
 
 ## Status Flow Diagram
 
-```
-                          ┌─────────────────────────────────┐
-                          │          ORDER PLACED            │
-                          └──────────────┬──────────────────┘
-                                         │
-                          ┌──────────────▼──────────────────┐
-                          │           pending                │
-                          │      (order just created)        │
-                          └──────────────┬──────────────────┘
-                                         │
-                    ┌────────────────────┼────────────────────┐
-                    │                    │                     │
-          Credit Card              Offline Methods       Auth-Only
-                    │              (Check/Wire/PO)        (rare)
-                    ▼                    ▼                     ▼
-            ┌──────────┐      ┌─────────────────┐    ┌──────────────┐
-            │   paid    │      │ pending_payment  │    │  authorized  │
-            │           │      │                  │    │              │
-            │  Payment  │      │  Waiting for     │    │  Card held,  │
-            │  charged  │      │  admin to        │    │  not charged │
-            └─────┬─────┘      │  invoice         │    └──────┬───────┘
-                  │            └────────┬─────────┘           │
-                  │                     │                     │
-                  │            Admin clicks                Admin
-                  │            "Invoice"                   "Capture"
-                  │                     │                     │
-                  │                     ▼                     ▼
-                  │            ┌──────────────┐        ┌──────────┐
-                  └───────────►│  processing   │◄───────│   paid   │
-                               │              │        └──────────┘
-                               │  ShipEdge    │
-                               │  has the     │
-                               │  order       │
-                               └──────┬───────┘
-                                      │
-                              ShipEdge creates
-                              shipping label
-                                      │
-                                      ▼
-                               ┌──────────────┐
-                               │   shipped     │
-                               │              │
-                               │  Tracking #  │
-                               │  assigned    │
-                               └──────┬───────┘
-                                      │
-                              Carrier delivers
-                                      │
-                                      ▼
-                               ┌──────────────┐
-                               │  delivered    │
-                               └──────────────┘
-
-
-    ╔══════════════════════════════════════════════════╗
-    ║  Any status except delivered can → cancelled     ║
-    ║  (manual cancel or auto-cancel for Check/Wire)  ║
-    ╚══════════════════════════════════════════════════╝
-```
+<section class="status-flow" aria-label="SCW Commerce order status flow">
+  <div class="status-flow__header">
+    <div>
+      <p class="status-flow__eyebrow">Order starts here</p>
+      <h3>Placed order enters the payment decision path</h3>
+    </div>
+    <span class="status-flow__badge">SCW Commerce</span>
+  </div>
+  <div class="status-flow__stage status-flow__stage--start">
+    <div class="status-node status-node--created">
+      <span class="status-node__label">Order Placed</span>
+      <span class="status-node__meta">Customer submits checkout</span>
+    </div>
+    <span class="status-flow__connector" aria-hidden="true"></span>
+    <div class="status-node">
+      <span class="status-node__label">pending</span>
+      <span class="status-node__meta">Order just created</span>
+    </div>
+  </div>
+  <div class="status-flow__split" aria-label="Payment method branches">
+    <article class="status-path status-path--card">
+      <div class="status-path__title">
+        <span>Credit Card</span>
+        <small>default</small>
+      </div>
+      <div class="status-node status-node--success">
+        <span class="status-node__label">paid</span>
+        <span class="status-node__meta">Payment charged</span>
+      </div>
+    </article>
+    <article class="status-path status-path--offline">
+      <div class="status-path__title">
+        <span>Offline Methods</span>
+        <small>Check / Wire / PO</small>
+      </div>
+      <div class="status-node status-node--waiting">
+        <span class="status-node__label">pending_payment</span>
+        <span class="status-node__meta">Waiting for admin invoice</span>
+      </div>
+      <div class="status-action">Admin clicks <strong>Invoice</strong></div>
+    </article>
+    <article class="status-path status-path--auth">
+      <div class="status-path__title">
+        <span>Auth-Only</span>
+        <small>rare</small>
+      </div>
+      <div class="status-node status-node--hold">
+        <span class="status-node__label">authorized</span>
+        <span class="status-node__meta">Card held, not charged</span>
+      </div>
+      <div class="status-action">Admin clicks <strong>Capture</strong></div>
+      <div class="status-node status-node--success">
+        <span class="status-node__label">paid</span>
+        <span class="status-node__meta">Payment captured</span>
+      </div>
+    </article>
+  </div>
+  <div class="status-flow__merge">
+    <span class="status-flow__merge-line" aria-hidden="true"></span>
+    <div class="status-node status-node--processing">
+      <span class="status-node__label">processing</span>
+      <span class="status-node__meta">ShipEdge has the order</span>
+    </div>
+  </div>
+  <div class="status-flow__fulfillment" aria-label="Fulfillment statuses">
+    <div class="status-step">
+      <span class="status-step__trigger">ShipEdge creates shipping label</span>
+      <div class="status-node status-node--shipping">
+        <span class="status-node__label">shipped</span>
+        <span class="status-node__meta">Tracking # assigned</span>
+      </div>
+    </div>
+    <div class="status-step">
+      <span class="status-step__trigger">Carrier delivers</span>
+      <div class="status-node status-node--done">
+        <span class="status-node__label">delivered</span>
+        <span class="status-node__meta">Order complete</span>
+      </div>
+    </div>
+  </div>
+  <aside class="status-flow__cancel">
+    <strong>Cancellation path:</strong> any status except <code>delivered</code> can move to <code>cancelled</code> by manual admin cancel or auto-cancel for Check / Wire orders.
+  </aside>
+</section>
 
 ---
 
