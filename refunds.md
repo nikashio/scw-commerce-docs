@@ -107,11 +107,40 @@ When a refund is processed, the customer receives an email with:
 
 ## Refund Status Flow
 
-```
-Pending → Approved → Processed
-       ↘         ↘ Pending Settlement → Processed    (offline cash refunds)
-        Failed → Pending (retry)
-```
+<section class="modern-flow" aria-label="Refund status flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Refund lifecycle</span>
+      <span class="modern-flow__title">Refunds either process automatically, wait for offline settlement, or retry after failure</span>
+    </div>
+    <span class="modern-flow__badge">Credit Memo</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Pending<small>Refund created</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Approved<small>Validated and ready</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--done">Processed<small>Payment reversed and email sent</small></span>
+  </div>
+  <div class="modern-flow__branches">
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Offline cash refund</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node modern-flow__node--wait">Pending Settlement<small>Check written or wire sent</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--done">Processed<small>Offline payout confirmed</small></span>
+      </div>
+    </div>
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Retry path</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node modern-flow__node--fail">Failed<small>Payment gateway error</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--start">Pending<small>Retry from pending</small></span>
+      </div>
+    </div>
+  </div>
+</section>
 
 | Status | Meaning |
 |---|---|

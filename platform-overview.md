@@ -66,22 +66,69 @@ Key features:
 
 ### Self-Service (Customer Buys Directly)
 
-```
-Customer browses website → Adds to cart → Checkout → Pays → Order ships
-```
+<section class="modern-flow" aria-label="Self-service customer workflow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Self-service</span>
+      <span class="modern-flow__title">Customer buys directly through the storefront</span>
+    </div>
+    <span class="modern-flow__badge">No rep needed</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Browse<small>Customer browses website</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node">Cart<small>Adds products to cart</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Checkout<small>Enters account, shipping, and payment</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Pays<small>Payment is captured</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">Ships<small>Order moves to fulfillment</small></span>
+  </div>
+</section>
 
 The customer does everything themselves. No rep involvement. This is the standard e-commerce flow.
 
 ### Sales-Assisted (Rep Builds Quote)
 
-```
-Rep creates Contact in HubSpot → Customer account auto-provisioned (webhook)
-  → Rep builds quote → Generates payment link → 
-    Either:
-      A) Sends link to customer → Customer logs in → Checks out
-      B) Rep opens link and checks out on behalf of customer (e.g., phone order)
-  → Order ships
-```
+<section class="modern-flow" aria-label="Sales-assisted quote workflow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Sales-assisted</span>
+      <span class="modern-flow__title">Rep creates the HubSpot quote and drives the checkout path</span>
+    </div>
+    <span class="modern-flow__badge">HubSpot → SCW</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Contact<small>Rep creates Contact in HubSpot</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Account<small>Customer account auto-provisioned by webhook</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Quote<small>Rep builds quote and generates payment link</small></span>
+  </div>
+  <div class="modern-flow__branches">
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Customer checkout</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node">Send link<small>Rep sends payment link to customer</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--action">Login<small>Customer logs in and checks out</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--ship">Ships<small>Order moves to fulfillment</small></span>
+      </div>
+    </div>
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Rep checkout</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node">Open link<small>Rep opens payment link</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--action">Checkout<small>Rep checks out on behalf of customer</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--ship">Ships<small>Used for phone orders and assisted sales</small></span>
+      </div>
+    </div>
+  </div>
+</section>
 
 The rep starts by creating a Contact in HubSpot. A webhook **automatically creates** the customer's login account in SCW Commerce (Cognito + database) and sends them a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
 

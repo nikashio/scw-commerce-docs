@@ -8,9 +8,26 @@ Before diving into specific workflows, it's important to understand the core obj
 
 Think of the SCW Commerce system as a chain of objects that get created one after another as a sale progresses:
 
-```
-Contact → Quote → Order → Invoice → Shipment
-```
+<section class="modern-flow" aria-label="Core commerce object chain">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Core object chain</span>
+      <span class="modern-flow__title">A sale moves from customer identity to quote, order, billing, and fulfillment</span>
+    </div>
+    <span class="modern-flow__badge">Lifecycle</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Contact<small>Customer identity in HubSpot</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Quote<small>Rep-built proposal</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Order<small>Customer commits to buy</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--wait">Invoice<small>Billing record</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">Shipment<small>Fulfillment and tracking</small></span>
+  </div>
+</section>
 
 Each object represents a stage in the sales lifecycle.
 
@@ -131,45 +148,38 @@ Each object represents a stage in the sales lifecycle.
 
 Here's the full picture of how these objects relate to each other in HubSpot:
 
-```
-                    ┌─────────────┐
-                    │   CONTACT   │
-                    │             │
-                    │ John Smith  │
-                    │ john@co.com │
-                    └──────┬──────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-              ▼            ▼            ▼
-       ┌────────────┐ ┌────────┐  ┌────────────┐
-       │  ECOMMERCE │ │  ...   │  │  ECOMMERCE │
-       │   QUOTE    │ │ more   │  │   ORDER    │
-       │            │ │ quotes │  │            │
-       │ scw-nika   │ │        │  │ SCW-0406.. │
-       │ $10,000    │ │        │  │ $10,000    │
-       └─────┬──────┘ └────────┘  └──┬────┬────┘
-             │                       │    │
-             │    ┌──────────────────┘    │
-             │    │                       │
-             ▼    ▼                       ▼
-       ┌──────────────┐           ┌────────────┐
-       │  Quote ↔     │           │  ECOMMERCE │
-       │  Order       │           │   INVOICE  │
-       │  Association │           │            │
-       └──────────────┘           │ INV-000012 │
-                                  │ $10,000    │
-                                  └────────────┘
-                                        │
-                                        ▼
-                                  ┌────────────┐
-                                  │  ECOMMERCE │
-                                  │  SHIPMENT  │
-                                  │            │
-                                  │ 1Z999AA1.. │
-                                  │ UPS Ground │
-                                  └────────────┘
-```
+<section class="modern-flow" aria-label="HubSpot object relationship map">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">HubSpot object map</span>
+      <span class="modern-flow__title">A Contact can own quotes and orders; the order becomes the hub for invoice and shipment records</span>
+    </div>
+    <span class="modern-flow__badge">Associations</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Contact<small>John Smith<br>john@co.com</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Ecommerce Quote<small>scw-nika<br>$10,000</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Ecommerce Order<small>SCW-0406..<br>$10,000</small></span>
+  </div>
+  <div class="modern-flow__branches">
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Quote association</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node">Quote ↔ Order<small>Connects the original proposal to the resulting order</small></span>
+      </div>
+    </div>
+    <div class="modern-flow__branch">
+      <span class="modern-flow__branch-title">Fulfillment records</span>
+      <div class="modern-flow__track">
+        <span class="modern-flow__node modern-flow__node--wait">Ecommerce Invoice<small>INV-000012<br>$10,000</small></span>
+        <span class="modern-flow__arrow" aria-hidden="true"></span>
+        <span class="modern-flow__node modern-flow__node--ship">Ecommerce Shipment<small>1Z999AA1..<br>UPS Ground</small></span>
+      </div>
+    </div>
+  </div>
+</section>
 
 > [SCREENSHOT: HubSpot sidebar of an Ecommerce Order showing all related objects — Contact, Quote, Invoice, Shipments, Line Items]
 

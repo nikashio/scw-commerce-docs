@@ -178,20 +178,46 @@ Available to all customers. The customer sends a wire transfer.
 
 ## Payment Methods at a Glance
 
-```
-Customer at Checkout
-  │
-  ├─ Credit Card ────────→ Payment charged → Order: Processing → ShipEdge → Ships
-  │
-  ├─ Purchase Order ─────→ No payment → Order: Pending Payment → Admin Invoices → ShipEdge → Ships
-  │   (NET30, approved      PO # saved      (waits for admin)
-  │    customers only)
-  │
-  ├─ Check ──────────────→ No payment → Order: Pending Payment → Admin Invoices → ShipEdge → Ships
-  │                         Instructions     (14-day auto-cancel
-  │                         shown             if not invoiced)
-  │
-  └─ ACH / Wire ─────────→ No payment → Order: Pending Payment → Admin Invoices → ShipEdge → Ships
-                            Bank details     (21-day auto-cancel
-                            emailed           if not invoiced)
-```
+<section class="method-glance" aria-label="Payment methods at a glance">
+  <div class="method-glance__header">
+    <div>
+      <span class="method-glance__eyebrow">Customer at checkout</span>
+      <span class="method-glance__title">Each payment method decides when payment is collected and when ShipEdge receives the order</span>
+    </div>
+    <span class="method-glance__badge">4 methods</span>
+  </div>
+  <div class="method-glance__grid">
+    <article class="method-glance__card">
+      <h4>Credit Card</h4>
+      <div class="method-glance__path">
+        <div class="method-glance__step">Payment charged<small>Authorize.net captures payment at checkout</small></div>
+        <div class="method-glance__step">Order: Processing<small>ShipEdge receives the order automatically</small></div>
+        <div class="method-glance__step">Ships<small>Warehouse ships and tracking syncs back</small></div>
+      </div>
+    </article>
+    <article class="method-glance__card">
+      <h4>Purchase Order</h4>
+      <div class="method-glance__path">
+        <div class="method-glance__step">No payment<small>NET30 approved customers only; PO # saved</small></div>
+        <div class="method-glance__step">Order: Pending Payment<small>Waits for admin review</small></div>
+        <div class="method-glance__step">Admin invoices → ShipEdge → Ships<small>No automatic cancellation</small></div>
+      </div>
+    </article>
+    <article class="method-glance__card">
+      <h4>Check</h4>
+      <div class="method-glance__path">
+        <div class="method-glance__step">No payment<small>Mailing instructions shown and emailed</small></div>
+        <div class="method-glance__step">Order: Pending Payment<small>Waits for admin to invoice after check clears</small></div>
+        <div class="method-glance__step">Admin invoices → ShipEdge → Ships<small>Auto-cancels after 14 days if not invoiced</small></div>
+      </div>
+    </article>
+    <article class="method-glance__card">
+      <h4>ACH / Wire</h4>
+      <div class="method-glance__path">
+        <div class="method-glance__step">No payment<small>Bank details are emailed after checkout</small></div>
+        <div class="method-glance__step">Order: Pending Payment<small>Waits for admin to verify funds</small></div>
+        <div class="method-glance__step">Admin invoices → ShipEdge → Ships<small>Auto-cancels after 21 days if not invoiced</small></div>
+      </div>
+    </article>
+  </div>
+</section>

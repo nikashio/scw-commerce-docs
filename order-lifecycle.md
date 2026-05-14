@@ -140,9 +140,26 @@ The SCW Commerce status is mapped to HubSpot Ecommerce Order status:
 
 The standard credit card path. Payment is authorized and captured in one step at checkout.
 
-```
-pending → paid → processing → shipped → delivered
-```
+<section class="modern-flow" aria-label="Credit card auth and capture flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Credit card default</span>
+      <span class="modern-flow__title">Payment is captured automatically and the order moves straight to fulfillment</span>
+    </div>
+    <span class="modern-flow__badge">Automatic</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">pending<small>Order created</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">paid<small>Authorize.net approved</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">processing<small>ShipEdge accepts order</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">shipped<small>Label created</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--done">delivered<small>Carrier confirms delivery</small></span>
+  </div>
+</section>
 
 | Transition | Trigger | Timing |
 |---|---|---|
@@ -157,9 +174,26 @@ pending → paid → processing → shipped → delivered
 
 Used when an order should be authorized at checkout but not charged until an admin reviews it — for example a high-value order or one that needs internal approval. The customer's card has the amount on hold but no money moves until the admin captures.
 
-```
-pending → authorized → [ADMIN CAPTURES] → paid → processing → shipped → delivered
-```
+<section class="modern-flow" aria-label="Credit card auth-only flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Auth-only</span>
+      <span class="modern-flow__title">Admin captures the held card authorization before fulfillment begins</span>
+    </div>
+    <span class="modern-flow__badge">Manual capture</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">pending<small>Order created</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--wait">authorized<small>Card held, not charged</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Admin Captures<small>Order Actions card in HubSpot</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">paid<small>Funds captured</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">processing → shipped → delivered<small>ShipEdge fulfillment path</small></span>
+  </div>
+</section>
 
 | Transition | Trigger | Timing |
 |---|---|---|
@@ -175,9 +209,22 @@ pending → authorized → [ADMIN CAPTURES] → paid → processing → shipped 
 
 For approved B2B customers paying on NET30 terms. The order is created immediately but waits for the admin to invoice it after verifying the PO.
 
-```
-pending_payment → [ADMIN INVOICES] → processing → shipped → delivered
-```
+<section class="modern-flow" aria-label="Purchase order NET30 flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Purchase order</span>
+      <span class="modern-flow__title">PO orders wait in pending payment until an admin invoices them</span>
+    </div>
+    <span class="modern-flow__badge">NET30</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--wait">pending_payment<small>PO submitted and saved</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Admin Invoices<small>PO verified against credit limit</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">processing → shipped → delivered<small>ShipEdge fulfillment path</small></span>
+  </div>
+</section>
 
 | Transition | Trigger | Timing |
 |---|---|---|
@@ -192,11 +239,23 @@ pending_payment → [ADMIN INVOICES] → processing → shipped → delivered
 
 The customer mails a physical check. The order waits until the admin confirms the check has arrived and cleared.
 
-```
-pending_payment → [ADMIN INVOICES] → processing → shipped → delivered
-                ↘
-                 [14 days, no invoice] → cancelled (automatic)
-```
+<section class="modern-flow" aria-label="Check and money order flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Check / money order</span>
+      <span class="modern-flow__title">Check orders ship after admin invoicing or auto-cancel after 14 days</span>
+    </div>
+    <span class="modern-flow__badge">14-day timer</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--wait">pending_payment<small>Waiting for check to clear</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Admin Invoices<small>Check received and cleared</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">processing → shipped → delivered<small>ShipEdge fulfillment path</small></span>
+  </div>
+  <div class="modern-flow__note">If no invoice action happens within 14 days, the daily auto-cancel cron moves the order to <code>cancelled</code>.</div>
+</section>
 
 | Transition | Trigger | Timing |
 |---|---|---|
@@ -212,11 +271,23 @@ See [Admin Actions](admin-actions.md).
 
 The customer sends a wire transfer. The order waits until the admin verifies the funds have landed.
 
-```
-pending_payment → [ADMIN INVOICES] → processing → shipped → delivered
-                ↘
-                 [21 days, no invoice] → cancelled (automatic)
-```
+<section class="modern-flow" aria-label="ACH and wire transfer flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">ACH / wire transfer</span>
+      <span class="modern-flow__title">Wire orders ship after funds are verified or auto-cancel after 21 days</span>
+    </div>
+    <span class="modern-flow__badge">21-day timer</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--wait">pending_payment<small>Waiting for funds to land</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Admin Invoices<small>Incoming wire matched to order</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">processing → shipped → delivered<small>ShipEdge fulfillment path</small></span>
+  </div>
+  <div class="modern-flow__note">If no invoice action happens within 21 days, the daily auto-cancel cron moves the order to <code>cancelled</code>.</div>
+</section>
 
 | Transition | Trigger | Timing |
 |---|---|---|

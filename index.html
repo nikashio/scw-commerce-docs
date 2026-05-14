@@ -527,6 +527,207 @@
       background: rgba(255,255,255,0.78);
       color: #7c3f13;
     }
+
+    /* ── MODERN FLOW CARDS ─────────────────── */
+    .modern-flow,
+    .method-glance {
+      margin: 1.4em 0 1.8em;
+      padding: 20px;
+      border: 1px solid rgba(27,80,120,0.12);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(237,131,38,0.13), transparent 30%),
+        radial-gradient(circle at 96% 12%, rgba(27,80,120,0.11), transparent 34%),
+        linear-gradient(135deg, #ffffff 0%, #f8fbfd 58%, #fff8f1 100%);
+      box-shadow: 0 14px 38px rgba(15,58,92,0.10);
+    }
+    .modern-flow *,
+    .method-glance * {
+      box-sizing: border-box;
+    }
+    .modern-flow__header,
+    .method-glance__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .modern-flow__eyebrow,
+    .method-glance__eyebrow {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--orange);
+      font-size: 0.7em;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .modern-flow__title,
+    .method-glance__title {
+      display: block;
+      color: var(--navy-deep);
+      font-size: 0.98em;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .modern-flow__badge,
+    .method-glance__badge {
+      flex-shrink: 0;
+      padding: 5px 9px;
+      border: 1px solid rgba(27,80,120,0.14);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.76);
+      color: var(--navy);
+      font-size: 0.68em;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .modern-flow__track {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      min-width: 0;
+    }
+    .modern-flow__node {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 12px 13px;
+      border: 1px solid rgba(27,80,120,0.13);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 8px 20px rgba(17,24,39,0.07);
+      color: var(--gray-900);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.84em;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .modern-flow__node::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      border-radius: 12px 0 0 12px;
+      background: var(--navy);
+    }
+    .modern-flow__node small {
+      display: block;
+      margin-top: 6px;
+      color: var(--gray-500);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78em;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .modern-flow__node--start::before { background: #5b9bd5; }
+    .modern-flow__node--wait::before { background: var(--orange); }
+    .modern-flow__node--success::before { background: #10b981; }
+    .modern-flow__node--action::before { background: #8b5cf6; }
+    .modern-flow__node--ship::before { background: #0ea5e9; }
+    .modern-flow__node--done::before { background: #059669; }
+    .modern-flow__node--fail::before { background: #ef4444; }
+    .modern-flow__arrow {
+      align-self: center;
+      flex: 0 0 22px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(27,80,120,0.25), rgba(237,131,38,0.65));
+      position: relative;
+    }
+    .modern-flow__arrow::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid rgba(237,131,38,0.75);
+      border-right: 2px solid rgba(237,131,38,0.75);
+      transform: translateY(-50%) rotate(45deg);
+    }
+    .modern-flow__branches {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .modern-flow__branch {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.74);
+      border-radius: 13px;
+      background: rgba(255,255,255,0.70);
+      box-shadow: 0 8px 18px rgba(15,58,92,0.06);
+    }
+    .modern-flow__branch-title {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--gray-500);
+      font-size: 0.72em;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .modern-flow__note {
+      margin-top: 14px;
+      padding: 11px 13px;
+      border: 1px solid rgba(237,131,38,0.23);
+      border-radius: 11px;
+      background: rgba(255,247,237,0.78);
+      color: #7c3f13;
+      font-size: 0.83em;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .method-glance__grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .method-glance__card {
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,0.74);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.76);
+      box-shadow: 0 9px 22px rgba(15,58,92,0.08);
+    }
+    .method-glance__card h4 {
+      margin: 0 0 10px;
+      color: var(--navy-deep);
+      font-size: 0.86em;
+      font-weight: 800;
+    }
+    .method-glance__path {
+      display: grid;
+      gap: 8px;
+    }
+    .method-glance__step {
+      position: relative;
+      padding: 10px 11px 10px 14px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(27,80,120,0.10);
+      color: var(--gray-800);
+      font-size: 0.8em;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+    .method-glance__step::before {
+      content: '';
+      position: absolute;
+      inset: 9px auto 9px 0;
+      width: 3px;
+      border-radius: 3px;
+      background: var(--orange);
+    }
+    .method-glance__step small {
+      display: block;
+      margin-top: 3px;
+      color: var(--gray-500);
+      font-weight: 550;
+    }
     @media (max-width: 700px) {
       .status-flow {
         padding: 18px 14px;
@@ -571,6 +772,40 @@
       }
       .status-step__trigger {
         font-size: 0.76em;
+      }
+      .modern-flow,
+      .method-glance {
+        padding: 16px 13px;
+        border-radius: 14px;
+      }
+      .modern-flow__header,
+      .method-glance__header {
+        display: grid;
+      }
+      .modern-flow__badge,
+      .method-glance__badge {
+        justify-self: start;
+      }
+      .modern-flow__track {
+        display: grid;
+        gap: 8px;
+      }
+      .modern-flow__arrow {
+        width: 2px;
+        height: 18px;
+        flex-basis: auto;
+        justify-self: center;
+        background: linear-gradient(var(--navy), var(--orange));
+      }
+      .modern-flow__arrow::after {
+        right: 50%;
+        top: auto;
+        bottom: -1px;
+        transform: translateX(50%) rotate(135deg);
+      }
+      .modern-flow__branches,
+      .method-glance__grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -881,6 +1116,38 @@
     }
     [data-theme="dark"] .status-flow__cancel code {
       background: rgba(255,255,255,0.08);
+      color: #f0b17d;
+    }
+
+    [data-theme="dark"] .modern-flow,
+    [data-theme="dark"] .method-glance {
+      border-color: rgba(91,155,213,0.24);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(237,131,38,0.10), transparent 30%),
+        radial-gradient(circle at 96% 12%, rgba(91,155,213,0.15), transparent 34%),
+        linear-gradient(135deg, #111722 0%, #151b25 58%, #1e1a16 100%);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.26);
+    }
+    [data-theme="dark"] .modern-flow__title,
+    [data-theme="dark"] .method-glance__title,
+    [data-theme="dark"] .method-glance__card h4 {
+      color: #e5e7eb;
+    }
+    [data-theme="dark"] .modern-flow__badge,
+    [data-theme="dark"] .method-glance__badge,
+    [data-theme="dark"] .modern-flow__node,
+    [data-theme="dark"] .modern-flow__branch,
+    [data-theme="dark"] .method-glance__card,
+    [data-theme="dark"] .method-glance__step {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(19,22,28,0.76);
+    }
+    [data-theme="dark"] .modern-flow__node {
+      color: #f3f4f6;
+    }
+    [data-theme="dark"] .modern-flow__note {
+      border-color: rgba(237,131,38,0.28);
+      background: rgba(237,131,38,0.08);
       color: #f0b17d;
     }
 

@@ -226,37 +226,25 @@ If a quote or order is still charging tax for a customer you set as exempt, work
 
 Here is the full end-to-end flow of how tax exemptions work across all three systems:
 
-```
-HUBSPOT (Sales Rep manages)
-  Contact Properties:
-    ├── tax_exemption_type: wholesale / government / other / non_exempt
-    └── tax_exempt_regions: multi-select of 29 nexus states
-                            (empty = exempt in all nexus states)
-        │
-        ▼  Daily cron (2 AM UTC)
-        
-SCW COMMERCE DATABASE (local storage)
-  customers table:
-    ├── exemption_type: varchar(30)       — "wholesale" / "government" / "other" / "non_exempt"
-    ├── exempt_regions: text              — comma-separated codes, e.g. "CA,NY,TX" (NULL = all states)
-    └── taxjar_customer_id: varchar(50)   — populated on first successful TaxJar sync
-        │
-        ▼  Same cron pushes changes to TaxJar
-        
-TAXJAR CUSTOMER API (tax engine)
-  POST/PUT /v2/customers/{id}
-    ├── exemption_type: "wholesale"
-    ├── exempt_regions: [{country: "US", state: "CA"}, ...]   (omitted if all states)
-    └── customer_id: "3419"
-        │
-        ▼  At checkout
-        
-TAX CALCULATION
-  POST /v2/taxes
-    ├── customer_id: "3419"  ← TaxJar looks up exemption
-    ├── to_state: "CA"       ← checks if exempt in this state
-    └── Returns: amount_to_collect: 0.00  ← $0 tax!
-```
+<section class="modern-flow" aria-label="Tax exemption sync and calculation flow">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Tax exemption system flow</span>
+      <span class="modern-flow__title">HubSpot controls exemption settings, SCW stores them, TaxJar applies them at checkout</span>
+    </div>
+    <span class="modern-flow__badge">2 AM UTC sync</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">HubSpot Contact<small>tax_exemption_type and tax_exempt_regions managed by sales</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">SCW Database<small>customers.exemption_type, exempt_regions, taxjar_customer_id</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">TaxJar Customer API<small>POST/PUT /v2/customers/{id}</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--done">Tax Calculation<small>POST /v2/taxes returns amount_to_collect: 0.00 when exempt</small></span>
+  </div>
+  <div class="modern-flow__note">Empty HubSpot tax-exempt regions means exempt in all nexus states; populated regions are synced as state-specific TaxJar exemptions.</div>
+</section>
 
 ---
 

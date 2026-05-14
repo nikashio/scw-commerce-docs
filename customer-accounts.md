@@ -203,41 +203,43 @@ Saved addresses are available:
 
 ### Path A: Sales-Initiated (most B2B customers)
 
-```
-Sales rep creates Contact in HubSpot
-  │
-  ├── Webhook fires → SCW auto-provisions:
-  │     ├── Cognito: user created (temp password)
-  │     ├── Local DB: customer record created, linked to HubSpot
-  │     └── Welcome email sent with "Set Your Password" link
-  │
-  ▼
-Sales rep builds quote → sends payment link
-  │
-  ├── Customer clicks link → logs in (or sets password first) → completes checkout
-  ├── HubSpot: Ecommerce Order created, linked to Contact
-  └── ShipEdge: order pushed for fulfillment (if invoiced)
-  │
-  ▼
-Sales rep updates credit terms in HubSpot
-  │
-  ├── Webhook fires → SCW updates instantly
-  └── PO option appears at checkout for this customer
-```
+<section class="modern-flow" aria-label="Sales-initiated customer account lifecycle">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Path A</span>
+      <span class="modern-flow__title">Sales-created HubSpot contacts automatically become SCW customer accounts</span>
+    </div>
+    <span class="modern-flow__badge">B2B default</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">HubSpot Contact<small>Sales rep creates Contact</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Auto-provision<small>Cognito user, local customer row, and welcome email</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">Quote link<small>Rep builds quote and sends payment link</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">Checkout + fulfillment<small>Order links to Contact; ShipEdge receives order if invoiced</small></span>
+  </div>
+  <div class="modern-flow__note">When sales updates credit terms in HubSpot, the webhook updates SCW instantly and the PO option appears at checkout for that customer.</div>
+</section>
 
 ### Path B: Self-Service (website registration)
 
-```
-Customer registers on SCW Commerce
-  │
-  ├── Cognito: user created (handles passwords)
-  ├── Local DB: customer record created (profile, addresses)
-  └── HubSpot: Contact NOT created yet
-         │
-         ▼
-Customer places first order
-  │
-  ├── HubSpot: Contact created (or matched if already exists)
-  ├── HubSpot: Ecommerce Order created, linked to Contact
-  └── Local DB: order linked to customer via customerId
-```
+<section class="modern-flow" aria-label="Self-service customer account lifecycle">
+  <div class="modern-flow__header">
+    <div>
+      <span class="modern-flow__eyebrow">Path B</span>
+      <span class="modern-flow__title">Self-service customers start local, then sync to HubSpot on first order</span>
+    </div>
+    <span class="modern-flow__badge">Website</span>
+  </div>
+  <div class="modern-flow__track">
+    <span class="modern-flow__node modern-flow__node--start">Register<small>Customer registers on SCW Commerce</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--success">Local account<small>Cognito user and local customer profile are created</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--action">First order<small>HubSpot Contact is created or matched</small></span>
+    <span class="modern-flow__arrow" aria-hidden="true"></span>
+    <span class="modern-flow__node modern-flow__node--ship">Linked order<small>Ecommerce Order links to Contact and local customerId</small></span>
+  </div>
+</section>
