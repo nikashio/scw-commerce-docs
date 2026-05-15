@@ -16,4 +16,5 @@
   - [Customer Accounts](customer-accounts.md)
 
 - **Developer Reference**
+  - [Make Automation Migration](make-automation-migration.md)
   - [Admin API](api-admin.md)

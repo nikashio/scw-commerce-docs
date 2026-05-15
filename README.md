@@ -33,3 +33,7 @@ This guide follows the natural order of how work flows through the system — fr
 ### Configuration
 7. [Credit Terms Management](credit-terms.md) — How to approve B2B customers for Purchase Order (NET30) payment
 8. [Customer Accounts](customer-accounts.md) — Customer login, registration, password reset, and order history
+
+### Developer Reference
+9. [Make Automation Migration](make-automation-migration.md) — How the Make team should replace Magento 2 order triggers/lookups with SCW Commerce webhooks and APIs
+10. [Admin API](api-admin.md) — Programmatic reference for internal admin endpoints

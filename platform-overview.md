@@ -161,7 +161,7 @@ The systems stay in sync through automated processes that run on a schedule:
 | Process | Frequency | What It Does |
 |---|---|---|
 | **HubSpot entity sync (outbox)** | Every 1 minute | Delivers every order, invoice, shipment, and credit-memo change to HubSpot. Retries on failure with exponential backoff (1m→120m). See "How HubSpot sync works" below. |
-| **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. |
+| **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. See [Make Automation Migration](make-automation-migration.md). |
 | **Product sync** | Every 15 minutes | Syncs changed active products from the SCW Commerce database to HubSpot Products; also updates the Meilisearch product index |
 | **ShipEdge order status sync** | Real-time webhook + every 5 minutes | ShipEdge webhooks update shipped/delivered/cancelled states through the same status-sync service; the 5-minute cron reconciles missed webhooks and open orders |
 | **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms, and subscribed tax-exemption fields) instantly |
