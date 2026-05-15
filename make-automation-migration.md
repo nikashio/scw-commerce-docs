@@ -4,7 +4,7 @@
 
 Move the Make.com automations that currently depend on Magento 2 onto SCW Commerce.
 
-The target pattern is:
+Use this cutover pattern:
 
 <section class="modern-flow" aria-label="SCW Commerce to Make migration flow">
   <div class="modern-flow__header">
@@ -27,10 +27,6 @@ The target pattern is:
   </div>
   <div class="modern-flow__note">Treat the webhook as the trigger and the SCW order API as the source of truth. Do not keep Magento order polling or Magento write modules in the cutover version.</div>
 </section>
-
-This page is for the Make team updating the existing scenarios. It is based on the exported Make blueprints in the SCW Commerce repo's `make/` folder and the current SCW Commerce Make integration code.
-
----
 
 ## What Changes
 
@@ -283,7 +279,7 @@ Prefer the SCW response field names for new modules. The Magento-style aliases e
 
 ## Scenario Migration Matrix
 
-The exported folder contains the active Magento migration surface plus one return-tracker export with a `,md` extension. Confirm which scenarios are active in Make before cutover, then update each active scenario according to this matrix.
+Use this as the starting checklist for the Make rebuild. Confirm each scenario is active in Make before changing it, then replace only the Magento-dependent modules in that scenario.
 
 | Make export | Current Magento dependency | SCW replacement |
 |---|---|---|
@@ -298,7 +294,7 @@ The exported folder contains the active Magento migration surface plus one retur
 | `Recalculate Sales Tax on a Transaction` | `magento2:findOrders2` plus tax/refund HTTP work | Replace the Magento order lookup with SCW order read. Do not move tax/refund mutations to SCW until a dedicated SCW integration endpoint exists for that action. |
 | `Sales Tax only Refunds on Magento Transactions` | `magento2:findOrders2` plus tax/refund HTTP work | Same as above: order lookup can move now; tax/refund write behavior needs explicit SCW endpoint support before cutover. |
 
-Disabled branches in an exported blueprint should not drive the live migration plan. Only migrate branches that are enabled in the active Make scenario.
+Disabled branches should not drive the live migration plan. Only migrate branches that are enabled in the active Make scenario.
 
 ---
 
@@ -353,4 +349,3 @@ Those admin endpoints are for SCW operators, not for Make scenario runtime calls
 - Do not write directly to the SCW database.
 - Do not paste Make connections, API keys, webhook URLs, or raw blueprint exports into public docs or tickets.
 - Do not assume the compact webhook payload has every field. Read the full order from SCW first.
-
