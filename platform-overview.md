@@ -150,6 +150,7 @@ This is important to understand. The same order exists in multiple systems, but 
 | **Shipments / Tracking** | ShipEdge | SCW Commerce DB + HubSpot | ShipEdge creates, webhook updates in real time when configured; 5-minute cron is the fallback/reconciliation path |
 | **Tax calculation** | TaxJar | — | Calculated in real-time, not stored permanently |
 | **Credit terms approval** | HubSpot (Contact property) | SCW Commerce DB | Set in HubSpot, synced by contact webhook in real time with a daily 2 AM UTC reconciliation job |
+| **Tax-exemption status** | SCW Commerce DB (AWS RDS) | TaxJar | Set exclusively via the signed tax-exemption webhook from the external doc-review system. HubSpot is not an input. Provenance + audit history stored in `tax_exemption_events`. |
 | **Search index** | Meilisearch | — | Rebuilt from DB + CMS files on deploy and product sync |
 
 ---
@@ -164,9 +165,9 @@ The systems stay in sync through automated processes that run on a schedule:
 | **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. See [Make Automation Migration](make-automation-migration.md). |
 | **Product sync** | Every 15 minutes | Syncs changed active products from the SCW Commerce database to HubSpot Products (including the dropship / preorder / special-order fulfillment flags → HubSpot product properties); also updates the Meilisearch product index |
 | **ShipEdge order status sync** | Real-time webhook + every 5 minutes | ShipEdge webhooks update shipped/delivered/cancelled states through the same status-sync service; the 5-minute cron reconciles missed webhooks and open orders |
-| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms, and subscribed tax-exemption fields) instantly |
+| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly. Tax exemption is **not** set via this webhook — it comes exclusively from the signed tax-exemption webhook. |
 | **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
-| **Tax exemption sync** | Real-time webhook + daily at 2 AM UTC | Webhook-supported tax exemption edits update SCW Commerce and TaxJar immediately when the HubSpot subscriptions are active; the daily cron reconciles all linked customers |
+| **Tax exemption sync** | Real-time (signed webhook) | An external doc-review system sends a signed `POST /api/webhooks/tax-exemption` when a customer's exemption is approved or revoked. SCW Commerce records the decision, writes an audit row, and pushes the change to TaxJar immediately. The HubSpot contact field and the daily sync cron are retired — the webhook is the only input. See [Tax-Exemption Validation Webhook](tax-exemption-webhook.md). |
 | **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check orders older than 14 days and Wire orders older than 21 days |
 | **DLQ retry** | Every 5 minutes | Retries failed non-outbox work such as ShipEdge order push, quote↔order association, TaxJar refund reporting, and bulk import jobs |
 

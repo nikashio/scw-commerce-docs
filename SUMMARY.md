@@ -25,3 +25,4 @@
 
 * [Make Automation Migration](make-automation-migration.md)
 * [Admin API](api-admin.md)
+* [Tax-Exemption Validation Webhook](tax-exemption-webhook.md)

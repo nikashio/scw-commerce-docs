@@ -145,6 +145,28 @@ When a check order comes in:
 
 ---
 
+## Tax Exemptions (View Only)
+
+The **Tax Exemptions** page is accessible under the **Operations** group in the admin navigation at `/admin/tax-exemptions`.
+
+### What it shows
+
+| Column | Description |
+|---|---|
+| Customer | Name and email of the exempt customer |
+| Exemption Type | `wholesale`, `government`, or `other` |
+| Exempt Regions | The US states where tax exemption applies |
+| Source | Always `webhook` — indicates the exemption was set via the external doc-review system |
+| Validated By | The person or system that validated the exemption document |
+| Validated At | Date the exemption document was validated |
+| Document | Reference ID for the supporting document (e.g., reseller certificate number) |
+
+### Important: view only
+
+This page is read-only. Exemptions cannot be created, edited, or removed from the admin UI. All changes must go through the external doc-review system via the signed `POST /api/webhooks/tax-exemption` webhook. See [Tax-Exemption Validation Webhook](tax-exemption-webhook.md) for the full integrator contract.
+
+---
+
 ## Quick Reference: Admin Actions by Payment Method
 
 | Scenario | Action | Result |
