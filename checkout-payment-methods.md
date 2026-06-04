@@ -221,3 +221,41 @@ Available to all customers. The customer sends a wire transfer.
     </article>
   </div>
 </section>
+
+---
+
+## Sales Tax at Checkout
+
+Sales tax is calculated by **TaxJar** at checkout (and when a quote is saved with a shipping address). TaxJar sources tax from the **destination ZIP code**, not just the State dropdown — it resolves the actual jurisdiction from the full address. SCW collects sales tax only in the states where it has tax nexus (currently 29). Orders shipping to **no-sales-tax states (OR, DE, MT, NH)** and **US territories / military addresses (PR, GU, APO/FPO)** are correctly taxed at **$0**.
+
+Customer **tax exemptions still apply** to everything below — an approved exempt customer is charged $0 regardless of pickup or ship-to. See the [Tax Exemption](key-concepts.md) glossary entry and the [Tax-Exemption Validation Webhook](tax-exemption-webhook.md).
+
+### In-Store Pickup — Taxed at the NC Store Origin
+
+When a customer chooses **in-store pickup** as the shipping method, the order is taxed at **SCW's North Carolina store origin (Asheville, NC 28806)** — the customer takes possession at the counter in NC — **not** at the address entered in the shipping fields.
+
+| | Behavior |
+|---|---|
+| **Before** | Pickup tax was computed from the entered ship-to address. A pickup buyer with an out-of-state address could be charged **$0** (e.g., an Oregon address) or **another state's tax** (e.g., California's) — neither correct for a counter sale in NC. |
+| **Now** | Every in-store-pickup order is taxed at **NC**, regardless of the address on file. The store-origin jurisdiction is saved on the order, so the figure SCW *files* with TaxJar matches what it *collected* — including on the retry path if the initial tax report is delayed. |
+
+> Tax exemptions are unaffected: an exempt customer picking up in-store is still charged $0.
+
+### Blocked — State / ZIP Tax Mismatch
+
+Checkout now **blocks** an order when the customer selects a **sales-tax (nexus) state** but enters a **ZIP code that geolocates to a different jurisdiction** (or one where SCW collects no tax). That combination would otherwise return $0 tax for a state SCW actually collects in — i.e., **under-collected sales tax**. Blocking it forces the address to be corrected before the order is placed.
+
+**What the customer sees**
+1. The order is **not** placed.
+2. An error explains: *"We couldn't verify your shipping address. Please double-check the state and ZIP code so we can apply the correct sales tax."*
+3. Where TaxJar can supply a corrected (ZIP-resolved) address, checkout offers a one-click **"Use this address"** suggestion — *"Did you mean … ?"* — that fills in the canonical street, city, state, and ZIP. Editing any address field clears the suggestion.
+
+> [SCREENSHOT: Checkout showing the "Did you mean …? Use this address" suggestion after a state/ZIP mismatch]
+
+**What is _not_ blocked** — these are legitimate $0-tax orders and pass through normally:
+
+- Orders shipping to **no-sales-tax states** — Oregon (OR), Delaware (DE), Montana (MT), New Hampshire (NH).
+- Orders shipping to **US territories and military addresses** — e.g., Puerto Rico (PR), Guam (GU), and APO/FPO military addresses (AA/AE/AP) — none of which are nexus states.
+- **In-store pickup** orders, which are origin-sourced to NC (above).
+
+> **For admins / reps:** if a customer reports an "address" error at checkout, have them confirm the **state matches the ZIP code** — the most common cause is the right ZIP with the wrong state selected (or vice-versa). The **"Use this address"** button applies TaxJar's corrected address in one click. Internally this surfaces as the `ADDRESS_VALIDATION_FAILED` error code.
