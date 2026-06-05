@@ -28,7 +28,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 
 - **JSON only.** Success responses use either `{ ...data }` or `{ success: true, data: { ... } }`. Errors use `{ error: "...", code?: "..." }`.
 - **Path params named `id`** accept the numeric primary key OR the human-readable identifier (order number `SCW-...`, invoice number, etc.) on endpoints that explicitly note both.
-- **Outbox side effects.** Most order, invoice, refund, and shipment mutations enqueue HubSpot sync through the outbox. A few coordinated flows intentionally skip individual syncs and rely on a later status event or manual `/sync`; those exceptions are called out below.
+- **Outbox side effects.** Order, invoice, refund, and shipment mutations enqueue HubSpot sync through the durable outbox; each endpoint's HubSpot side effect is noted below. Manual `/api/admin/orders/[id]/sync` is available to force a re-sync if an outbox row was abandoned.
 - **Idempotency.** Refund creation endpoints accept an `Idempotency-Key` header to guarantee at-most-once processing across retries.
 
 ---
@@ -68,8 +68,8 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `GET /api/admin/orders/[id]`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Full order lifecycle detail — items, payments, invoices, shipments, refunds, events, DLQ entries. Accepts either order number (`SCW-...`) or numeric ID.
-- **Path params:** `id: string (order number or numeric ID)`
+- **Purpose:** Full order lifecycle detail — items, payments, invoices, shipments, refunds, events, DLQ entries. The `[id]` param is always an **order number string**, never a numeric primary key. Accepted formats: current sequence numbers (`ORD-000035`), legacy app-generated (`SCW-20260108-A1B2`), and Magento-migrated numeric strings (`1068850686` or `1068850686-1`). A bare integer only resolves if it matches a stored `order_number` column value — there is no primary-key lookup on this route. (Note: the `POST /[id]/capture` route does parse `[id]` as an integer PK.)
+- **Path params:** `id: string (order number — see formats above)`
 - **Query params:** none
 - **Request body:** none
 - **Response (200):** `{ id, orderNumber, status, items[], payments[], invoices[], shipments[], refunds[], events[] }`
@@ -83,7 +83,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Query params:** none
 - **Request body:** none
 - **Response (200):** `{ message, payment, invoice }`
-- **Side effects:** Authorize.net gateway call; DB writes (payment + local invoice + order status); ShipEdge sync triggered. The subsequent `processing` status update can enqueue an order-status sync when the order already has a HubSpot object; the invoice itself is not explicitly enqueued by this route, so use `/api/admin/orders/[id]/sync` for the invoice if it does not appear in HubSpot.
+- **Side effects:** Authorize.net gateway call; DB writes (payment + local invoice + order status `paid`); ShipEdge sync triggered. **HubSpot sync is NOT enqueued at capture time:** the capture route calls both `InvoiceService.createFromOrder` and `OrderService.updateStatus('paid')` with `{ skipHubSpotSync: true }` (`capture/route.ts:125-132`), and both services only enqueue the outbox when `!options?.skipHubSpotSync` (`invoice.service.ts:177`, `order.service.ts:612`). As a result this endpoint does not push the captured invoice or the updated status to HubSpot on its own — call `/api/admin/orders/[id]/sync` after capture if the order or invoice does not appear in HubSpot.
 
 #### `POST /api/admin/orders/[id]/invoice`
 
@@ -362,7 +362,11 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Path params:** `id: number`
 - **Query params:** none
 - **Request body:** none
-- **Response (200):** `{ ok, item, code (e.g. OUTBOX_ALREADY_DELIVERED) }` or `{ error, code }`
+- **Response:** Four distinct shapes depending on the item's state:
+  - **404** `{ error, code: 'OUTBOX_NOT_FOUND' }` — item does not exist (no `item` field)
+  - **409** `{ error, code: 'OUTBOX_PROCESSING', item }` — item is mid-flight in another worker; try again shortly
+  - **200** `{ ok: true, noOp: true, code: 'OUTBOX_ALREADY_DELIVERED', item }` — already delivered; no action taken
+  - **200** `{ ok: true, item }` — retry was triggered successfully (no `code` field in this case)
 - **Side effects:** DB write (outbox item status); Make.com webhook re-triggered.
 
 ---
@@ -398,6 +402,195 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Request body:** `{ shippingAddress, subtotal, shippingAmount?, lineItems?, customerEmail? }`
 - **Response (200):** `{ success, tax: { amount, rate, hasNexus, freightTaxable, fallback, breakdown? } }`
 - **Side effects:** TaxJar API call; DB read for customer-exemption lookup.
+
+---
+
+## Quotes
+
+#### `POST /api/admin/quotes/send-proposal-email`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Send a Cart2Quote-style quote-proposal email (with PDF attachment) to a customer. Called by the HubSpot Lambda when a rep sends a quote from the HubSpot Quote Builder card.
+- **Path params:** none
+- **Query params:** none
+- **Request body:** `{ to, customerName, repName, repEmail, quoteNumber, quoteDate?, validUntil?, sections[], totals, billingAddress, shippingAddress, shippingMethod?, paymentLinkUrl, ctaLabel?, customerNote?, pdf: { filename, base64 } }`
+- **Response (200):** `{ success: true, status: 'sent' }`
+- **Response (502):** `{ success: false, status: 'failed', error }`
+- **Side effects:** Sends email with PDF attachment via the configured email service.
+
+---
+
+## Products
+
+#### `GET /api/admin/products`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** List products with pagination and filtering. Powers the admin product listing page.
+- **Path params:** none
+- **Query params:** pagination + filter params
+- **Response (200):** `{ products[], total, page, limit, totalPages }`
+- **Side effects:** read-only
+
+#### `POST /api/admin/products`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Create a new product.
+- **Path params:** none
+- **Request body:** product creation schema
+- **Response (201):** created product object
+- **Side effects:** DB write; search index updated.
+
+#### `GET /api/admin/products/[id]`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Get full product detail for the admin product editor.
+- **Path params:** `id: number`
+- **Response (200):** product detail object
+- **Side effects:** read-only
+
+#### `PATCH /api/admin/products/[id]`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Update product fields.
+- **Path params:** `id: number`
+- **Request body:** partial product update schema
+- **Response (200):** updated product object
+- **Side effects:** DB write; search index updated.
+
+#### `DELETE /api/admin/products/[id]`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Delete a product.
+- **Path params:** `id: number`
+- **Response (200):** `{ success: true }`
+- **Side effects:** DB write; search index updated.
+
+#### `GET /api/admin/products/[id]/images` / `PATCH /api/admin/products/[id]/images`
+
+- Manage the product's image set (list or replace).
+
+#### `POST /api/admin/products/[id]/images/upload`
+
+- Upload a new image for the product.
+
+#### `GET /api/admin/products/[id]/categories` / `POST /api/admin/products/[id]/categories`
+
+- List or assign categories for the product.
+
+#### `GET /api/admin/products/[id]/options` / `PATCH /api/admin/products/[id]/options`
+
+- Get or update product options/variants.
+
+#### `GET /api/admin/products/[id]/related` / `PATCH /api/admin/products/[id]/related`
+
+- Get or update related products.
+
+#### `GET /api/admin/products/[id]/tier-prices` / `POST /api/admin/products/[id]/tier-prices`
+
+- Get or set quantity-based tier prices.
+
+#### `GET /api/admin/products/[id]/group-prices` / `POST /api/admin/products/[id]/group-prices`
+
+- Get or set customer-group-specific prices.
+
+#### `POST /api/admin/products/[id]/resync`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Re-sync a product to the search index and any downstream systems.
+- **Path params:** `id: number`
+- **Response (200):** `{ success: true }`
+- **Side effects:** search index updated.
+
+---
+
+## Tax Exemptions
+
+#### `GET /api/admin/tax-exemptions`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Read-only list of tax-exempt customers. Changes to exemption status are made through the exemption-request approval flow or org-level domain config, not directly through this endpoint.
+- **Path params:** none
+- **Query params:** pagination + filter params
+- **Response (200):** `{ exemptions[], total, page, limit, totalPages }`
+- **Side effects:** read-only
+
+#### `GET /api/admin/tax-exempt-orgs`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** List tax-exempt organizations with their associated email domains.
+- **Path params:** none
+- **Query params:** pagination + filter params
+- **Response (200):** `{ orgs[], total, page, limit, totalPages }`
+- **Side effects:** read-only
+
+#### `POST /api/admin/tax-exempt-orgs`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Create a new tax-exempt org and cascade the exemption to all existing customers whose email domains match the org's configured domains.
+- **Path params:** none
+- **Request body:** org creation schema (name, domains[], exemption details)
+- **Response (201):** created org object
+- **Side effects:** DB write (org + cascaded customer exemptions); TaxJar customer sync.
+
+#### `GET /api/admin/tax-exempt-orgs/[id]` / `PATCH /api/admin/tax-exempt-orgs/[id]` / `DELETE /api/admin/tax-exempt-orgs/[id]`
+
+- Get, update, or delete a tax-exempt org by ID.
+
+#### `GET /api/admin/tax-exemption-requests`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** List exemption requests with `status`, `page`, and `pageSize` filter support.
+- **Path params:** none
+- **Query params:** `status`, `page`, `pageSize`
+- **Response (200):** `{ requests[], total, page, limit, totalPages }`
+- **Side effects:** read-only
+
+#### `POST /api/admin/tax-exemption-requests`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Admin creates an exemption request on behalf of a customer (`multipart/form-data`). Accepts `customerEmail` plus supporting document uploads.
+- **Path params:** none
+- **Request body:** `multipart/form-data` — `customerEmail` + document files
+- **Response (201):** created request object
+- **Side effects:** DB write (request + documents).
+
+#### `GET /api/admin/tax-exemption-requests/[id]` / `PATCH /api/admin/tax-exemption-requests/[id]`
+
+- Get or update an exemption request by ID.
+
+#### `POST /api/admin/tax-exemption-requests/[id]/approve`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Approve an exemption request — marks the customer tax-exempt and syncs to TaxJar.
+- **Path params:** `id: number`
+- **Response (200):** `{ success: true, request }`
+- **Side effects:** DB write (request status + customer exemption flag); TaxJar customer sync.
+
+#### `POST /api/admin/tax-exemption-requests/[id]/reject`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Reject an exemption request.
+- **Path params:** `id: number`
+- **Response (200):** `{ success: true, request }`
+- **Side effects:** DB write (request status).
+
+---
+
+## Supporting Read Endpoints
+
+#### `GET /api/admin/categories`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Read-only list of categories. Used by the admin product editor to populate category selectors.
+- **Response (200):** `{ categories[] }`
+- **Side effects:** read-only
+
+#### `GET /api/admin/customer-groups`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Read-only list of customer groups. Used by the admin product editor to populate group-price selectors.
+- **Response (200):** `{ groups[] }`
+- **Side effects:** read-only
 
 ---
 

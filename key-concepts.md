@@ -59,7 +59,7 @@ Each object represents a stage in the sales lifecycle.
 
 **Key properties:**
 - Quote ID
-- Status (Draft, Saved)
+- Status (Draft, Approved, Accepted, etc. — see HubSpot native quote statuses)
 - Line items (products, quantities, prices)
 - Subtotal, tax, discount, total
 - Customer billing and shipping address
@@ -72,7 +72,7 @@ Each object represents a stage in the sales lifecycle.
 - Linked to **Ecommerce Line Items** (the products in the quote)
 - After checkout: linked to an **Ecommerce Order**
 
-> [SCREENSHOT: Ecommerce Quote record showing Quote Builder and sidebar relationships]
+> [SCREENSHOT: A HubSpot Ecommerce Quote record showing the Quote Builder card and the sidebar associations to Contact and Ecommerce Order. Reused for quote-builder.md 'What Gets Created in HubSpot'. — images/hubspot-ecommerce-quote-record.png]
 
 ---
 
@@ -83,8 +83,8 @@ Each object represents a stage in the sales lifecycle.
 **Created when:** Checkout is completed — either by the customer directly or by a rep on their behalf.
 
 **Key properties:**
-- Order ID (e.g., `SCW-20260406-A1B2`)
-- Status (Pending, Processing, Shipped, Delivered, Cancelled)
+- Order ID (e.g., `ORD-000001`) — a sequential six-digit number with an `ORD-` prefix, generated via the `seq_order_number` PostgreSQL sequence
+- Status (Pending, Processing, Shipped, Delivered, Complete, Cancelled)
 - Payment Method Type (Credit Card, Purchase Order, Check, ACH/Wire)
 - PO Number (for Purchase Order payments)
 - Totals (subtotal, shipping, tax, grand total)
@@ -100,7 +100,7 @@ Each object represents a stage in the sales lifecycle.
 - Linked to **Ecommerce Invoices** (when invoiced)
 - Linked to **Ecommerce Shipments** (when shipped)
 
-> [SCREENSHOT: Ecommerce Order record in HubSpot showing key properties and sidebar relationships]
+> [SCREENSHOT: A HubSpot Ecommerce Order record showing eo_order_id, eo_status, eo_total, eo_payment_method_type and associations to Contact, Invoice, Shipment, and Line Items. Reused for platform-overview.md 'What it stores', quote-builder.md 'What Gets Created in HubSpot', and order-lifecycle.md 'How Statuses Appear in HubSpot'. — images/hubspot-ecommerce-order-record.png]
 
 ---
 
@@ -114,7 +114,7 @@ Each object represents a stage in the sales lifecycle.
 
 **Key properties:**
 - Invoice Number
-- Status (Pending, Paid, Cancelled, Refunded)
+- Status (Pending, Paid, Cancelled) — HubSpot only accepts these three values. Locally the DB also tracks `Refunded` when fully credited, but that maps to `Cancelled` in HubSpot (the Credit Memo custom object records the actual refund)
 - Amount
 - Payment method and transaction details
 
@@ -122,7 +122,7 @@ Each object represents a stage in the sales lifecycle.
 
 **Important:** For offline payment methods, the **invoice is the trigger for shipping**. No invoice = no shipment. When an admin "invoices" a pending payment order, the system creates the invoice AND pushes the order to ShipEdge for fulfillment.
 
-> [SCREENSHOT: Ecommerce Invoice record in HubSpot]
+> [SCREENSHOT: A HubSpot Ecommerce Invoice record showing ei_status, ei_total, ei_invoice_date and its association to the parent Ecommerce Order. — images/hubspot-ecommerce-invoice-record.png]
 
 ---
 
@@ -140,7 +140,7 @@ Each object represents a stage in the sales lifecycle.
 
 **Where it lives:** ShipEdge (primary), synced to SCW Commerce DB and HubSpot.
 
-> [SCREENSHOT: Ecommerce Shipment record in HubSpot showing tracking info]
+> [SCREENSHOT: A HubSpot Ecommerce Shipment record showing tracking number, carrier, ship date, and association to its parent Ecommerce Order. — images/hubspot-ecommerce-shipment-record.png]
 
 ---
 
@@ -193,12 +193,17 @@ Every order has a status. Here's what each one means and what action (if any) is
 |---|---|---|
 | **Pending** | Order just created, payment being processed | No — wait (this state lasts milliseconds) |
 | **Pending Payment** | Offline payment order waiting for admin | **Yes — admin must invoice when payment is confirmed** |
+| **Authorized** | Credit card authorized (auth-only mode); awaiting admin capture | **Yes — admin must capture payment to proceed** |
+| **Paid** | Payment captured; order entering ShipEdge queue | No — warehouse team handles it |
 | **Processing** | Order is in the ShipEdge warehouse queue | No — warehouse team handles it |
 | **Shipped** | Package is with the carrier, tracking available | No — customer has been notified |
 | **Delivered** | Carrier confirmed delivery | No — order is complete |
+| **Complete** | Order fully fulfilled and closed | No — closed |
 | **Cancelled** | Order cancelled (manual or auto) | No — closed |
 
 The most important status for admins is **Pending Payment** — these are the orders that require action.
+
+> **Note:** In HubSpot, the `eo_status` field collapses `Authorized`, `Paid`, and `Processing` all into `processing`. If an order shows "Processing" in HubSpot, check SCW Commerce admin for the precise local status.
 
 ---
 
@@ -223,7 +228,7 @@ The most important status for admins is **Pending Payment** — these are the or
 | **Invoice (verb)** | The admin action of confirming payment and creating an invoice record, which triggers ShipEdge fulfillment |
 | **ShipEdge** | The warehouse management system where orders are fulfilled (picked, packed, shipped) |
 | **Credit Terms** | The ability for a customer to buy now and pay later (NET30). Must be approved per customer in HubSpot. |
-| **Tax Exemption** | A customer-level flag that suppresses sales tax at checkout (in the applicable states). Set exclusively via the signed `POST /api/webhooks/tax-exemption` endpoint from the external doc-review system — not editable in HubSpot or the admin UI. Exemption type (`wholesale`, `government`, `other`, `non_exempt`), exempt regions (US state codes), and provenance (validated-by, validated-at, document reference) are stored in SCW Commerce and pushed to TaxJar. Every change is recorded in the append-only `tax_exemption_events` audit table. |
+| **Tax Exemption** | A customer-level flag that suppresses sales tax at checkout (in the applicable states). Customers submit exemption requests with supporting documents via `POST /api/account/tax-exemption`; admins then approve or reject via the SCW admin UI (`POST /api/admin/tax-exemption-requests/[id]/approve`). Exemption type (`wholesale`, `government`, `other`, `non_exempt`), exempt regions (US state codes), and provenance (validated-by, validated-at, document reference) are stored in SCW Commerce and pushed to TaxJar. Every change is recorded in the append-only `tax_exemption_events` audit table. There is no `/api/webhooks/tax-exemption` endpoint. |
 | **Sales Tax Nexus** | A state where SCW is registered to collect sales tax (currently 29). TaxJar calculates tax from the **destination ZIP**, not just the state field. Orders to no-sales-tax states (OR, DE, MT, NH) and US territories / military addresses (PR, GU, APO/FPO) are taxed at $0. See [Checkout & Payment Methods → Sales Tax at Checkout](checkout-payment-methods.md). |
 | **In-Store Pickup Tax (origin-based)** | In-store-pickup orders are taxed at SCW's NC store origin (Asheville, 28806) — the customer takes possession at the counter — **not** at the entered ship-to address. The origin jurisdiction is saved on the order so filed tax matches collected tax. Customer tax exemptions still apply. See [Checkout & Payment Methods](checkout-payment-methods.md). |
 | **Address Validation (State/ZIP Mismatch)** | A checkout guard that blocks an order when a nexus state is paired with a ZIP that geolocates to a different / no-tax jurisdiction (which would under-collect sales tax). The customer is asked to double-check the state and ZIP, and checkout offers a one-click "Use this address" correction (TaxJar's ZIP-resolved address). Error code `ADDRESS_VALIDATION_FAILED`. Legitimate no-tax-state and US-territory orders are unaffected. |

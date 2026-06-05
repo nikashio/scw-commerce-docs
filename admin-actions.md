@@ -62,7 +62,9 @@ POST https://hubspot.getscw.com/api/admin/orders/{ORDER_ID}/invoice
 ```
 
 Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecommerce Order).
-The endpoint also accepts the SCW order number (`SCW-...`) when calling it directly.
+The endpoint also accepts the SCW order number (e.g., `ORD-000406`) when calling it directly.
+
+The invoice endpoint accepts orders in either `pending_payment` or `pending` status.
 
 > [SCREENSHOT: Ecommerce Order showing eo_source_id property]
 
@@ -123,7 +125,7 @@ If a customer enters "demo" as the PO number, the order should still be processe
 
 When a wire/ACH order comes in:
 
-1. **Note the Order Number** from the Ecommerce Order (e.g., `SCW-20260406-A1B2`)
+1. **Note the Order Number** from the Ecommerce Order (e.g., `ORD-000406` for sequence-generated orders; Magento-migrated orders may use a numeric string or the legacy `SCW-YYYYMMDD-XXXX` format)
 2. **Check the bank portal** for an incoming transfer with that order number in the memo
 3. **Verify the amount** matches the order total
 4. If funds are confirmed, **invoice the order**
@@ -153,17 +155,21 @@ The **Tax Exemptions** page is accessible under the **Operations** group in the 
 
 | Column | Description |
 |---|---|
-| Customer | Name and email of the exempt customer |
+| Email | Email address of the exempt customer |
+| Name | First and last name of the exempt customer |
 | Exemption Type | `wholesale`, `government`, or `other` |
 | Exempt Regions | The US states where tax exemption applies |
-| Source | Always `webhook` — indicates the exemption was set via the external doc-review system |
+| Source | Provenance of the exemption: `admin` (set via the admin exemption-request approval flow), `org` (set via an org-level email-domain rule), or `hubspot_legacy` (migrated from the old HubSpot-managed exemption system) |
 | Validated By | The person or system that validated the exemption document |
-| Validated At | Date the exemption document was validated |
-| Document | Reference ID for the supporting document (e.g., reseller certificate number) |
+| Document | A "View" link to the supporting document (e.g., the uploaded reseller certificate). Shows "—" when no document is on file |
 
 ### Important: view only
 
-This page is read-only. Exemptions cannot be created, edited, or removed from the admin UI. All changes must go through the external doc-review system via the signed `POST /api/webhooks/tax-exemption` webhook. See [Tax-Exemption Validation Webhook](tax-exemption-webhook.md) for the full integrator contract.
+This page is read-only. Exemptions cannot be created, edited, or removed directly on this page. All changes go through the **Exemption Requests** workflow: admins submit a request at `/admin/tax-exemption-requests`, upload supporting documents, and approve or reject via the admin approval flow (`POST /api/admin/tax-exemption-requests/[id]/approve` or `/reject`). There is no `POST /api/webhooks/tax-exemption` endpoint.
+
+![The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Regions, Source, Validated By, and Document columns.](images/admin-tax-exemptions-list.png)
+
+*The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Regions, Source, Validated By, and Document columns.*
 
 ---
 

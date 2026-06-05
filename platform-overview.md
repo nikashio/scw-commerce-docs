@@ -60,6 +60,10 @@ Key features:
 
 <img src="images/system-architecture.svg" alt="SCW Commerce System Architecture" style="width:100%;max-width:800px;margin:1em 0;" />
 
+![The admin dashboard landing page showing high-level sync status panels and key metric tiles.](images/admin-dashboard.png)
+
+*The admin dashboard landing page showing high-level sync status panels and key metric tiles.*
+
 ---
 
 ## The Two Main Workflows
@@ -89,6 +93,10 @@ Key features:
 
 The customer does everything themselves. No rep involvement. This is the standard e-commerce flow.
 
+![The storefront checkout page showing the 3-column layout (shipping address form, shipping/payment methods, order summary) representing the self-service customer flow.](images/checkout-self-service-three-column.png)
+
+*The storefront checkout page showing the 3-column layout (shipping address form, shipping/payment methods, order summary) representing the self-service customer flow.*
+
 ### Sales-Assisted (Rep Builds Quote)
 
 <section class="modern-flow" aria-label="Sales-assisted quote workflow">
@@ -102,7 +110,7 @@ The customer does everything themselves. No rep involvement. This is the standar
   <div class="modern-flow__track">
     <span class="modern-flow__node modern-flow__node--start">Contact<small>Rep creates Contact in HubSpot</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--success">Account<small>Customer account auto-provisioned by webhook</small></span>
+    <span class="modern-flow__node modern-flow__node--success">Account<small>Optional: webhook can auto-provision the account (flag-gated, off by default)</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--action">Quote<small>Rep builds quote and generates payment link</small></span>
   </div>
@@ -130,7 +138,9 @@ The customer does everything themselves. No rep involvement. This is the standar
   </div>
 </section>
 
-The rep starts by creating a Contact in HubSpot. A webhook **automatically creates** the customer's login account in SCW Commerce (Cognito + database) and sends them a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
+The rep starts by creating a Contact in HubSpot. A webhook receives the event. Account auto-provisioning (Cognito + database) and the welcome email are both gated behind feature flags (`HUBSPOT_WEBHOOK_AUTOPROVISION` and `HUBSPOT_WEBHOOK_WELCOME_EMAIL`), both disabled by default to prevent mass provisioning during bulk contact imports. When enabled, the webhook creates the Cognito + DB account and sends a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
+
+> [SCREENSHOT: The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy). — images/hubspot-quote-builder-card.png]
 
 ---
 
@@ -142,7 +152,7 @@ This is important to understand. The same order exists in multiple systems, but 
 |---|---|---|---|
 | **Customer account** (login, password) | AWS Cognito | — | Passwords are managed by Cognito, never stored locally |
 | **Customer profile** (name, email, addresses) | SCW Commerce DB (AWS RDS) | HubSpot (as Contact) | Auto-synced via webhook when rep creates/updates Contact in HubSpot |
-| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB (AWS RDS) | HubSpot (as Products) + Meilisearch | Active changed products sync from SCW Commerce to HubSpot every 15 minutes; search index updates after the sync |
+| **Product catalog** (SKUs, prices, descriptions) | SCW Commerce DB (AWS RDS) | HubSpot (as Products) + Meilisearch | Changed products (all statuses) sync from SCW Commerce to HubSpot every 15 minutes; search index updates after the sync |
 | **Inventory / stock levels** | ShipEdge | — | Real-time check on add-to-cart and checkout |
 | **Quotes** | HubSpot (Ecommerce Quotes) | — | Quotes only exist in HubSpot |
 | **Orders** | SCW Commerce DB (AWS RDS) | HubSpot (Ecommerce Orders) | Created locally, synced to HubSpot |
@@ -150,7 +160,7 @@ This is important to understand. The same order exists in multiple systems, but 
 | **Shipments / Tracking** | ShipEdge | SCW Commerce DB + HubSpot | ShipEdge creates, webhook updates in real time when configured; 5-minute cron is the fallback/reconciliation path |
 | **Tax calculation** | TaxJar | — | Calculated in real-time, not stored permanently |
 | **Credit terms approval** | HubSpot (Contact property) | SCW Commerce DB | Set in HubSpot, synced by contact webhook in real time with a daily 2 AM UTC reconciliation job |
-| **Tax-exemption status** | SCW Commerce DB (AWS RDS) | TaxJar | Set exclusively via the signed tax-exemption webhook from the external doc-review system. HubSpot is not an input. Provenance + audit history stored in `tax_exemption_events`. |
+| **Tax-exemption status** | SCW Commerce DB (AWS RDS) | TaxJar | Set via SCW admin approval (POST /api/admin/tax-exemption-requests/[id]/approve). HubSpot is not an input. Provenance and audit history stored in `tax_exemption_events`. There is no external signed webhook from a doc-review system. |
 | **Search index** | Meilisearch | — | Rebuilt from DB + CMS files on deploy and product sync |
 
 ---
@@ -163,13 +173,13 @@ The systems stay in sync through automated processes that run on a schedule:
 |---|---|---|
 | **HubSpot entity sync (outbox)** | Every 1 minute | Delivers every order, invoice, shipment, and credit-memo change to HubSpot. Retries on failure with exponential backoff (1m→120m). See "How HubSpot sync works" below. |
 | **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. See [Make Automation Migration](make-automation-migration.md). |
-| **Product sync** | Every 15 minutes | Syncs changed active products from the SCW Commerce database to HubSpot Products (including the dropship / preorder / special-order fulfillment flags → HubSpot product properties); also updates the Meilisearch product index |
+| **Product sync** | Every 15 minutes | Syncs changed products (all statuses) from the SCW Commerce database to HubSpot Products (including the dropship / preorder / special-order fulfillment flags → HubSpot product properties); also updates the Meilisearch product index |
 | **ShipEdge order status sync** | Real-time webhook + every 5 minutes | ShipEdge webhooks update shipped/delivered/cancelled states through the same status-sync service; the 5-minute cron reconciles missed webhooks and open orders |
-| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, auto-provisions a customer account (Cognito + DB) and syncs property changes (name, email, credit terms) instantly. Tax exemption is **not** set via this webhook — it comes exclusively from the signed tax-exemption webhook. |
+| **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, syncs property changes (name, email, credit terms) instantly. Account auto-provisioning (Cognito + DB) is gated behind `HUBSPOT_WEBHOOK_AUTOPROVISION=true` (off by default). Tax exemption is **not** set via this webhook. |
 | **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
-| **Tax exemption sync** | Real-time (signed webhook) | An external doc-review system sends a signed `POST /api/webhooks/tax-exemption` when a customer's exemption is approved or revoked. SCW Commerce records the decision, writes an audit row, and pushes the change to TaxJar immediately. The HubSpot contact field and the daily sync cron are retired — the webhook is the only input. See [Tax-Exemption Validation Webhook](tax-exemption-webhook.md). |
-| **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check orders older than 14 days and Wire orders older than 21 days |
-| **DLQ retry** | Every 5 minutes | Retries failed non-outbox work such as ShipEdge order push, quote↔order association, TaxJar refund reporting, and bulk import jobs |
+| **Tax exemption sync** | Triggered on admin approval | When an SCW admin approves or rejects a tax exemption request via the admin UI (POST /api/admin/tax-exemption-requests/[id]/approve), SCW Commerce records the decision, writes an audit row to `tax_exemption_events`, and pushes the change to TaxJar immediately. There is no external signed webhook from a doc-review system. |
+| **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check (`check`) orders in `pending_payment` status older than 14 days and ACH/Wire (`ach_wire`) orders in `pending_payment` status older than 21 days |
+| **DLQ retry** | Every 5 minutes | Retries failed non-outbox work: HubSpot → Cognito contact provisioning (`contact_import`), ShipEdge order push (`shipedge_order_sync`), TaxJar refund reporting (`taxjar_refund_report`), and TaxJar order reporting (`taxjar_order_report`) |
 
 These processes are fully automatic — no manual intervention needed unless something fails (which is logged and retried automatically).
 
@@ -177,7 +187,13 @@ These processes are fully automatic — no manual intervention needed unless som
 
 ## How HubSpot Sync Works
 
+![The admin sync observability page showing the hubspot_outbox/make_outbox status distribution (pending / processing / delivered / retrying / abandoned), entity health rows, flow diagram, and KPIs.](images/admin-sync-observability.png)
+
+*The admin sync observability page showing the hubspot_outbox/make_outbox status distribution (pending / processing / delivered / retrying / abandoned), entity health rows, flow diagram, and KPIs.*
+
 All SCW Commerce → HubSpot data flow goes through a single durable outbox pattern. When something changes in SCW Commerce (new order, invoice paid, refund processed, shipment created), the change is atomically recorded in a `hubspot_outbox` table along with the business mutation. A cron worker picks up pending rows every minute and delivers them to HubSpot.
+
+**Feature flag:** The outbox requires `HUBSPOT_OUTBOX_ENABLED=true` (or `1`) to function. When this flag is absent or off, `enqueue()` is a no-op and no HubSpot syncs are queued. This is a production kill-switch for emergency outbox suspension.
 
 **Why this matters:**
 - **Reliability:** If HubSpot is down or returns a transient error, the sync retries automatically (1m → 2m → 4m → 8m → 16m → 30m → 60m → 120m — up to 9 attempts over ~4 hours). No manual re-sync needed for transient failures.

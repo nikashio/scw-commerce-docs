@@ -72,7 +72,7 @@ The right side of the Quote Builder shows:
 
 ### Customer Address
 
-The Quote Builder can auto-populate the customer's billing and shipping address from their HubSpot Contact record. The address is used for:
+When the quote email matches an SCW Commerce account, checkout auto-populates the customer's saved billing and shipping addresses from the SCW Commerce database (looked up by email), not from the HubSpot Contact record. The address is used for:
 - Tax calculation (TaxJar needs a shipping address)
 - Pre-filling the checkout form when the payment link is opened
 
@@ -115,7 +115,7 @@ The rep opens the link themselves (e.g., while on a phone call with the customer
 
 When the quote email matches an SCW customer, the order is associated with the **customer's account** (not the rep's), so it appears in the customer's order history.
 
-> [SCREENSHOT: Checkout page opened from a HubSpot quote payment link]
+> [SCREENSHOT: The checkout page as it appears when a customer opens a HubSpot quote payment link — pre-loaded cart, pre-filled email, and the standard 3-column layout with locked prices. — images/quote-builder-checkout-from-link.png]
 
 ---
 
@@ -129,7 +129,8 @@ After a successful checkout from a payment link:
 | **Ecommerce Quote ↔ Order** | Association is attempted after the HubSpot order object exists; failures retry through the DLQ |
 | **Contact** | Order is associated with the contact |
 | **Ecommerce Line Items** | Each product in the order is created as a line item |
-| **Ecommerce Invoice** | Created if payment was processed immediately (credit card) |
+| **Ecommerce Invoice** | Created if payment was processed in `auth_capture` mode (immediate charge). Not created for `auth_only` mode, where the card is authorized but not yet charged; the invoice is created later when the admin captures the payment. |
+| **Ecommerce Shipment** | Created when ShipEdge marks the order shipped (synced via ShipEdge fulfillment webhook, not at checkout time) |
 
 > [SCREENSHOT: Ecommerce Quote with linked Order in the sidebar]
 
