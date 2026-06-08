@@ -21,11 +21,11 @@ Use this cutover pattern:
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--success">Make Webhook<small>Scenario receives order event</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--ship">Order API Read<small>Make fetches complete order details</small></span>
+    <span class="modern-flow__node modern-flow__node--ship">Order API Read<small>Optional — full order already in payload; read API available if needed</small></span>
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--done">Downstream Work<small>HubSpot, Knack, Xero, email, Shield</small></span>
   </div>
-  <div class="modern-flow__note">Treat the webhook as the trigger and the SCW order API as the source of truth. Do not keep Magento order polling or Magento write modules in the cutover version.</div>
+  <div class="modern-flow__note">The webhook body already contains the full nested order object. Treat the webhook as both trigger and data source. The SCW order read API is available for supplemental lookups. Do not keep Magento order polling or Magento write modules in the cutover version.</div>
 </section>
 
 ## What Changes
@@ -33,7 +33,7 @@ Use this cutover pattern:
 | Old Magento pattern | New SCW Commerce pattern |
 |---|---|
 | `magento2:watchOrders` watches Magento for new orders | SCW Commerce sends `order.created` to a Make custom webhook |
-| `magento2:findOrders2` or `magento2:getOrder` reads Magento order details | Make calls `GET /api/integrations/make/orders/by-number/{orderNumber}` |
+| `magento2:findOrders2` or `magento2:getOrder` reads Magento order details | The full order is embedded in the `order.created` webhook payload; Make can also call `GET /api/integrations/make/orders/by-number/{orderNumber}` for supplemental lookups |
 | Magento `increment_id` is the business order number | SCW `order_number` is the business order number, and the API also returns `increment_id` as an alias |
 | Magento `entity_id` is often used as the internal order id | SCW returns `id` and `entity_id`, but Make should not use either as the customer-facing order number |
 | Magento shipment/status/comment modules write back to Magento | Use SCW Make write endpoints only when that write is supported and idempotent |
@@ -81,7 +81,7 @@ SCW posts JSON to the configured Make custom webhook URL when an order is create
 | `x-scw-event-type` | `order.created` or `order.created.monitoring_candidate` |
 | `x-scw-occurred-at` | Order-created timestamp |
 | `x-scw-timestamp` | Delivery timestamp |
-| `x-scw-signature-v1` | HMAC SHA-256 signature over the raw body |
+| `x-scw-signature-v1` | HMAC-SHA256 where the key is the Make webhook URL itself and the signed message is `<x-scw-timestamp>.<raw-body>` (the timestamp value, a dot, then the full JSON body) |
 
 For dedupe in Make, store `x-scw-event-id` or the tuple `event_type + order_number`. Make scenarios that perform writes must be safe to receive the same event more than once.
 
@@ -116,7 +116,9 @@ For dedupe in Make, store `x-scw-event-id` or the tuple `event_type + order_numb
 }
 ```
 
-The webhook payload is intentionally compact. Always call the order read API before mapping fields into HubSpot, Knack, Xero, email, or Shield systems.
+The webhook payload includes a full nested `order` object (the complete Magento-compatible order — line items, addresses, payment details, shipments, invoices, refunds, events) alongside the compact top-level fields. Make can map most fields directly from the embedded `order` object; calling the read API again is optional, not required.
+
+> [SCREENSHOT: The Make.com scenario data inspector showing the full SCW order.created webhook payload including the nested order object alongside the compact top-level fields. — images/make-webhook-payload-inspector.png]
 
 ---
 
@@ -142,7 +144,7 @@ make:{{scenario_name}}:{{order_number}}:{{action_name}}:{{source_event_id_or_tra
 
 ### Read Full Order By Number
 
-Use this immediately after the webhook trigger.
+Use this for supplemental field lookups or when building scenarios that are triggered outside the webhook (for example, Knack-triggered scenarios). The webhook payload already embeds the full order, so this call is not required after an `order.created` trigger.
 
 ```http
 GET {{SCW_COMMERCE_BASE_URL}}/api/integrations/make/orders/by-number/{{order_number}}
@@ -158,7 +160,7 @@ Success returns one full order. Important response fields:
 | `customer_email`, `customerEmail` | Customer email |
 | `payment_method`, `paymentMethod` | Payment method, for example `purchase_order` |
 | `po_number`, `poNumber` | Purchase order number when present |
-| `hubspot_deal_id`, `hubspotDealId`, `quote_reference` | HubSpot quote/deal reference when the order came from HubSpot |
+| `hubspot_deal_id`, `hubspotDealId`, `quote_reference` | HubSpot Ecommerce Quote object ID for orders that originated from a HubSpot quote payment link. Despite the column name, it never holds a HubSpot Deal ID (a rename is pending). |
 | `billing_address`, `billingAddress` | Billing address object |
 | `shipping_address`, `shippingAddress` | Shipping address object |
 | `items`, `line_items` | Same line item list; `line_items` exists for Magento-style mappings |
@@ -303,8 +305,8 @@ Disabled branches should not drive the live migration plan. Only migrate branche
 1. Duplicate the existing Make scenario and keep the Magento-backed original paused as the rollback copy.
 2. Replace `magento2:watchOrders` triggers with a Make Custom Webhook.
 3. Give the new webhook URL to the SCW deploy owner for `MAKE_ORDER_CREATED_WEBHOOK_URL` or `MAKE_MONITORING_ORDER_WEBHOOK_URL`.
-4. In the new scenario, add an HTTP `GET` module immediately after the webhook to read `/api/integrations/make/orders/by-number/{{order_number}}`.
-5. Remap downstream modules from the HTTP order response, not directly from the webhook payload.
+4. The webhook body already contains a full nested `order` object. Map downstream modules directly from `order.*` in the webhook payload. Optionally add an HTTP `GET` to `/api/integrations/make/orders/by-number/{{order_number}}` if you need fields not present in the embedded object.
+5. Remap downstream modules from the `order` object in the webhook payload (or the HTTP read response if you added step 4).
 6. Replace `magento2:findOrders2` lookups with `/orders/by-number` or `/orders/search`.
 7. Replace Magento shipment/status/comment writes only with supported SCW Make write endpoints.
 8. Add `X-Idempotency-Key` to every SCW write request.
@@ -320,14 +322,14 @@ Disabled branches should not drive the live migration plan. Only migrate branche
 Before enabling a production scenario:
 
 - Make receives a staged `order.created` event from SCW.
-- The first HTTP module successfully reads the order from SCW with bearer auth.
+- Downstream modules map from the `order` object in the webhook payload (or, if using the optional read step, the HTTP GET response returns the order successfully with bearer auth).
 - The scenario uses `order_number`, not Magento `entity_id`, for business references.
 - Any SCW write request has a stable `X-Idempotency-Key`.
 - Any write request has been tested with `dryRun: true`.
 - Unsupported tax/refund/invoice mutations are either still outside the cutover or have a dedicated SCW endpoint approved by engineering.
 - The old Magento module is removed or disabled in the new scenario.
 - The scenario can safely ignore duplicate webhook deliveries.
-- SCW admins can see Make outbox rows moving to `delivered`.
+- SCW admins can see Make outbox rows moving to `delivered` in the Sync Observability dashboard at `/admin/sync-observability` (the "Make" tab).
 
 SCW engineers can inspect delivery health with:
 
@@ -348,4 +350,4 @@ Those admin endpoints are for SCW operators, not for Make scenario runtime calls
 - Do not recreate order totals, tax, payment state, or fulfillment state inside Make.
 - Do not write directly to the SCW database.
 - Do not paste Make connections, API keys, webhook URLs, or raw blueprint exports into public docs or tickets.
-- Do not assume the compact webhook payload has every field. Read the full order from SCW first.
+- Do not assume the top-level webhook fields are the only data available — the payload already includes a full nested `order` object with line items, addresses, payments, shipments, invoices, refunds, and events. Use it directly or call the read API for field references not covered by the embedded object.

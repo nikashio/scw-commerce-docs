@@ -108,6 +108,10 @@ Every order moves through a defined set of statuses. Each status transition is t
 | `delivered` | Carrier confirms delivery | ShipEdge webhook or 5-minute sync fallback | Order complete |
 | `cancelled` | Order cancelled | Admin (manual) or System (auto-cancel for Check/Wire) | No further action |
 
+> **How ShipEdge statuses map to these four fulfillment statuses:** ShipEdge reports many granular remote statuses, and the sync collapses them into the local set. Anything in-warehouse-but-not-yet-shipped (`backorder`, `hold`, `error`, `incomplete`, `divided`, `dropship`, `editing`, `sent to shipedge`, `packing error`, `low balance`, and similar) maps to local **`processing`**. `shipped`, `shipped by shipedge`, and `shipped by cotim` map to **`shipped`**; `delivered` maps to **`delivered`**; `cancel` / `cancelled` map to **`cancelled`**. So a clean `processing → shipped → delivered` path is the happy case, but several distinct ShipEdge states all surface locally as `processing`.
+
+> **Recovery step in the fallback sync:** the ShipEdge order-sync cron does more than poll status. On each batch run it first re-pushes any fulfillment-ready orders (status `paid` or `processing`) that are missing a ShipEdge order id, then polls open orders for status updates. This means an order that failed to push to ShipEdge initially gets retried automatically rather than being stuck.
+
 ---
 
 ## How Statuses Appear in HubSpot
@@ -123,12 +127,18 @@ The SCW Commerce status is mapped to HubSpot Ecommerce Order status:
 | `processing` | `processing` | Direct match |
 | `shipped` | `shipped` | Direct match |
 | `delivered` | `delivered` | Direct match |
+| `complete` | `complete` | Direct match |
 | `cancelled` | `cancelled` | Direct match |
+| `refunded` | `cancelled` | A refunded order is reflected as `cancelled` in HubSpot |
+
+Any status not in this map falls back to `pending` in HubSpot.
 
 **When the HubSpot Ecommerce Order is created**
 
 - **Credit Card orders** — the Ecommerce Order is enqueued after payment is approved. HubSpot displays local `paid` and `authorized` as `processing` because HubSpot has no separate paid/auth-only order status; ShipEdge acceptance then moves the local order to `processing`.
 - **Offline orders (Check, ACH / Wire, Purchase Order)** — the Ecommerce Order is created at checkout with status `pending`, and updates to `processing` after the admin invoices.
+
+> **Sequencing note:** a status-change is only pushed to HubSpot once the order already has its HubSpot Ecommerce Order object id. If a transition happens before the initial `order.created` sync has created that object, the transition isn't enqueued separately — the new status is instead reflected when `order.created` syncs the order's current status.
 
 > [SCREENSHOT: Ecommerce Orders list in HubSpot showing different statuses]
 
@@ -168,7 +178,7 @@ The standard credit card path. Payment is authorized and captured in one step at
 | processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
 | shipped → delivered | Carrier confirms delivery | When delivered (webhook, with 5-minute fallback sync) |
 
-**No admin action required.** The entire flow is automatic.
+**No admin action required.** The entire flow is automatic. The shipping-notification email is sent automatically as part of this status change — when (and only when) an order transitions to `shipped`, SCW Commerce sends the customer the shipping notification with carrier and tracking details from the latest shipment.
 
 ### Credit Card Flow — Auth-Only (Admin Captures Later)
 
@@ -314,7 +324,7 @@ The auto-cancel process runs daily at 3 AM UTC.
 
 | How an order gets cancelled | Who triggers it | When it can happen |
 |---|---|---|
-| **Manual cancel / correction** | Internal admin or engineering update | Any time before delivery — from `pending`, `pending_payment`, `authorized`, `paid`, `processing`, or `shipped` |
+| **Manual cancel / correction** | Internal admin or engineering update | Any time before delivery — from `pending`, `pending_payment`, `authorized`, `paid`, `processing`, or `shipped`. The transition table also permits cancelling a `delivered` order (for example via a post-delivery full refund), so `delivered` is not strictly terminal |
 | **Auto-cancel — Check / Money Order** | System (daily cron at 3 AM UTC) | After **14 days** in `pending_payment` |
 | **Auto-cancel — ACH / Wire Transfer** | System (daily cron at 3 AM UTC) | After **21 days** in `pending_payment` |
 | **No auto-cancel** | — | Credit Card orders (payment is immediate) and Purchase Order (NET30) orders (no time limit; waits for admin) |
@@ -333,7 +343,7 @@ Admin payment actions are performed from the HubSpot action card when it is depl
 
 | Admin action | Where to click | Status transition | Side effects |
 |---|---|---|---|
-| **Convert quote to order** | Quote Builder card on the Ecommerce Quote record | Creates a new order: `pending` (Credit Card) or `pending_payment` (offline) | HubSpot Ecommerce Order created; payment link generated for the customer |
+| **Convert quote to order** (offline methods only) | Quote Builder card on the Ecommerce Quote record | Creates a new order in `pending_payment` | This action handles only the offline payment methods on a quote (Check, ACH / Wire, or Purchase Order): it creates the order via `POST /api/admin/orders/from-quote`, creates a HubSpot Ecommerce Order, and emails the customer an order confirmation plus payment instructions. It does **not** handle credit-card quotes and does **not** generate a payment link — credit-card quotes are paid via the customer payment link through standard checkout, which produces a `paid` order. |
 | **Invoice offline order** | HubSpot action card or direct admin API | `pending_payment` → `processing` | SCW Commerce creates the invoice and pushes the order to ShipEdge; HubSpot Ecommerce Invoice record created |
 | **Capture auth-only credit card** | HubSpot action card or direct admin API | `authorized` → `paid` | Authorize.net captures the held funds; SCW Commerce creates the invoice and pushes the order to ShipEdge |
 | **Cancel order** | Internal admin / engineering action | Any pre-delivery status → `cancelled` | SCW Commerce updates the local order and HubSpot status; ShipEdge cancellation is separate if fulfillment already started |
@@ -346,6 +356,20 @@ Admin payment actions are performed from the HubSpot action card when it is depl
 ---
 
 ## Where to See Order Status
+
+### In the SCW Admin (Order Lifecycle)
+- Navigate to `hubspot.getscw.com/admin/order-lifecycle`
+- The list shows every order, filterable by status, with search and per-row HubSpot sync indicators
+
+![The SCW admin Order Lifecycle list at /admin/order-lifecycle showing the order table with status filter, search, and HubSpot sync status columns](images/admin-order-lifecycle-list.png)
+
+*The SCW admin Order Lifecycle list at /admin/order-lifecycle showing the order table with status filter, search, and HubSpot sync status columns*
+
+- Click any order row to open the detail page at `/admin/order-lifecycle/{orderNumber}` — it shows the order status stepper, invoice and shipment cards, refunds, the event timeline, and a HubSpot sync-status panel
+
+![The admin Order Lifecycle detail page showing the OrderStatusStepper, invoices, shipments, refunds, events, and the sync-status panel](images/admin-order-lifecycle-detail.png)
+
+*The admin Order Lifecycle detail page showing the OrderStatusStepper, invoices, shipments, refunds, events, and the sync-status panel*
 
 ### In HubSpot
 - Navigate to **Ecommerce Orders** in the top navigation

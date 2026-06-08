@@ -16,6 +16,8 @@ In HubSpot, navigate to the **Ecommerce Invoice** record for the order you need 
 
 ### Step 2: Open the Credit Memo Card
 
+> [SCREENSHOT: The Credit Memo card on a HubSpot Ecommerce Invoice record showing invoice details, Authorize.net transaction status, and the refund-type options (Full, Partial dollar amount, Per Item) — images/hubspot-credit-memo-card.png]
+
 On the Invoice record, click the **Credit Memo** tab. This shows:
 - Invoice details (line items, totals)
 - Authorize.net transaction status
@@ -58,6 +60,7 @@ Refunds the entire invoice amount. The order moves to **Cancelled** status and i
 - **Use when:** Customer cancels the entire order, or the order can't be fulfilled
 - **Payment:** Full amount returned to original payment method
 - **Order status:** → Cancelled
+- **Requires a clean invoice:** A full refund is only allowed when the invoice has no prior refunds. If the invoice has already been partially refunded, the system rejects the full refund — use a **Partial (Custom Amount)** or **Per-Item** refund for the remaining balance instead.
 
 ### Partial Refund (Custom Amount)
 
@@ -90,11 +93,28 @@ The system checks the original payment's transaction type:
 - `auth_only` → Void
 - `auth_capture` or `capture` → Refund
 
-No manual decision is needed — the system handles this automatically.
+It then verifies settlement: if a captured transaction has not yet settled at Authorize.net, the refund is automatically routed to a **Void** instead — but only for a full refund (a void is all-or-nothing). A **partial** refund against a captured-but-unsettled transaction is blocked; the operator must wait until after the daily Authorize.net settlement batch and retry.
+
+No manual decision is needed for the void-vs-refund choice — the system handles it automatically.
+
+### When a Refund Is Blocked
+
+A few conditions cause the refund to fail up front (before any money moves) and ask the operator to act:
+
+| Condition | What the operator sees | What to do |
+|---|---|---|
+| **Partial refund on an uncaptured `auth_only` authorization** | Refund fails — a void is all-or-nothing, so a partial amount can't be voided | Capture the payment first, then issue the partial refund (or void the full amount) |
+| **Partial refund on a captured-but-unsettled transaction** | Refund fails — Authorize.net won't issue a partial credit until the charge settles | Wait until after the next daily Authorize.net settlement batch, then retry |
+| **Refund total exceeds the original captured amount** | Refund fails at the gateway boundary (e.g. inflated by shipping/restocking) | Lower the refund total so it does not exceed what was actually captured |
+| **Card last-4 missing for a settled refund** | The system backfills it from the Authorize.net transaction-details lookup; only fails if both the DB and Auth.net lack it | Contact support if it still can't be resolved |
+
+Refund creation is also concurrency-safe: the invoice row is locked while a refund is created, so two simultaneous refunds on the same invoice cannot over-refund it.
 
 ---
 
 ## What the Customer Receives
+
+> [SCREENSHOT: The refund confirmation / credit memo email showing refund number, refund amount, refunded items, billing/shipping addresses, and the 5-10 business days note — images/refunds-customer-email.png]
 
 When a refund is processed, the customer receives an email with:
 - Refund number (e.g., RFD-000001)
@@ -159,21 +179,27 @@ In practice, when initiated from HubSpot:
 
 ## What Gets Created in HubSpot
 
+> [SCREENSHOT: A HubSpot Credit Memo record showing the ecm_ properties (Credit Memo ID, Status, Refund Type [full/partial/custom_amount], Total Refund, Reason, Refund Date) and the associations to Order, Invoice, and Contact — images/hubspot-credit-memo-record.png]
+
 When a refund is processed, a **Credit Memo** record is created with:
 
 | Property | Description |
 |---|---|
 | Credit Memo ID | Refund number from SCW Commerce (e.g., RFD-000001) |
-| Status | Refunded |
-| Refund Type | Full, Partial, or Per Item |
+| Status | `refunded` (or `pending` when the source refund is still in `pending_settlement`) |
+| Refund Type | `full`, `partial`, or `custom_amount` |
 | Total Refund | Dollar amount refunded |
 | Reason | Reason provided by the admin |
 | Refund Date | When the refund was processed |
+
+> **Refund Type values:** the Credit Memo stores the refund type verbatim as `full`, `partial`, or `custom_amount`. A **per-item** refund is stored as type `partial` (with the selected line items serialized onto the `ecm_refund_items` property), and a **custom dollar amount** is stored as `custom_amount`. The literal value "Per Item" is never written.
 
 The Credit Memo is automatically **associated** with:
 - The Ecommerce Order
 - The Ecommerce Invoice
 - The Contact
+
+> **How it syncs:** the SCW outbox path is gated behind the `HUBSPOT_OUTBOX_ENABLED` flag. While the flag is off (the dual-write transition state), the SCW enqueue no-ops and the HubSpot Lambda creates the memo instead. Either path is **idempotent** on `ecm_source_id = scw-<refundId>`: if a memo already exists for the refund it is reused (and its associations repaired) rather than duplicated.
 
 ---
 
@@ -196,7 +222,7 @@ Example: an invoice of $100 subtotal + $10 shipping + $7.70 tax ($117.70 total).
 
 ### Retry on Failure
 
-If TaxJar is unreachable at the moment of refund, the report is enqueued in the DLQ and retried every 5 minutes with exponential backoff. The refund itself still succeeds — TaxJar reconciles when it comes back online.
+If TaxJar is unreachable at the moment of refund, the report is enqueued in the DLQ. The `process-dlq` cron runs every 5 minutes and retries due items with exponential backoff — 1, 2, 4, 8, then 16 minutes between attempts, up to 5 attempts. The refund itself still succeeds — TaxJar reconciles when it comes back online.
 
 ---
 
@@ -237,15 +263,17 @@ The refund form includes a **Notes to Customer** field. Use this for:
 - Return shipping instructions
 - Approval status details
 
-These notes are stored on the refund record and synced to the HubSpot Credit Memo. The current customer email template does not include those notes yet.
+These notes are stored on the refund record (`refunds.customer_notes`). They are **not** currently synced to the HubSpot Credit Memo (the credit-memo property set has no notes field), and the customer email template does not yet include those notes.
 
 ### Refund Adjustments
 
 Both online and offline refunds support:
 - **Shipping Refund** — amount of shipping to refund
-- **Restocking Fee** — deducted from the refund total (up to 30% of item value)
+- **Restocking Fee** — deducted from the refund total. There is no enforced percentage cap in code — the fee is only validated as a non-negative number; the sole constraint is that the resulting refund total must remain greater than zero.
 
-Formula: `Refund Total = Item Subtotal + Shipping Refund - Restocking Fee`
+Formula: `Refund Total = Item Subtotal + Shipping Refund + Proportional Tax − Restocking Fee`
+
+The proportionally-refunded tax (see [Proportional Tax on Partial Refunds](#proportional-tax-on-partial-refunds)) is included in the grand total.
 
 ---
 
