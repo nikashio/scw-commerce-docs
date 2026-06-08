@@ -100,7 +100,9 @@ Each object represents a stage in the sales lifecycle.
 - Linked to **Ecommerce Invoices** (when invoiced)
 - Linked to **Ecommerce Shipments** (when shipped)
 
-> [SCREENSHOT: A HubSpot Ecommerce Order record showing eo_order_id, eo_status, eo_total, eo_payment_method_type and associations to Contact, Invoice, Shipment, and Line Items. Reused for platform-overview.md 'What it stores', quote-builder.md 'What Gets Created in HubSpot', and order-lifecycle.md 'How Statuses Appear in HubSpot'. — images/hubspot-ecommerce-order-record.png]
+![A HubSpot Ecommerce Order record showing eo_order_id, eo_status, eo_total, eo_payment_method_type and associations to Contact, Invoice, Shipment, and Line Items.](images/hubspot-ecommerce-order-record.png)
+
+*A HubSpot Ecommerce Order record showing eo_order_id, eo_status, eo_total, eo_payment_method_type and associations to Contact, Invoice, Shipment, and Line Items.*
 
 ---
 
@@ -122,7 +124,9 @@ Each object represents a stage in the sales lifecycle.
 
 **Important:** For offline payment methods, the **invoice is the trigger for shipping**. No invoice = no shipment. When an admin "invoices" a pending payment order, the system creates the invoice AND pushes the order to ShipEdge for fulfillment.
 
-> [SCREENSHOT: A HubSpot Ecommerce Invoice record showing ei_status, ei_total, ei_invoice_date and its association to the parent Ecommerce Order. — images/hubspot-ecommerce-invoice-record.png]
+![A HubSpot Ecommerce Invoice record showing ei_status, ei_total, ei_invoice_date and its association to the parent Ecommerce Order.](images/hubspot-ecommerce-invoice-record.png)
+
+*A HubSpot Ecommerce Invoice record showing ei_status, ei_total, ei_invoice_date and its association to the parent Ecommerce Order.*
 
 ---
 
