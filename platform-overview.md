@@ -140,7 +140,9 @@ The customer does everything themselves. No rep involvement. This is the standar
 
 The rep starts by creating a Contact in HubSpot. A webhook receives the event. Account auto-provisioning (Cognito + database) and the welcome email are both gated behind feature flags (`HUBSPOT_WEBHOOK_AUTOPROVISION` and `HUBSPOT_WEBHOOK_WELCOME_EMAIL`), both disabled by default to prevent mass provisioning during bulk contact imports. When enabled, the webhook creates the Cognito + DB account and sends a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
 
-> [SCREENSHOT: The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy). — images/hubspot-quote-builder-card.png]
+![The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy).](images/hubspot-quote-builder-card.png)
+
+*The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy).*
 
 ---
 

@@ -16,7 +16,9 @@ In HubSpot, navigate to the **Ecommerce Invoice** record for the order you need 
 
 ### Step 2: Open the Credit Memo Card
 
-> [SCREENSHOT: The Credit Memo card on a HubSpot Ecommerce Invoice record showing invoice details, Authorize.net transaction status, and the refund-type options (Full, Partial dollar amount, Per Item) — images/hubspot-credit-memo-card.png]
+![The Refund Manager card on a HubSpot Ecommerce Invoice record — invoice total / total refunded / refundable amounts, payment details, and the Create Refund button (this check-paid invoice shows the offline-payment refund notice)](images/hubspot-credit-memo-card.png)
+
+*The Refund Manager card on a HubSpot Ecommerce Invoice record — invoice total / total refunded / refundable amounts, payment details, and the Create Refund button (this check-paid invoice shows the offline-payment refund notice)*
 
 On the Invoice record, click the **Credit Memo** tab. This shows:
 - Invoice details (line items, totals)

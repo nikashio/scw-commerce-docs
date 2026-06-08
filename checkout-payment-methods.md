@@ -101,7 +101,9 @@ If the customer is not approved, this option is hidden — they only see Credit 
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
 | Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
-> [SCREENSHOT: HubSpot Ecommerce Order record for a purchase-order checkout showing pending status, payment method type purchase_order, and the PO number — images/hubspot-ecommerce-order-po.png]
+![HubSpot Ecommerce Order record for a purchase-order checkout showing pending status, payment method type purchase_order, and the PO number](images/hubspot-ecommerce-order-po.png)
+
+*HubSpot Ecommerce Order record for a purchase-order checkout showing pending status, payment method type purchase_order, and the PO number*
 
 ### Important
 - No payment is collected at checkout
