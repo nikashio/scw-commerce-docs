@@ -72,7 +72,9 @@ Each object represents a stage in the sales lifecycle.
 - Linked to **Ecommerce Line Items** (the products in the quote)
 - After checkout: linked to an **Ecommerce Order**
 
-> [SCREENSHOT: A HubSpot Ecommerce Quote record showing the Quote Builder card and the sidebar associations to Contact and Ecommerce Order. Reused for quote-builder.md 'What Gets Created in HubSpot'. — images/hubspot-ecommerce-quote-record.png]
+![A HubSpot Ecommerce Quote record showing the Quote Builder card and the sidebar associations to Contact and Ecommerce Order.](images/hubspot-ecommerce-quote-record.png)
+
+*A HubSpot Ecommerce Quote record showing the Quote Builder card and the sidebar associations to Contact and Ecommerce Order.*
 
 ---
 
@@ -144,7 +146,7 @@ Each object represents a stage in the sales lifecycle.
 
 **Where it lives:** ShipEdge (primary), synced to SCW Commerce DB and HubSpot.
 
-> [SCREENSHOT: A HubSpot Ecommerce Shipment record showing tracking number, carrier, ship date, and association to its parent Ecommerce Order. — images/hubspot-ecommerce-shipment-record.png]
+> **Note:** Ecommerce Shipment records are created **automatically** by ShipEdge's fulfillment webhook when an order ships — they are not created by hand, so there is no manual screen to walk through. Each shipment carries its tracking number, carrier, and ship date, and associates back to its parent Ecommerce Order.
 
 ---
 
