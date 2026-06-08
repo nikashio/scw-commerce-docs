@@ -83,7 +83,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Query params:** none
 - **Request body:** none
 - **Response (200):** `{ message, payment, invoice }`
-- **Side effects:** Authorize.net gateway call; DB writes (payment + local invoice + order status `paid`); ShipEdge sync triggered. **HubSpot sync is NOT enqueued at capture time:** the capture route calls both `InvoiceService.createFromOrder` and `OrderService.updateStatus('paid')` with `{ skipHubSpotSync: true }` (`capture/route.ts:125-132`), and both services only enqueue the outbox when `!options?.skipHubSpotSync` (`invoice.service.ts:177`, `order.service.ts:612`). As a result this endpoint does not push the captured invoice or the updated status to HubSpot on its own — call `/api/admin/orders/[id]/sync` after capture if the order or invoice does not appear in HubSpot.
+- **Side effects:** Authorize.net gateway call; DB writes (payment + local invoice + order status `paid`); ShipEdge sync triggered; HubSpot outbox enqueue. **Capture pushes to HubSpot automatically:** `InvoiceService.createFromOrder` enqueues `invoice.created` and `OrderService.updateStatus('paid')` enqueues `order.status_changed`, each on the durable outbox with its own idempotency key and an immediate delivery kickoff (backstopped by the `process-hubspot-outbox` cron). The order's HubSpot object already exists from the original `auth_only` checkout's `order.created` sync, so no enqueue ordering is required. No manual `/sync` is needed after capture — use `/api/admin/orders/[id]/sync` only to force a re-sync if an outbox row was abandoned.
 
 #### `POST /api/admin/orders/[id]/invoice`
 
