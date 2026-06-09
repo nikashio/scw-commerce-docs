@@ -85,7 +85,7 @@ Each object represents a stage in the sales lifecycle.
 **Created when:** Checkout is completed — either by the customer directly or by a rep on their behalf.
 
 **Key properties:**
-- Order ID (e.g., `ORD-000001`) — a sequential six-digit number with an `ORD-` prefix, generated via the `seq_order_number` PostgreSQL sequence
+- Order ID (e.g., `1268879530`) — a sequential bare-numeric number (no prefix, no dashes), generated via the `seq_order_number` PostgreSQL sequence. New orders count up from `1268879530`; this continues the numbering space of the historical Magento orders, which are also numeric. (Older records may carry the earlier `ORD-000001` or legacy `SCW-YYYYMMDD-XXXX` formats.)
 - Status (Pending, Processing, Shipped, Delivered, Complete, Cancelled)
 - Payment Method Type (Credit Card, Purchase Order, Check, ACH/Wire)
 - PO Number (for Purchase Order payments)
@@ -117,7 +117,7 @@ Each object represents a stage in the sales lifecycle.
 - **Offline payment orders:** Created by admin when payment is confirmed (this triggers fulfillment)
 
 **Key properties:**
-- Invoice Number
+- Invoice Number — a bare-numeric number (no prefix), generated via the `seq_invoice_number` PostgreSQL sequence, continuing the migrated Magento invoice numbering
 - Status (Pending, Paid, Cancelled) — HubSpot only accepts these three values. Locally the DB also tracks `Refunded` when fully credited, but that maps to `Cancelled` in HubSpot (the Credit Memo custom object records the actual refund)
 - Amount
 - Payment method and transaction details
@@ -139,6 +139,7 @@ Each object represents a stage in the sales lifecycle.
 **Created when:** ShipEdge fulfillment process creates a shipping label. The data syncs back to SCW Commerce through the ShipEdge webhook when configured, with the 5-minute cron as reconciliation.
 
 **Key properties:**
+- Shipment number — a bare-numeric number (no prefix), generated via the `seq_shipment_number` PostgreSQL sequence; also the shipment's key (`es_shipment_id`) on the HubSpot Ecommerce Shipment object
 - Tracking number
 - Carrier (UPS)
 - Shipped date

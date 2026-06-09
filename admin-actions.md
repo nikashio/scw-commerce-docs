@@ -62,7 +62,7 @@ POST https://hubspot.getscw.com/api/admin/orders/{ORDER_ID}/invoice
 ```
 
 Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecommerce Order).
-The endpoint also accepts the SCW order number (e.g., `ORD-000406`) when calling it directly.
+The endpoint also accepts the SCW order number (e.g., `1268879530`) when calling it directly.
 
 The invoice endpoint accepts orders in either `pending_payment` or `pending` status.
 
@@ -125,7 +125,7 @@ If a customer enters "demo" as the PO number, the order should still be processe
 
 When a wire/ACH order comes in:
 
-1. **Note the Order Number** from the Ecommerce Order (e.g., `ORD-000406` for sequence-generated orders; Magento-migrated orders may use a numeric string or the legacy `SCW-YYYYMMDD-XXXX` format)
+1. **Note the Order Number** from the Ecommerce Order (e.g., `1268879530` for current sequence-generated orders; older orders may use the earlier `ORD-000406` format, and Magento-migrated orders use a numeric string or the legacy `SCW-YYYYMMDD-XXXX` format)
 2. **Check the bank portal** for an incoming transfer with that order number in the memo
 3. **Verify the amount** matches the order total
 4. If funds are confirmed, **invoice the order**

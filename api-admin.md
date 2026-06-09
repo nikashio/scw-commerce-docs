@@ -68,7 +68,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `GET /api/admin/orders/[id]`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Full order lifecycle detail — items, payments, invoices, shipments, refunds, events, DLQ entries. The `[id]` param is always an **order number string**, never a numeric primary key. Accepted formats: current sequence numbers (`ORD-000035`), legacy app-generated (`SCW-20260108-A1B2`), and Magento-migrated numeric strings (`1068850686` or `1068850686-1`). A bare integer only resolves if it matches a stored `order_number` column value — there is no primary-key lookup on this route. (Note: the `POST /[id]/capture` route does parse `[id]` as an integer PK.)
+- **Purpose:** Full order lifecycle detail — items, payments, invoices, shipments, refunds, events, DLQ entries. The `[id]` param is always an **order number string**, never a numeric primary key. Accepted formats: current bare-numeric sequence numbers (`1268879530`), early sequence numbers (`ORD-000035`), legacy app-generated (`SCW-20260108-A1B2`), and Magento-migrated numeric strings (`1068850686` or `1068850686-1`). Because current order numbers are themselves bare integers, resolution matches the stored `order_number` column first, then falls back to a primary-key lookup — so a bare integer resolves as an order number when one exists. (Note: the `POST /[id]/capture` route parses `[id]` as an integer PK only.)
 - **Path params:** `id: string (order number — see formats above)`
 - **Query params:** none
 - **Request body:** none
