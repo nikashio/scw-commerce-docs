@@ -305,6 +305,16 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Response (200):** `{ events[], generatedAt }`
 - **Side effects:** read-only
 
+#### `POST /api/admin/sync/events/retry`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Replay an abandoned `hubspot_outbox` row. Resets the row to `pending` with `attempt_count = 0` and kicks off immediate redelivery — the recovery path for rows that abandoned on a non-retryable error (4xx) whose root cause has since been fixed (e.g. portal object cap raised, enum option added in HubSpot). Surfaced in the admin Sync Observability dashboard as a **Retry** button on abandoned HubSpot events. Every abandonment also raises a Sentry error (`hubspot_outbox_abandoned`), so failed syncs alert instead of waiting to be noticed.
+- **Path params:** none
+- **Query params:** none
+- **Request body:** `{ source: 'hubspot_outbox', id: number }`
+- **Response (200):** `{ retried, id, eventType, entityType, entityId }`; `409` if the row doesn't exist or isn't abandoned
+- **Side effects:** outbox row re-queued; immediate delivery attempt; business event logged.
+
 #### `GET /api/admin/sync/dlq`
 
 - **Auth:** Admin (session or API key)
