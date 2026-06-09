@@ -49,13 +49,30 @@ The SCW deploy owner will provide these values to Make. Do not paste real secret
 |---|---|---|
 | `SCW_COMMERCE_BASE_URL` | Make | Base URL for SCW Commerce API calls, for example staging or production |
 | `MAKE_INTEGRATION_SECRET` | Make -> SCW | Bearer token for `/api/integrations/make/*` routes |
-| `MAKE_ORDER_CREATED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for normal `order.created` events |
-| `MAKE_MONITORING_ORDER_WEBHOOK_URL` | SCW -> Make | Optional separate webhook for `order.created.monitoring_candidate` events |
+| `MAKE_ORDER_CREATED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for normal `order.created` events. Now also editable in the admin UI — a saved value there overrides this env var (see [Editing webhook URLs in the admin](#editing-webhook-urls-in-the-admin)). |
+| `MAKE_MONITORING_ORDER_WEBHOOK_URL` | SCW -> Make | Optional separate webhook for `order.created.monitoring_candidate` events. Now also editable in the admin UI — a saved value there overrides this env var. |
 | `MAKE_OUTBOX_ENABLED` | SCW | Must be enabled before SCW sends Make webhooks |
 | `MAKE_OUTBOX_TIMEOUT_MS` | SCW | Timeout for each Make webhook delivery attempt |
 | `MAKE_OUTBOX_BATCH_SIZE` | SCW | Maximum due webhook rows processed per cron tick |
 
 SCW sends outbound Make events through a durable `make_integration_outbox` table. The cron `process-make-outbox` runs every minute and retries transient failures with backoff.
+
+### Editing webhook URLs in the admin
+
+The two outbound webhook URLs are also editable at runtime from **Admin → Integrations → Make Webhooks** (`/admin/integrations/make`), so a URL can be changed without a redeploy.
+
+How it resolves, per event (`order.created` and `order.created.monitoring_candidate`):
+
+- **Saved value wins.** If an admin saves a URL on this page, SCW sends to that URL.
+- **Otherwise the env var is the fallback** (`MAKE_ORDER_CREATED_WEBHOOK_URL` / `MAKE_MONITORING_ORDER_WEBHOOK_URL`). With nothing saved, behavior is exactly as before.
+- **Blank the field to clear it** back to the env fallback.
+- **Enable / disable each event.** Disabling an event means SCW does not queue or send that webhook for **future** orders (it logs `make_webhook_skipped`); already-queued events are unaffected. Re-enabling applies to orders created after the change is saved.
+
+Notes:
+
+- `MAKE_OUTBOX_ENABLED` is still the global master switch — if it is off, SCW sends nothing regardless of these per-event settings.
+- The page shows a source badge per event: **Saved (DB)**, **Env fallback**, or **Not configured**.
+- The webhook URL carries the Make hook token, so treat it as a secret; the URL field is masked by default.
 
 ---
 
