@@ -2,7 +2,26 @@
 
 ## Overview
 
-Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. The approval is managed in HubSpot, synced to the storefront by the contact webhook in real time, and reconciled daily as a fallback.
+Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and an optional **validity window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
+
+> **Note:** This supersedes the older "set the property in HubSpot" workflow described further below. The HubSpot contact properties are now a **mirror** of the admin panel, not the source of truth. (Those lower sections predate the admin panel and are kept for historical context.)
+
+---
+
+## Validity Window (Active From / Active Until)
+
+Each customer's credit-terms approval can carry an optional date window, set in the admin **Credit Terms** panel:
+
+| Field | Meaning |
+|---|---|
+| **Active from** | First day the customer may use Purchase-Order terms. Leave empty = active immediately. |
+| **Active until** | Last day (inclusive) the customer may use Purchase-Order terms. Leave empty = never expires. |
+
+A customer can use the **Purchase Order (NET30)** option at checkout only when they are **Approved** *and* today falls within this window (evaluated in US/Eastern time). Outside the window — before the start date or after the end date — the Purchase Order option is hidden at checkout **and** rejected by the server if a request is submitted directly. Leaving both dates empty means the approval never expires (this is the default, and matches how every existing approval behaves).
+
+The Credit Terms table shows an **Active now / Inactive** badge per customer, so you can tell at a glance whether an approved customer's window is currently in effect (for example, an approval that is set up but whose start date hasn't arrived yet shows **Inactive**).
+
+> **Note:** The validity window is enforced entirely in SCW Commerce. The start/end dates are not (yet) mirrored to HubSpot.
 
 ---
 
