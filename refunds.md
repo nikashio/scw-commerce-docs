@@ -181,7 +181,7 @@ In practice, when initiated from HubSpot:
 
 ## What Gets Created in HubSpot
 
-> [SCREENSHOT: A HubSpot Credit Memo record showing the ecm_ properties (Credit Memo ID, Status, Refund Type [full/partial/custom_amount], Total Refund, Reason, Refund Date) and the associations to Order, Invoice, and Contact — images/hubspot-credit-memo-record.png]
+> [SCREENSHOT: A HubSpot Credit Memo record showing the ecm_ properties (Credit Memo ID, Status, Refund Type [full/per_item/partial], Total Refund, Reason, Refund Date) and the associations to Order, Invoice, and Contact — images/hubspot-credit-memo-record.png]
 
 When a refund is processed, a **Credit Memo** record is created with:
 
@@ -189,12 +189,12 @@ When a refund is processed, a **Credit Memo** record is created with:
 |---|---|
 | Credit Memo ID | Refund number from SCW Commerce (e.g., RFD-000001) |
 | Status | `refunded` (or `pending` when the source refund is still in `pending_settlement`) |
-| Refund Type | `full`, `partial`, or `custom_amount` |
+| Refund Type | `full`, `per_item`, or `partial` (HubSpot enum; see note below) |
 | Total Refund | Dollar amount refunded |
 | Reason | Reason provided by the admin |
 | Refund Date | When the refund was processed |
 
-> **Refund Type values:** the Credit Memo stores the refund type verbatim as `full`, `partial`, or `custom_amount`. A **per-item** refund is stored as type `partial` (with the selected line items serialized onto the `ecm_refund_items` property), and a **custom dollar amount** is stored as `custom_amount`. The literal value "Per Item" is never written.
+> **Refund Type values:** the SCW database stores the refund type as `full`, `partial`, or `custom_amount`. HubSpot's `ecm_refund_type` property uses a different enum — SCW values are remapped before syncing: `full` → `full`, `partial` (per-item line refund) → `per_item`, `custom_amount` (custom dollar amount) → `partial`. The HubSpot enum only accepts `[full, partial, per_item]`; sending raw SCW values causes a non-retryable 400 INVALID_OPTION.
 
 The Credit Memo is automatically **associated** with:
 - The Ecommerce Order

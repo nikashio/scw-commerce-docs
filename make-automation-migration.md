@@ -51,6 +51,8 @@ The SCW deploy owner will provide these values to Make. Do not paste real secret
 | `MAKE_INTEGRATION_SECRET` | Make -> SCW | Bearer token for `/api/integrations/make/*` routes |
 | `MAKE_ORDER_CREATED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for normal `order.created` events. Now also editable in the admin UI — a saved value there overrides this env var (see [Editing webhook URLs in the admin](#editing-webhook-urls-in-the-admin)). |
 | `MAKE_MONITORING_ORDER_WEBHOOK_URL` | SCW -> Make | Optional separate webhook for `order.created.monitoring_candidate` events. Now also editable in the admin UI — a saved value there overrides this env var. |
+| `MAKE_REFUND_CREATED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for `refund.created` events. Editable in the admin UI. |
+| `MAKE_TAX_EXEMPTION_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for `tax_exemption.submitted`, `tax_exemption.approved`, and `tax_exemption.rejected` events (all three share one URL by default; any can be overridden per-event in the admin UI). |
 | `MAKE_OUTBOX_ENABLED` | SCW | Must be enabled before SCW sends Make webhooks |
 | `MAKE_OUTBOX_TIMEOUT_MS` | SCW | Timeout for each Make webhook delivery attempt |
 | `MAKE_OUTBOX_BATCH_SIZE` | SCW | Maximum due webhook rows processed per cron tick |
@@ -59,9 +61,9 @@ SCW sends outbound Make events through a durable `make_integration_outbox` table
 
 ### Editing webhook URLs in the admin
 
-The two outbound webhook URLs are also editable at runtime from **Admin → Integrations → Make Webhooks** (`/admin/integrations/make`), so a URL can be changed without a redeploy.
+All outbound webhook URLs are editable at runtime from **Admin → Integrations → Make Webhooks** (`/admin/integrations/make`), so a URL can be changed without a redeploy. The page shows one row per event type: `order.created`, `order.created.monitoring_candidate`, `refund.created`, `tax_exemption.submitted`, `tax_exemption.approved`, and `tax_exemption.rejected`.
 
-How it resolves, per event (`order.created` and `order.created.monitoring_candidate`):
+How it resolves, per event:
 
 - **Saved value wins.** If an admin saves a URL on this page, SCW sends to that URL.
 - **Otherwise the env var is the fallback** (`MAKE_ORDER_CREATED_WEBHOOK_URL` / `MAKE_MONITORING_ORDER_WEBHOOK_URL`). With nothing saved, behavior is exactly as before.
@@ -86,8 +88,14 @@ SCW posts JSON to the configured Make custom webhook URL when an order is create
 |---|---|---|
 | `order.created` | Every new SCW order when the Make outbox is enabled | General Magento `watchOrders` replacement |
 | `order.created.monitoring_candidate` | New order contains a SKU with the monitoring marker `74HUB` | Shield / monitoring-specific scenarios |
+| `refund.created` | A refund record is created in SCW Commerce | Downstream refund workflows (Xero, Knack, notifications) |
+| `tax_exemption.submitted` | A customer submits a tax exemption request | Notify admin team, trigger doc-collection workflow |
+| `tax_exemption.approved` | An SCW admin approves the exemption request | Notify customer, update downstream systems |
+| `tax_exemption.rejected` | An SCW admin rejects the exemption request | Notify customer |
 
 `order.created.monitoring_candidate` is additional to the normal event. If a monitoring order should only run one scenario, filter by `event_type` in Make and/or use the separate monitoring webhook URL.
+
+The three `tax_exemption.*` events share a single webhook URL by default (`MAKE_TAX_EXEMPTION_WEBHOOK_URL`). A single Make scenario can branch on the top-level `status` field (`submitted` / `approved` / `rejected`) rather than parsing the dotted `event_type`.
 
 ### Headers
 

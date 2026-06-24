@@ -11,6 +11,8 @@ SCW Commerce supports four payment methods at checkout. The available methods de
 | **Check / Money Order** | All customers | No — mailed by customer | No — ships after check clears |
 | **ACH / Wire Transfer** | All customers | No — wired by customer | No — ships after admin verifies funds |
 
+Signed-in customers can also save credit cards to their **Wallet** (Authorize.net CIM / Customer Profiles) for faster checkout. Saved cards are a feature of the Credit Card method — they are not a separate payment method.
+
 ![Checkout payment-method selector showing Credit Card, Purchase Order (NET30), Check/Money Order, and ACH/Wire Transfer radio options for an approved B2B customer](images/checkout-payment-methods-all-four.png)
 
 *Checkout payment-method selector showing Credit Card, Purchase Order (NET30), Check/Money Order, and ACH/Wire Transfer radio options for an approved B2B customer*
@@ -23,8 +25,8 @@ The standard payment method. Available to all customers.
 
 ### Customer Experience
 1. Customer selects **Credit Card**
-2. Card form appears (Card Number, MM/YY, CVV)
-3. Card details are tokenized via Accept.js — **they never touch SCW servers**
+2. **If signed in with saved cards:** saved card picker appears; the first card is auto-selected. Customer selects a card or chooses **+ Use a new card**.
+3. **If entering a new card:** Card form appears (Card Number, MM/YY, CVV). Card details are tokenized via Accept.js — **they never touch SCW servers**. Signed-in customers see a **"Save this card for next time"** checkbox.
 4. Customer clicks **Place Order**
 5. Payment is charged immediately via Authorize.net
 6. Order confirmation email is sent
@@ -41,6 +43,25 @@ The standard payment method. Available to all customers.
 | Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
 > [SCREENSHOT: Credit card entry form at checkout with Card Number, MM/YY and CVV fields and an encrypted-card security notice — images/checkout-credit-card-form.png]
+
+### Saved Cards (Wallet / CIM)
+
+Signed-in shoppers can save credit cards for faster checkout. Cards are stored as **Authorize.net Customer Information Manager (CIM) payment profiles** — SCW servers never store card numbers, only the Authorize.net payment profile ID and masked display metadata (last 4 digits, card type, expiry).
+
+**How it works at checkout:**
+
+1. When the signed-in customer selects **Credit Card**, their saved cards are listed first.
+2. The first saved card is auto-selected. The customer can pick a different card or choose **+ Use a new card**.
+3. When a saved card is selected, no CVV or card form is shown — only a lock indicator confirming "Payment will be charged to your saved card."
+4. When entering a **new card**, a **"Save this card for next time"** checkbox appears (signed-in users only). If checked, the card is vaulted to CIM before the charge is made; if the charge later declines, the card stays saved.
+
+**Managing saved cards:**
+
+Customers manage their wallet at **My Account → Payment Methods** (`/account/payment-methods`). From there they can:
+- Add a new card (requires billing address for AVS validation in production).
+- Remove a saved card. Removal is **fail-closed**: if the Authorize.net gateway delete fails, the local record is kept and the customer is prompted to retry — a card is never shown as removed while it is still vaulted at the gateway.
+
+**Security model:** Only the card holder (authenticated by session) can list, add, or charge their own saved cards. The ownership check runs on every saved-card charge and delete. Adding a duplicate card (same PAN already vaulted under the same customer profile) returns a `409` and a friendly "This card is already saved" message.
 
 ### Auth-Only Mode (Manual Capture)
 
@@ -75,9 +96,9 @@ For pre-approved B2B customers only. The customer buys now and pays within 30 da
 
 ### Who Can See This Option
 
-Only customers with **"Approved for Credit Terms"** set to **Yes** on their HubSpot Contact record. See [Credit Terms Management](credit-terms.md) for how to approve a customer.
+Only customers with **"Approved for Credit Terms"** set to **Yes** on their HubSpot Contact record **and** today falling within the approval's optional active window (start/end dates). See [Credit Terms Management](credit-terms.md) for how to approve a customer and configure the validity window.
 
-If the customer is not approved, this option is hidden — they only see Credit Card, Check, and Wire.
+If the customer is not approved (or their approval window has not started or has expired), this option is hidden — they only see Credit Card, Check, and Wire. This check is enforced server-side at checkout as well; a direct API call cannot bypass it.
 
 ### Customer Experience
 1. Customer selects **Purchase Order (NET30)**
@@ -198,7 +219,7 @@ Available to all customers. The customer sends a wire transfer.
       <span class="method-glance__eyebrow">Customer at checkout</span>
       <span class="method-glance__title">Each payment method decides when payment is collected and when ShipEdge receives the order</span>
     </div>
-    <span class="method-glance__badge">4 methods</span>
+    <span class="method-glance__badge">4 methods + wallet</span>
   </div>
   <div class="method-glance__grid">
     <article class="method-glance__card">

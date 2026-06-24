@@ -115,6 +115,8 @@ The rep opens the link themselves (e.g., while on a phone call with the customer
 
 When the quote email matches an SCW customer, the order is associated with the **customer's account** (not the rep's), so it appears in the customer's order history.
 
+> **Saved cards:** If the customer is signed in when opening the link, their saved cards (Authorize.net CIM wallet) will be available at checkout exactly as they are for a standard cart. Reps checking out on behalf of a customer while not signed in as that customer will not see the customer's saved cards — they must enter the card details manually.
+
 > [SCREENSHOT: The checkout page as it appears when a customer opens a HubSpot quote payment link — pre-loaded cart, pre-filled email, and the standard 3-column layout with locked prices. — images/quote-builder-checkout-from-link.png]
 
 ---

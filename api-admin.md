@@ -115,6 +115,18 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Response (201):** `{ id, invoiceNumber, status, items[] }`
 - **Side effects:** DB write (invoice + items); HubSpot outbox enqueue.
 
+#### `POST /api/admin/orders/[id]/resend-email`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Manually (re)send a transactional email for an order. The `[id]` param is the order number string (same resolution as `GET /api/admin/orders/[id]`). Called by the HubSpot Lambda when a rep clicks a resend button on the OrderActions or CreditMemo card.
+- **Path params:** `id: string (order number)`
+- **Query params:** none
+- **Request body:** `{ type: 'order' | 'invoice' | 'credit_memo', documentNumber?: string }` — `documentNumber` (invoice or credit-memo number) is required when `type` is `invoice` or `credit_memo`.
+- **Response (200):** `{ success: true, recipient }`
+- **Response (404):** `{ success: false, error }` — order/document not found
+- **Response (502):** `{ success: false, error }` — email delivery failed
+- **Side effects:** Sends transactional email; no DB state change.
+
 #### `POST /api/admin/orders/[id]/sync`
 
 - **Auth:** Admin (session or API key)
@@ -379,6 +391,27 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
   - **200** `{ ok: true, item }` — retry was triggered successfully (no `code` field in this case)
 - **Side effects:** DB write (outbox item status); Make.com webhook re-triggered.
 
+#### `GET /api/admin/integrations/make/webhooks`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** List all Make.com webhook event-type configurations with their resolved URLs and enabled state. Source is `db` (per-event DB override), `env` (env-var fallback), or `none` (unconfigured). Powers the **Admin → Integrations → Make Webhooks** UI.
+- **Path params:** none
+- **Query params:** none
+- **Request body:** none
+- **Response (200):** `{ webhooks: [{ eventType, label, url, enabled, source }] }`
+- **Side effects:** read-only
+
+#### `PUT /api/admin/integrations/make/webhooks/[eventType]`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Upsert the URL and enabled flag for one Make.com webhook event type. An empty `url` clears the DB override and falls back to the env-var default. Valid `eventType` values: `order.created`, `order.created.monitoring_candidate`, `refund.created`, `tax_exemption.submitted`, `tax_exemption.approved`, `tax_exemption.rejected`.
+- **Path params:** `eventType: string`
+- **Query params:** none
+- **Request body:** `{ url: string, enabled: boolean }`
+- **Response (200):** `{ webhook: { eventType, label, url, enabled, source } }`
+- **Response (404):** `{ error, code: 'UNKNOWN_EVENT_TYPE' }` — unrecognized event type
+- **Side effects:** DB upsert (webhook config row); business event logged (URL value is never logged).
+
 ---
 
 ## Misc
@@ -524,27 +557,17 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Response (200):** `{ exemptions[], total, page, limit, totalPages }`
 - **Side effects:** read-only
 
-#### `GET /api/admin/tax-exempt-orgs`
+#### `POST /api/admin/tax-exemptions/sync-hubspot`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** List tax-exempt organizations with their associated email domains.
+- **Purpose:** Backfill — enqueues a `contact.exemption_changed` HubSpot outbox row for every currently exempt customer. Idempotent per run (run-scoped idempotency key). Delivery happens via the `process-hubspot-outbox` cron.
 - **Path params:** none
-- **Query params:** pagination + filter params
-- **Response (200):** `{ orgs[], total, page, limit, totalPages }`
-- **Side effects:** read-only
+- **Query params:** none
+- **Request body:** none
+- **Response (200):** `{ runId, enqueued }`
+- **Side effects:** HubSpot outbox rows created; delivery kicked off for each.
 
-#### `POST /api/admin/tax-exempt-orgs`
-
-- **Auth:** Admin (session or API key)
-- **Purpose:** Create a new tax-exempt org and cascade the exemption to all existing customers whose email domains match the org's configured domains.
-- **Path params:** none
-- **Request body:** org creation schema (name, domains[], exemption details)
-- **Response (201):** created org object
-- **Side effects:** DB write (org + cascaded customer exemptions); TaxJar customer sync.
-
-#### `GET /api/admin/tax-exempt-orgs/[id]` / `PATCH /api/admin/tax-exempt-orgs/[id]` / `DELETE /api/admin/tax-exempt-orgs/[id]`
-
-- Get, update, or delete a tax-exempt org by ID.
+> **Note — `/api/admin/tax-exempt-orgs` routes:** The `tax-exempt-org.service.ts` service exists but the corresponding admin API routes (`GET/POST /api/admin/tax-exempt-orgs`, `GET/PATCH/DELETE /api/admin/tax-exempt-orgs/[id]`) have not yet been built. Org management currently happens through direct DB writes or the admin UI if wired separately.
 
 #### `GET /api/admin/tax-exemption-requests`
 
@@ -564,16 +587,16 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Response (201):** created request object
 - **Side effects:** DB write (request + documents).
 
-#### `GET /api/admin/tax-exemption-requests/[id]` / `PATCH /api/admin/tax-exemption-requests/[id]`
+#### `GET /api/admin/tax-exemption-requests/[id]`
 
-- Get or update an exemption request by ID.
+- Get an exemption request by ID (includes pre-signed document URLs).
 
 #### `POST /api/admin/tax-exemption-requests/[id]/approve`
 
 - **Auth:** Admin (session or API key)
 - **Purpose:** Approve an exemption request — marks the customer tax-exempt and syncs to TaxJar.
 - **Path params:** `id: number`
-- **Response (200):** `{ success: true, request }`
+- **Response (200):** `{ ok: true }`
 - **Side effects:** DB write (request status + customer exemption flag); TaxJar customer sync.
 
 #### `POST /api/admin/tax-exemption-requests/[id]/reject`
@@ -581,8 +604,33 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Auth:** Admin (session or API key)
 - **Purpose:** Reject an exemption request.
 - **Path params:** `id: number`
-- **Response (200):** `{ success: true, request }`
+- **Response (200):** `{ ok: true }`
 - **Side effects:** DB write (request status).
+
+---
+
+## Credit Terms
+
+#### `GET /api/admin/credit-terms`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** List customers with their credit-terms status (`approved` / `not_approved`). Supports search and status filtering. Powers the admin credit-terms management page.
+- **Path params:** none
+- **Query params:** `page`, `pageSize`, `search` (optional), `status` (`all` | `approved` | `not_approved`, optional)
+- **Request body:** none
+- **Response (200):** `{ rows[], pagination }`
+- **Side effects:** read-only
+
+#### `PATCH /api/admin/customers/[id]/credit-terms`
+
+- **Auth:** Admin (session or API key)
+- **Purpose:** Update a customer's credit-terms approval, credit limit, optional validity window, and notes. Accepts an optional `startDate` and `endDate` (ISO `YYYY-MM-DD`) to bound when PO/net-terms checkout is active; omit or pass `null` / `""` for an open-ended approval.
+- **Path params:** `id: number (customer primary key)`
+- **Query params:** none
+- **Request body:** `{ approved: boolean, creditLimit: string | null, startDate?: string | null, endDate?: string | null, note?: string | null }`
+- **Response (200):** `{ ok: true }`
+- **Response (404):** `{ error: 'customer_not_found' }`
+- **Side effects:** DB write (customer credit-terms fields); business event logged.
 
 ---
 

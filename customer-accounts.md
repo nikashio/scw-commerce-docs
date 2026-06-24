@@ -94,14 +94,14 @@ When a rep updates a Contact in HubSpot, the HubSpot private app (**"Frantic-Act
 | `lastname` | `customers.lastName` | ✅ | ✅ |
 | `company` | `customers.company` | ❌ not subscribed — add in HubSpot if needed | ✅ |
 | `phone` | `customers.phone` | ❌ not subscribed — add in HubSpot if needed | ✅ |
-| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | ✅ | ✅ |
-| `credit_limit` | `customers.creditLimit` | ✅ | ✅ |
+| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | ❌ not handled by incoming webhook — credit terms are admin-owned in SCW; changes are pushed **out** to HubSpot via the outbox | ❌ falls through to `webhook_unhandled_property` log |
+| `credit_limit` | `customers.creditLimit` | ❌ not handled by incoming webhook — mirrored out to HubSpot on each admin save | ❌ falls through to `webhook_unhandled_property` log |
 | `tax_exemption_type` | — (intended `customers.exemptionType`) | ❌ no such Contact property in HubSpot | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
 | `tax_exempt_regions` | — (intended `customers.exemptRegions`) | ❌ no such Contact property in HubSpot | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
 
-The webhook handler only maps `email`, `firstname`, `lastname`, `company`, `phone`, `approved_for_credit_terms`, and `credit_limit`. `tax_exemption_type` and `tax_exempt_regions` do **not** exist as HubSpot Contact properties and have no handler case — any unmapped property change is logged as `webhook_unhandled_property` and ignored.
+The webhook handler only maps `email`, `firstname`, `lastname`, `company`, and `phone`. `approved_for_credit_terms` and `credit_limit` are **not** handled by the incoming webhook — credit terms are managed in the SCW admin panel and pushed **out** to HubSpot via the outbox on each save (see Credit Terms docs). `tax_exemption_type` and `tax_exempt_regions` do **not** exist as HubSpot Contact properties and have no handler case — any unmapped property change is logged as `webhook_unhandled_property` and ignored.
 
-Properties not in the list above **are not synced**. Daily reconciliation covers **credit terms only** (`approved_for_credit_terms` and `credit_limit`); there is **no** daily reconciliation job for tax-exemption fields. Profile fields flow only through the webhook. If a sales rep edits something outside this list, it stays in HubSpot.
+Properties not in the list above **are not synced inbound**. There is **no** daily reconciliation cron for credit terms or tax-exemption fields. Profile fields (`email`, `firstname`, `lastname`, `company`, `phone`) flow only through the inbound webhook. If a sales rep edits something outside this list, it stays in HubSpot.
 
 ### Viewing & Editing Webhook Subscriptions
 
@@ -248,7 +248,7 @@ Saved addresses are available:
     <span class="modern-flow__arrow" aria-hidden="true"></span>
     <span class="modern-flow__node modern-flow__node--ship">Checkout + fulfillment<small>Order links to Contact; ShipEdge receives order if invoiced</small></span>
   </div>
-  <div class="modern-flow__note">Auto-provisioning (and the welcome email) is gated OFF by default — it runs only when <code>HUBSPOT_WEBHOOK_AUTOPROVISION=true</code> (and <code>HUBSPOT_WEBHOOK_WELCOME_EMAIL=true</code>) is set. When sales updates credit terms in HubSpot, the webhook updates SCW instantly and the PO option appears at checkout for that customer.</div>
+  <div class="modern-flow__note">Auto-provisioning (and the welcome email) is gated OFF by default — it runs only when <code>HUBSPOT_WEBHOOK_AUTOPROVISION=true</code> (and <code>HUBSPOT_WEBHOOK_WELCOME_EMAIL=true</code>) is set. Credit terms are managed in the SCW admin panel (Admin → Credit Terms) and mirrored out to HubSpot — not the reverse. When an admin approves credit terms in SCW, the PO option appears at checkout for that customer immediately.</div>
 </section>
 
 ### Path B: Self-Service (website registration)

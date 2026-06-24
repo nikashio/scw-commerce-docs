@@ -19,7 +19,8 @@ A third field, `exemption_source`, records **how** the exemption was set:
 |---|---|
 | `admin` | Set by a staff member approving an exemption request in the admin UI. This is the authoritative, highest-precedence source. |
 | `org` | Set automatically by an exempt-organization rule that matched the customer's email domain. |
-| `hubspot_legacy` | A value migrated in before this system existed (the default for un-touched historical rows). Not an active input — it simply records that the value predates the current flow. |
+| `hubspot_legacy` | A value migrated in from HubSpot before this system existed. Not an active input — it simply records that the value predates the current flow. |
+| `magento_legacy` | A value migrated in from Magento during the historical import. Not an active input — treated the same way as `hubspot_legacy` for filtering and display. |
 
 There is no `webhook` source — the external webhook concept no longer maps to anything in the system.
 
@@ -87,6 +88,29 @@ Rejecting `POST`s to **`POST /api/admin/tax-exemption-requests/{id}/reject`** wi
 
 ---
 
+## Outbound Make Webhook on Status Changes
+
+Separate from the (removed) *inbound* validation webhook described at the top of this page, SCW Commerce fires an **outbound** Make.com webhook every time a tax-exemption request changes status. This is what loops the team in automatically:
+
+| Transition | Event type | Who it notifies |
+|---|---|---|
+| Submitted | `tax_exemption.submitted` | Compliance — triggers the ClickUp admin-approval flow |
+| Approved | `tax_exemption.approved` | Sales — includes the applied type and states |
+| Rejected | `tax_exemption.rejected` | Sales — includes the reject reason |
+
+**The submission event fires for every submission — both customer self-service and admin-on-behalf** (both paths run through the same `createRequest`), so on-behalf requests still reach the ClickUp approval flow.
+
+All three events POST to **one shared Make hook** (configured by the `MAKE_TAX_EXEMPTION_WEBHOOK_URL` env var, overridable per-event in **Admin → Integrations → Make Webhooks**). The payload carries a top-level `status` field (`submitted` / `approved` / `rejected`) so a single Make scenario can branch on it. Each payload includes: the request id, the customer's id and email, the requested type and states, the applied type and states (on approval), the reject reason (on rejection), and `submitted_by` plus a derived `submitted_by_kind` (`customer` vs `admin`).
+
+Delivery reuses the durable **Make integration outbox** (the same mechanism behind order- and refund-created webhooks):
+
+- The webhook is enqueued **after** the status change has committed and delivered on a **best-effort, non-blocking** basis — a Make outage never blocks or fails the customer/admin action.
+- If a delivery fails, the durable outbox row is retried by the `process-make-outbox` cron on a backoff schedule (1m → 2h) until it succeeds or is exhausted.
+- Each transition is delivered **exactly once** (idempotency keyed per request + transition), so submitted, approved, and rejected for the same request never collide or double-send.
+- If the webhook URL is **not configured** (or the event is disabled in the admin UI), the event is simply skipped — nothing is sent and no failed-delivery rows accumulate.
+
+---
+
 ## What Approval Does — `applyExemption`
 
 The authoritative write happens in `applyExemption` (`src/services/tax-exemption-sync.service.ts`). It is **idempotent**: if the incoming type and states exactly match the customer's current values, it is a complete no-op — no TaxJar call, no audit row, no DB write — and returns `{ changed: false }`.
@@ -136,10 +160,10 @@ A read-only view of every exempt customer lives at **`/admin/tax-exemptions`**.
 
 *The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document*
 
-It shows, per exempt customer: email, name, exemption type, regions, **source** (`admin` / `org` / `hubspot_legacy`), who validated it, and a link to the supporting document. It is searchable by email and paginated. This page does not edit anything — exemptions are set through the request-approval flow and the exempt-organization rules described above; this list just reflects the result.
+It shows, per exempt customer: email, name, exemption type, regions, **source** (`admin` / `org` / `hubspot_legacy` / `magento_legacy`), who validated it, and a link to the supporting document. It is searchable by email and paginated. This page does not edit anything — exemptions are set through the request-approval flow and the exempt-organization rules described above; this list just reflects the result.
 
 ---
 
 ## Audit Trail
 
-Every applied exemption change appends one row to the `tax_exemption_events` table. This append-only log records who validated the exemption, when, the source (`admin` / `org` / `hubspot_legacy`), the type and states applied, the document reference, and the raw payload — providing a compliance history that cannot be overwritten by later changes.
+Every applied exemption change appends one row to the `tax_exemption_events` table. This append-only log records who validated the exemption, when, the source (`admin` / `org` / `hubspot_legacy` / `magento_legacy`), the type and states applied, the document reference, and the raw payload — providing a compliance history that cannot be overwritten by later changes.

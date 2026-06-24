@@ -174,11 +174,11 @@ The systems stay in sync through automated processes that run on a schedule:
 | Process | Frequency | What It Does |
 |---|---|---|
 | **HubSpot entity sync (outbox)** | Every 1 minute | Delivers every order, invoice, shipment, and credit-memo change to HubSpot. Retries on failure with exponential backoff (1m→120m). See "How HubSpot sync works" below. |
-| **Make.com webhook outbox** | Every 1 minute | Delivers order-created events to Make.com workflows with retry. See [Make Automation Migration](make-automation-migration.md). |
+| **Make.com webhook outbox** | Every 1 minute | Delivers outbound events to Make.com workflows with retry: `order.created`, `order.created.monitoring_candidate`, `refund.created`, and `tax_exemption.submitted/approved/rejected`. See [Make Automation Migration](make-automation-migration.md). |
 | **Product sync** | Every 15 minutes | Syncs changed products (all statuses) from the SCW Commerce database to HubSpot Products (including the dropship / preorder / special-order fulfillment flags → HubSpot product properties); also updates the Meilisearch product index |
 | **ShipEdge order status sync** | Real-time webhook + every 5 minutes | ShipEdge webhooks update shipped/delivered/cancelled states through the same status-sync service; the 5-minute cron reconciles missed webhooks and open orders |
 | **HubSpot Contact webhook** | Real-time | When a rep creates or updates a Contact in HubSpot, syncs property changes (name, email, credit terms) instantly. Account auto-provisioning (Cognito + DB) is gated behind `HUBSPOT_WEBHOOK_AUTOPROVISION=true` (off by default). Tax exemption is **not** set via this webhook. |
-| **Credit terms sync** | Daily at 2 AM UTC | Fallback/reconciliation — syncs "Approved for Credit Terms" and "Credit Limit" from HubSpot Contacts to storefront (webhook handles this in real-time now) |
+| **Credit terms sync** | On change (real-time) | When an admin updates a customer's credit terms in SCW, a `customer.credit_terms_changed` event is enqueued in the HubSpot outbox and delivered within ~60 seconds. There is no separate daily reconciliation cron for credit terms. |
 | **Tax exemption sync** | Triggered on admin approval | When an SCW admin approves or rejects a tax exemption request via the admin UI (POST /api/admin/tax-exemption-requests/[id]/approve), SCW Commerce records the decision, writes an audit row to `tax_exemption_events`, and pushes the change to TaxJar immediately. There is no external signed webhook from a doc-review system. |
 | **Auto-cancel stale orders** | Daily at 3 AM UTC | Cancels Check (`check`) orders in `pending_payment` status older than 14 days and ACH/Wire (`ach_wire`) orders in `pending_payment` status older than 21 days |
 | **DLQ retry** | Every 5 minutes | Retries failed non-outbox work: HubSpot → Cognito contact provisioning (`contact_import`), ShipEdge order push (`shipedge_order_sync`), TaxJar refund reporting (`taxjar_refund_report`), and TaxJar order reporting (`taxjar_order_report`) |
@@ -213,5 +213,7 @@ All SCW Commerce → HubSpot data flow goes through a single durable outbox patt
 | `invoice.paid` | Invoice marked paid | Update Ecommerce Invoice status |
 | `shipment.created` | ShipEdge creates a shipment | Upsert Ecommerce Shipment |
 | `refund.processed` | Refund reaches Processed status | Create Credit Memo, associate to Order / Invoice / Contact |
+| `contact.exemption_changed` | Tax exemption approved or rejected | Update `tax_exemption_type` + `tax_exempt_regions` on HubSpot Contact |
+| `customer.credit_terms_changed` | Credit terms updated in SCW admin | Update `approved_for_credit_terms` + `credit_limit` on HubSpot Contact |
 
 Admins and engineers can inspect sync health at any time by querying the `hubspot_outbox` table on the production database (see **Key Concepts → Outbox** for the exact queries).

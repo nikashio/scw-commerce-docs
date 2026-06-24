@@ -97,20 +97,21 @@ The Purchase Order option is completely hidden — the customer has no way to se
 
 ## How the Sync Works (Technical)
 
-1. The HubSpot contact webhook updates the local customer row when subscribed contact properties change.
-2. A daily cron job runs at **2 AM UTC** as reconciliation for every customer with a `hubspot_contact_id`.
-3. For each customer, the cron fetches two properties from the HubSpot Contact:
-   - `approved_for_credit_terms`
-   - `credit_limit`
-4. If the values differ from what's stored locally, it updates the customer record
-5. The sync is one-way: **HubSpot → Storefront**. Changes made directly in the database will be overwritten by the next sync.
+Credit terms are **admin-owned in SCW Commerce** (the admin panel is the source of truth). When an admin saves a credit-terms change, the system:
+
+1. Writes the new values (`approved_for_credit_terms`, `credit_limit`, start/end dates) to the local customer row inside a transaction.
+2. Appends an audit event to `credit_terms_events`.
+3. Enqueues a `customer.credit_terms_changed` row in the HubSpot outbox (part of the same transaction — failure rolls back the edit).
+4. Kicks off async delivery of that outbox row: `approved_for_credit_terms` + `credit_limit` are pushed to the matching HubSpot Contact via `PATCH /crm/v3/objects/contacts/{id}`.
+
+The sync is one-way: **Storefront → HubSpot**. The HubSpot contact values are a mirror for reference only. Changes made directly in HubSpot are **not** synced back to SCW (the webhook handler does not subscribe to or process `approved_for_credit_terms` changes from HubSpot).
 
 ### Sync Summary
 
 | Direction | What Syncs | Frequency |
 |---|---|---|
-| HubSpot → Storefront | `approved_for_credit_terms`, `credit_limit` | Real-time webhook + daily 2 AM UTC reconciliation |
-| Storefront → HubSpot | Nothing (one-way sync) | — |
+| Storefront → HubSpot | `approved_for_credit_terms`, `credit_limit` | Real-time via HubSpot outbox on every admin save |
+| HubSpot → Storefront | Nothing (one-way sync) | — |
 
 ---
 
