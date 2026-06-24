@@ -55,11 +55,15 @@ Signed-in shoppers can save credit cards for faster checkout. Cards are stored a
 3. When a saved card is selected, no CVV or card form is shown — only a lock indicator confirming "Payment will be charged to your saved card."
 4. When entering a **new card**, a **"Save this card for next time"** checkbox appears (signed-in users only). If checked, the card is vaulted to CIM before the charge is made; if the charge later declines, the card stays saved.
 
+> [SCREENSHOT: The saved-card picker at checkout — a signed-in customer's saved cards listed with the first auto-selected, a "Payment will be charged to your saved card" lock note, and a "+ Use a new card" option. — images/checkout-saved-card-picker.png]
+
 **Managing saved cards:**
 
 Customers manage their wallet at **My Account → Payment Methods** (`/account/payment-methods`). From there they can:
 - Add a new card (requires billing address for AVS validation in production).
 - Remove a saved card. Removal is **fail-closed**: if the Authorize.net gateway delete fails, the local record is kept and the customer is prompted to retry — a card is never shown as removed while it is still vaulted at the gateway.
+
+> [SCREENSHOT: The My Account → Payment Methods wallet page (/account/payment-methods) showing saved cards (card type, last 4, expiry) with Add Card and Remove actions. — images/account-payment-methods-wallet.png]
 
 **Security model:** Only the card holder (authenticated by session) can list, add, or charge their own saved cards. The ownership check runs on every saved-card charge and delete. Adding a duplicate card (same PAN already vaulted under the same customer profile) returns a `409` and a friendly "This card is already saved" message.
 

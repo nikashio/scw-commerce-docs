@@ -25,7 +25,9 @@ The Credit Terms table shows an **Active now / Inactive** badge per customer, so
 
 ---
 
-## Approving a Customer for Credit Terms
+## Approving a Customer for Credit Terms (Legacy HubSpot workflow)
+
+> **⚠️ Deprecated — historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Operations → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them** — the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
 
 ### Step 1: Open the Contact in HubSpot
 
@@ -66,7 +68,9 @@ with the cron authorization header.
 
 ---
 
-## Revoking Credit Terms
+## Revoking Credit Terms (Legacy HubSpot workflow)
+
+> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Operations → Credit Terms** panel — toggle the customer's approval off, or set an **Active until** date that has passed. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
 
 To remove a customer's ability to use Purchase Orders:
 
