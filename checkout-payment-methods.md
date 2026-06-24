@@ -42,7 +42,7 @@ The standard payment method. Available to all customers.
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |
 | Manual cancel / correction (before delivery) | Status → `cancelled` | Status → `cancelled` | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
 
-> [SCREENSHOT: Credit card entry form at checkout with Card Number, MM/YY and CVV fields and an encrypted-card security notice — images/checkout-credit-card-form.png]
+![Credit-card entry at checkout: the three payment-method options, a "+ Use a new card" selection, the "Card details are encrypted and never touch our servers" notice, and the Card Number / MM/YY / CVV fields with a "Save this card for next time" checkbox](images/checkout-credit-card-form.png)
 
 ### Saved Cards (Wallet / CIM)
 
@@ -154,7 +154,7 @@ Available to all customers. The customer mails a physical check.
    - Order confirmation
    - Payment instructions email reiterating mailing address and 14-day policy
 
-> [SCREENSHOT: Check/Money Order checkout instructions showing payee, Asheville NC mailing address, and 14-day auto-cancel warning — images/checkout-check-instructions.png]
+![Check / Money Order checkout instructions: payee "Security Camera Warehouse", the Asheville NC mailing address, "reference your Order # on the check", and the orange 14-day auto-cancel warning](images/checkout-check-instructions.png)
 
 ### What Happens in the System
 
@@ -192,7 +192,7 @@ Available to all customers. The customer sends a wire transfer.
    - Order confirmation
    - **Bank details email** containing routing number, account number, and account name
 
-> [SCREENSHOT: ACH/Wire Transfer checkout instructions explaining bank details are emailed after order and the order ships only after funds are verified — images/checkout-ach-wire-instructions.png]
+![ACH / Wire Transfer checkout instructions: bank details emailed immediately after the order is placed, include the Order # in the transfer memo, and the order ships only after funds are verified](images/checkout-ach-wire-instructions.png)
 
 ### What Happens in the System
 

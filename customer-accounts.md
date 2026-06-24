@@ -15,7 +15,7 @@ SCW Commerce uses **AWS Cognito** for authentication and a local **PostgreSQL** 
 3. Cognito authenticates → NextAuth creates a session (30-day max)
 4. Customer is redirected to their account page
 
-> [SCREENSHOT: The full /login page showing the two-column layout (Registered Customers with email/password form and Forgot Password link; New Customers with Create an Account button) — images/customer-accounts-login-page.png]
+![The /login page: two-column layout — Registered Customers (email/password form + Forgot Your Password link) and New Customers (Create an Account button)](images/customer-accounts-login-page.png)
 
 ### Migrated Customers (from Magento)
 
@@ -44,7 +44,7 @@ Customers migrated from Magento have a special first-login flow:
 4. Cognito emails a 6-digit verification code. The form moves to a **verify** step where the customer enters that code to confirm their email
 5. After verification, the customer sees *"Email verified! You can now sign in."* — they are **not** logged in automatically and must sign in on the `/login` page
 
-> [SCREENSHOT: The /register page showing the Create New Customer Account form with Personal Information and Sign-in Information fieldsets — images/customer-accounts-register-page.png]
+![The /register page: Create New Customer Account form with Personal Information (First/Last Name) and Sign-in Information (Email, Password, Confirm Password) fieldsets](images/customer-accounts-register-page.png)
 
 ### Auto-Provisioned by Sales Rep (via HubSpot webhook)
 
@@ -139,7 +139,7 @@ There are two paths:
 4. Customer enters the code and new password on `/reset-password`
 5. Password updated — customer can log in with the new password
 
-> [SCREENSHOT: Forgot password form]
+![The Forgot Your Password page: a Password Reset card with an email field and a Send Reset Code button](images/customer-accounts-forgot-password.png)
 
 ---
 

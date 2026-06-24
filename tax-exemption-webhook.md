@@ -32,7 +32,7 @@ Whenever an exemption is applied, SCW Commerce pushes the customer's exemption t
 
 A logged-in customer requests an exemption from their account at **`/account/tax-exemption`**.
 
-> [SCREENSHOT: The customer-facing Tax Exemption page showing the status card and the "Request exemption" button, plus the upload dialog with the document drop-zone, optional exemption-type select, and optional states field — images/account-tax-exemption-form.png]
+![The customer-facing Tax Exemption page (/account/tax-exemption): the status card prompting "Buying for a tax-exempt organization?" with the "Request exemption" button](images/account-tax-exemption-form.png)
 
 The page shows a status card:
 
