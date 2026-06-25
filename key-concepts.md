@@ -47,7 +47,9 @@ Each object represents a stage in the sales lifecycle.
 
 **Where it lives:** HubSpot (primary), mirrored in SCW Commerce DB as a customer record.
 
-> [SCREENSHOT: Contact record in HubSpot showing key properties]
+![A HubSpot Contact record showing the "About this Contact" left panel with customer properties and the Ecommerce Orders association in the right sidebar.](images/hubspot-contact-record.png)
+
+*A HubSpot Contact record showing the "About this Contact" left panel and ecommerce associations.*
 
 ---
 
@@ -188,7 +190,9 @@ Here's the full picture of how these objects relate to each other in HubSpot:
   </div>
 </section>
 
-> [SCREENSHOT: HubSpot sidebar of an Ecommerce Order showing all related objects — Contact, Quote, Invoice, Shipments, Line Items]
+![The HubSpot Ecommerce Order right sidebar showing all associated objects — Contacts (1), Companies, Deals, Ecommerce Quotes, Ecommerce Invoices, and Ecommerce Shipments — demonstrating how the order is the hub for all ecommerce records.](images/hubspot-order-associations-sidebar.png)
+
+*The Ecommerce Order right sidebar showing Contacts, Ecommerce Invoices, and Ecommerce Shipments — the order is the hub for all ecommerce records.*
 
 ---
 
