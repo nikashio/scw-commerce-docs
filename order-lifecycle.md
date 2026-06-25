@@ -140,7 +140,9 @@ Any status not in this map falls back to `pending` in HubSpot.
 
 > **Sequencing note:** a status-change is only pushed to HubSpot once the order already has its HubSpot Ecommerce Order object id. If a transition happens before the initial `order.created` sync has created that object, the transition isn't enqueued separately — the new status is instead reflected when `order.created` syncs the order's current status.
 
-> [SCREENSHOT: Ecommerce Orders list in HubSpot showing different statuses]
+![The HubSpot Ecommerce Orders list showing orders with their current statuses (Shipped, Delivered, Cancelled, etc.) in the Status column.](images/hubspot-orders-list-statuses.png)
+
+*The HubSpot Ecommerce Orders list — the Status column shows the current mapped status for each order.*
 
 ---
 
@@ -349,9 +351,13 @@ Admin payment actions are performed from the HubSpot action card when it is depl
 | **Cancel order** | Internal admin / engineering action | Any pre-delivery status → `cancelled` | SCW Commerce updates the local order and HubSpot status; ShipEdge cancellation is separate if fulfillment already started |
 | **Issue refund (full / partial / per-item)** | Refund Manager card on the Ecommerce Invoice record | Full refund → `cancelled`; partial/per-item → no automatic order status change | SCW Commerce processes the refund via Authorize.net or the offline refund path, creates a refund record, syncs a HubSpot Credit Memo, and marks the local invoice `refunded` when the invoice is fully refunded |
 
-> [SCREENSHOT: HubSpot order action card on an Ecommerce Order showing Invoice and Capture actions]
+![The HubSpot order action card on an Ecommerce Order record — shows ORDER TOTAL, PAYMENT METHOD, and INVOICES count, with the Invoice and Capture action buttons.](images/hubspot-order-action-card.png)
 
-> [SCREENSHOT: HubSpot Refund Manager card on an Ecommerce Invoice record]
+*The Order Actions panel on an Ecommerce Order — Invoice and Capture buttons trigger SCW Commerce admin actions.*
+
+![The HubSpot Ecommerce Invoice record showing the Refund Manager card with INVOICE TOTAL, TOTAL REFUNDED, and REFUNDABLE amounts, plus the associated Credit Memos section in the right sidebar.](images/hubspot-ecommerce-invoice-record.png)
+
+*The Ecommerce Invoice record — the Refund Manager card is the starting point for issuing refunds.*
 
 ---
 
@@ -376,7 +382,9 @@ Admin payment actions are performed from the HubSpot action card when it is depl
 - The **Status** column shows the current status
 - Click any order to see full details
 
-> [SCREENSHOT: HubSpot Ecommerce Orders list view with Status column]
+![The HubSpot Ecommerce Orders list view with the Status column visible, showing a variety of order statuses including Shipped, Delivered, and Cancelled.](images/hubspot-orders-list-status-column.png)
+
+*The Ecommerce Orders list — filter by Status or add the Payment Method Type column to find pending orders.*
 
 ### In Customer's Account (Storefront)
 - Customer logs in at `hubspot.getscw.com/account`

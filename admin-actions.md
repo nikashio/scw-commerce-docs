@@ -19,7 +19,9 @@ You can also add the **Payment Method Type** column to the table view:
 2. Add **Payment Method Type** and **PO Number**
 3. Save the view
 
-> [SCREENSHOT: Ecommerce Orders filtered by Status = Pending, with Payment Method Type column visible]
+![The HubSpot Ecommerce Orders list showing offline payment orders with their payment method types visible — use this view to identify orders waiting for admin invoicing.](images/hubspot-orders-pending-filtered.png)
+
+*Ecommerce Orders list — add the Payment Method Type column to quickly identify Check, Wire, and PO orders waiting for admin action.*
 
 ### Identifying the Payment Type
 
@@ -46,7 +48,9 @@ Verify:
 - **PO Number:** (for Purchase Orders) — verify against the customer's credit limit
 - **Total:** Matches the payment received
 
-> [SCREENSHOT: Ecommerce Order detail page showing Pending status with payment method info]
+![An Ecommerce Order detail page in HubSpot showing the Order Actions panel with ORDER TOTAL, PAYMENT METHOD (purchase_order), and INVOICES count — the left panel shows billing address fields and the right sidebar shows associated Contacts and Ecommerce Invoices.](images/hubspot-order-pending-detail.png)
+
+*An Ecommerce Order record — verify Status, Payment Method Type, PO Number, and Total before invoicing.*
 
 ### Step 2: Invoice the Order
 
@@ -66,7 +70,9 @@ The endpoint also accepts the SCW order number (e.g., `1268879530`) when calling
 
 The invoice endpoint accepts orders in either `pending_payment` or `pending` status.
 
-> [SCREENSHOT: Ecommerce Order showing eo_source_id property]
+![Ecommerce Order record showing the Data highlights section with ORDER ID — this is the eo_source_id value used in the invoice API call (e.g. POST /api/admin/orders/{ORDER_ID}/invoice).](images/hubspot-order-source-id.png)
+
+*The Data highlights section shows ORDER ID (the internal database ID / eo_source_id), used when calling the invoice endpoint directly.*
 
 ### Step 3: What Happens After Invoicing
 
@@ -80,7 +86,9 @@ When the invoice endpoint is called, the following happens automatically:
 
 From this point, the order follows the normal fulfillment flow — ShipEdge creates a shipping label, tracking syncs back, and the customer gets a shipping notification.
 
-> [SCREENSHOT: Ecommerce Order after invoicing — status changed to Processing]
+![An Ecommerce Order record showing the order after it has been invoiced — the order status shows Processing and an invoice is listed in the Invoices section.](images/hubspot-order-processing.png)
+
+*After invoicing, the order status moves to Processing and the Ecommerce Invoice appears in the sidebar.*
 
 ---
 
@@ -113,7 +121,9 @@ When a PO order comes in:
 4. **Check existing open PO orders** for this customer — make sure total outstanding credit doesn't exceed the limit
 5. If everything checks out, **invoice the order**
 
-> [SCREENSHOT: Contact record showing Approved for Credit Terms = Yes and Credit Limit value]
+![A HubSpot Contact record showing the About this Contact section — scroll to the SCW custom properties to find Approved for Credit Terms and Credit Limit values to verify before invoicing a PO order.](images/hubspot-contact-credit-approved.png)
+
+*The Contact record — scroll the left panel to find the Approved for Credit Terms and Credit Limit properties before approving a PO order.*
 
 ### Demo PO Orders
 

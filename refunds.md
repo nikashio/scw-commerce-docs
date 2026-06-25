@@ -181,7 +181,9 @@ In practice, when initiated from HubSpot:
 
 ## What Gets Created in HubSpot
 
-> [SCREENSHOT: A HubSpot Credit Memo record showing the ecm_ properties (Credit Memo ID, Status, Refund Type [full/per_item/partial], Total Refund, Reason, Refund Date) and the associations to Order, Invoice, and Contact — images/hubspot-credit-memo-record.png]
+![A HubSpot Ecommerce Credit Memo record showing the Refund Manager card on the parent Invoice (INVOICE TOTAL, TOTAL REFUNDED, REFUNDABLE amounts), the Credit Memos section in the right sidebar with Refunded status, and the associated Ecommerce Order.](images/hubspot-credit-memo-record.png)
+
+*The Ecommerce Invoice with the Credit Memos association — each refund creates a Credit Memo record linked to the Invoice, Order, and Contact.*
 
 When a refund is processed, a **Credit Memo** record is created with:
 

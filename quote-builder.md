@@ -134,9 +134,13 @@ After a successful checkout from a payment link:
 | **Ecommerce Invoice** | Created if payment was processed in `auth_capture` mode (immediate charge). Not created for `auth_only` mode, where the card is authorized but not yet charged; the invoice is created later when the admin captures the payment. |
 | **Ecommerce Shipment** | Created when ShipEdge marks the order shipped (synced via ShipEdge fulfillment webhook, not at checkout time) |
 
-> [SCREENSHOT: Ecommerce Quote with linked Order in the sidebar]
+![A HubSpot Ecommerce Quote record showing the Quote Builder card in the center panel and the Ecommerce Orders association in the right sidebar — after checkout the linked Order appears here.](images/hubspot-quote-linked-order.png)
 
-> [SCREENSHOT: Ecommerce Order with linked Quote in the sidebar]
+*The Ecommerce Quote record — after checkout, the resulting Order appears in the Ecommerce Orders sidebar section.*
+
+![A HubSpot Ecommerce Order record showing the right sidebar with associated Contacts, Ecommerce Quotes, Ecommerce Invoices, and Ecommerce Shipments — the linked Quote appears in the Ecommerce Quotes section.](images/hubspot-order-linked-quote.png)
+
+*The Ecommerce Order record — the originating Quote appears in the Ecommerce Quotes sidebar section.*
 
 ---
 

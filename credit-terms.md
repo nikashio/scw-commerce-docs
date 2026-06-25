@@ -33,7 +33,9 @@ The Credit Terms table shows an **Active now / Inactive** badge per customer, so
 
 Navigate to the customer's Contact record in HubSpot.
 
-> [SCREENSHOT: HubSpot Contact record]
+![A HubSpot Contact record showing the About this Contact section in the left panel and Ecommerce Orders in the right sidebar.](images/hubspot-contact-record.png)
+
+*Navigate to a Contact record to find and update credit-terms properties.*
 
 ### Step 2: Set the Properties
 
@@ -44,7 +46,9 @@ In the **"About this Contact"** section, find and set:
 | **Approved for Credit Terms** | Yes | Enables the Purchase Order payment option at checkout |
 | **Credit Limit** | e.g., `50000` | Maximum credit amount in USD (informational — not enforced at checkout in V1) |
 
-> [SCREENSHOT: The HubSpot Contact property panel showing Approved for Credit Terms (Yes) and Credit Limit. — images/hubspot-contact-credit-terms.png]
+![The HubSpot Contact left panel scrolled to show the custom SCW properties section where Approved for Credit Terms and Credit Limit appear when the contact has been synced with credit-terms data.](images/hubspot-contact-credit-terms.png)
+
+*The "About this Contact" panel — scroll down to find Approved for Credit Terms and Credit Limit in the custom SCW properties section.*
 
 If you don't see these properties in the default view:
 1. Click **"View all properties"** on the Contact
