@@ -72,6 +72,17 @@ The detail page shows:
 
 If the customer pre-filled a requested type or states, those values pre-populate the approval form so the admin can confirm or adjust them.
 
+#### Scope banner — org-wide vs. per-account
+
+Before the Approve button, the review card shows a **scope banner** derived from the customer's email domain:
+
+- **Amber / "Organization-wide"** — the customer's email is on a corporate domain (not gmail, yahoo, etc.). Approving will call `upsertOrgForDomain` and cascade the exemption to **every existing and future account on that domain**. The banner names the domain so the admin can verify it before clicking.
+- **Gray / "Applies to … only"** — the customer's email is on a known public/webmail domain. Approving exempts only this account; no domain cascade occurs.
+
+The banner uses the same `extractEmailDomain` / `isPublicEmailDomain` helpers that `approveRequest` uses server-side, so the preview is never out of sync with what actually happens.
+
+When creating a request on behalf of a customer (`/admin/tax-exemption-requests/new`), the email field shows a helper note warning that a company domain will cascade company-wide — identical guidance, earlier in the flow.
+
 ### Approving
 
 Approving `POST`s to **`POST /api/admin/tax-exemption-requests/{id}/approve`** (admin authentication required). The body is `{ type, regions }`, where `type` is one of `wholesale`, `government`, or `other` and `regions` is the comma-separated state list. This runs `approveRequest`, which performs three steps **in order**:
