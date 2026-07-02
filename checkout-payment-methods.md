@@ -104,6 +104,10 @@ Only customers with **"Approved for Credit Terms"** set to **Yes** on their HubS
 
 If the customer is not approved (or their approval window has not started or has expired), this option is hidden — they only see Credit Card, Check, and Wire. This check is enforced server-side at checkout as well; a direct API call cannot bypass it.
 
+At order creation, SCW Commerce also enforces the customer's configured credit limit. The check includes existing open Purchase Order exposure, including shipped-but-unpaid NET30 orders. If the new order would exceed the limit, checkout rejects it before creating the order and shows: *"Purchase Order total exceeds the approved credit limit. Please contact your account manager."*
+
+Support should review the customer's credit limit, open PO exposure, and invoice settlement state before retrying the PO, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
+
 ### Customer Experience
 1. Customer selects **Purchase Order (NET30)**
 2. A required **Purchase Order Number** field appears
@@ -120,7 +124,7 @@ If the customer is not approved (or their approval window has not started or has
 
 | Step | SCW Commerce DB | HubSpot | ShipEdge |
 |---|---|---|---|
-| Order placed | Order created: `status = pending_payment`, `payment_method = purchase_order`, `po_number = PO-2026-0412` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = purchase_order`, `eo_po_number = PO-2026-0412` | **Nothing** — order is NOT sent to ShipEdge |
+| Order placed | Active credit terms and credit limit rechecked; if allowed, order created: `status = pending_payment`, `payment_method = purchase_order`, `po_number = PO-2026-0412` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = purchase_order`, `eo_po_number = PO-2026-0412` | **Nothing** — order is NOT sent to ShipEdge |
 | Admin invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created | Status → `processing` | Order pushed to ShipEdge |
 | Warehouse ships | Status → `shipped` | Status → `shipped` | Tracking number created |
 | Carrier delivers | Status → `delivered` | Status → `delivered` | — |

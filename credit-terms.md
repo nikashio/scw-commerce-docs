@@ -44,7 +44,7 @@ In the **"About this Contact"** section, find and set:
 | Property | Value | Description |
 |---|---|---|
 | **Approved for Credit Terms** | Yes | Enables the Purchase Order payment option at checkout |
-| **Credit Limit** | e.g., `50000` | Maximum credit amount in USD (informational — not enforced at checkout in V1) |
+| **Credit Limit** | e.g., `50000` | Maximum credit amount in USD. SCW Commerce enforces this for Purchase Order creation; HubSpot mirrors it for reference. |
 
 ![The HubSpot Contact left panel scrolled to show the custom SCW properties section where Approved for Credit Terms and Credit Limit appear when the contact has been synced with credit-terms data.](images/hubspot-contact-credit-terms.png)
 
@@ -123,16 +123,21 @@ The sync is one-way: **Storefront → HubSpot**. The HubSpot contact values are 
 
 ---
 
-## Credit Limit (Future Enhancement)
+## Credit Limit Enforcement
 
-Currently, the credit limit is **informational only** — it appears on the Contact record for admin reference when reviewing PO orders. The checkout does not enforce it (a customer can place a PO order for any amount).
+The credit limit is enforced by SCW Commerce for every new Purchase Order order, including checkout and admin/automation-created orders.
 
-In a future version, the checkout could:
-- Compare the order total against the credit limit
-- Check outstanding unpaid PO orders against the remaining credit
-- Reject PO orders that would exceed the limit
+When a Purchase Order order is created, the order service:
+- Re-checks that the customer has active credit terms
+- Locks the customer row so concurrent PO orders cannot race past the same limit
+- Sums open PO exposure for that customer
+- Rejects the order when `open exposure + this order total` exceeds the customer's credit limit
 
-For V1, the admin uses their judgment when reviewing PO orders.
+Open exposure means Purchase Order orders that are not cancelled and do not have a settled invoice. Paid and fully refunded invoices are treated as settled; shipped-but-unpaid NET30 orders still consume credit.
+
+If the limit is exceeded, the order is not created and checkout shows: *"Purchase Order total exceeds the approved credit limit. Please contact your account manager."* Support should review the customer's open PO balance, paid/refunded invoice state, and configured credit limit before retrying, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
+
+Leaving **Credit Limit** blank means the customer is approved for uncapped credit terms while their approval is active.
 
 ---
 
