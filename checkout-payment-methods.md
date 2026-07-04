@@ -284,6 +284,18 @@ When a customer chooses **in-store pickup** as the shipping method, the order is
 
 > Tax exemptions are unaffected: an exempt customer picking up in-store is still charged $0.
 
+### When the Sale Is Filed with TaxJar
+
+A sale is reported to TaxJar only when **money is actually collected**, on the date it was collected:
+
+| Payment flow | Reported to TaxJar |
+|---|---|
+| **Credit card, immediate charge** (`auth_capture`) | At checkout, on the order date |
+| **Credit card, authorize-only** (`auth_only`) | At **capture** (admin captures the payment later), on the capture date — a voided authorization never files a sale |
+| **Check / Wire / Purchase Order** | When the admin **records the payment** (the order is invoiced and marked paid), on that date |
+
+Filed transactions carry the customer's TaxJar ID (so exempt customers' sales file as exempt sales, not taxable-with-$0), and per-line product tax codes (installation services, software licensing) so category-level filings are accurate. If TaxJar is unreachable, the report is queued and retried automatically.
+
 ### Blocked — State / ZIP Tax Mismatch
 
 Checkout now **blocks** an order when the customer selects a **sales-tax (nexus) state** but enters a **ZIP code that geolocates to a different jurisdiction** (or one where SCW collects no tax). That combination would otherwise return $0 tax for a state SCW actually collects in — i.e., **under-collected sales tax**. Blocking it forces the address to be corrected before the order is placed.

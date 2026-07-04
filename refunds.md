@@ -51,6 +51,8 @@ The system will:
 
 **Double-click safe:** Every refund request carries an idempotency key. If the card is clicked twice or the Lambda retries, SCW returns the existing refund instead of creating a duplicate. No risk of the customer being refunded twice.
 
+**Honest retry results:** a retry only shows success if the original refund actually went through (`processed` / `pending_settlement`). If the earlier attempt **failed at the payment gateway**, the retry returns an explicit error ("previous refund attempt failed") instead of a false success, and the card resets so the admin can deliberately submit a fresh refund. If the earlier attempt is still in flight, the card says so and asks the admin to refresh rather than double-submit.
+
 ---
 
 ## Refund Types Explained
@@ -71,6 +73,8 @@ Refunds a specific dollar amount, up to the invoice total.
 - **Use when:** Price adjustment, goodwill credit, shipping refund, damage discount
 - **Payment:** Specified amount returned to original payment method
 - **Order status:** No automatic change (admin decides)
+- **The customer receives exactly what you enter:** the refund total is `amount + shipping refund − restocking fee`, to the cent — the same figure shown on the card before you confirm. Internally SCW splits that gross into a pre-tax base and its embedded tax (at the invoice's tax ratio) so TaxJar is reported the correct sales tax, without changing the customer's total.
+- A restocking fee that equals or exceeds the refund gross is rejected — a refund must always be a positive amount.
 
 ### Per-Item Refund
 
@@ -79,6 +83,9 @@ Refunds specific line items by selecting products and quantities.
 - **Use when:** Customer returns specific items from a multi-item order
 - **Payment:** Calculated total for selected items returned
 - **Order status:** No automatic change (admin decides)
+- **Quantity is the money lever:** each line refunds `quantity × invoice unit price`; the Amount column is display-only. Proportional tax is added on top of the goods + shipping being refunded, and per-line restocking percentages are summed into a single deduction.
+
+> **Full refunds take no adjustments:** shipping-refund and restocking-fee fields don't apply to a full refund (it returns the entire invoice, shipping included) and are rejected server-side if supplied.
 
 ---
 
@@ -214,15 +221,23 @@ Every refund is automatically reported to **TaxJar** as a negative transaction. 
 - TaxJar's filing reports reflect the correct net tax for each jurisdiction
 - State/county/city tax amounts are adjusted accurately
 
-### Proportional Tax on Partial Refunds
+### Tax on Per-Item Refunds (proportional, added on top)
 
-For **partial** and **per-item** refunds, the system refunds tax proportional to the goods returned. Formula:
+For **per-item** refunds, the system refunds tax proportional to the goods returned, added on top of the item prices. Formula:
 
 ```
 taxRefund = invoice.taxAmount × (refundSubtotal + refundShipping) / (invoice.subtotal + invoice.shippingAmount)
 ```
 
 Example: an invoice of $100 subtotal + $10 shipping + $7.70 tax ($117.70 total). Customer returns $50 of goods. Tax refund is `7.70 × 50 / 110 = $3.50`. The customer gets $53.50 back; TaxJar shows `-$3.50` sales tax. Without proportional math, TaxJar would see $0 refunded tax and SCW would over-remit $3.50 to the state.
+
+### Tax on Custom-Amount Refunds (embedded in the amount)
+
+For **partial (custom amount)** refunds, the entered amount is the gross the customer receives — tax is backed **out of** it (at the invoice's tax ratio) rather than added on top. Same invoice, $50 entered: the customer gets exactly $50.00; SCW records ~$46.73 pre-tax + ~$3.27 tax, and TaxJar shows `-$3.27` sales tax.
+
+### Where the Refund Is Filed
+
+The refund files to the **same jurisdiction the sale was taxed in**. For shipped orders that's the ship-to address; for **in-store pickup** orders both the sale and the refund file to the store origin (NC) — so a pickup refund reverses the NC liability rather than creating a stray credit in the customer's home state.
 
 ### Retry on Failure
 
