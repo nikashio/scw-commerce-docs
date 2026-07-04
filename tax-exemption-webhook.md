@@ -2,43 +2,43 @@
 
 This page describes how a customer's tax-exempt status is set in SCW Commerce: how a customer requests an exemption, how an admin reviews and approves or rejects it, what approval does behind the scenes, and how organization-level exemptions cascade to many customers at once.
 
-> **Note — the external validation webhook was removed.** An earlier design accepted exemptions from an external doc-review system over a signed inbound webhook (`POST /api/webhooks/tax-exemption`, secured with `TAX_EXEMPTION_WEBHOOK_SECRET`). That endpoint, its signature helper, its validator, and the shared-secret env var were all removed (commit `ca65706a`, "drop external webhook; ExemptionSource = admin|hubspot_legacy"). There is no external webhook to call any more — any request to the old URL returns `404`. Exemptions are now set entirely inside SCW Commerce through the admin review flow and the customer self-service request flow described below. HubSpot is **not** an input to exemption status; historical values imported before this system are simply marked `hubspot_legacy`.
+> **Note — the external validation webhook was removed.** An earlier design accepted exemptions from an external doc-review system over a signed inbound webhook (`POST /api/webhooks/tax-exemption`, secured with `TAX_EXEMPTION_WEBHOOK_SECRET`). That endpoint, its signature helper, its validator, and the shared-secret env var were all removed (commit `ca65706a`, "drop external webhook; ExemptionSource = admin|hubspot\_legacy"). There is no external webhook to call any more — any request to the old URL returns `404`. Exemptions are now set entirely inside SCW Commerce through the admin review flow and the customer self-service request flow described below. HubSpot is **not** an input to exemption status; historical values imported before this system are simply marked `hubspot_legacy`.
 
----
+***
 
 ## Overview
 
 A customer's tax treatment is driven by two fields on their SCW Commerce account:
 
-- `exemption_type` — one of `wholesale`, `government`, `other`, or `non_exempt`
-- `exempt_regions` — a comma-separated list of two-letter US state codes (e.g. `CA,NY,TX`)
+* `exemption_type` — one of `wholesale`, `government`, `other`, or `non_exempt`
+* `exempt_regions` — a comma-separated list of two-letter US state codes (e.g. `CA,NY,TX`)
 
 A third field, `exemption_source`, records **how** the exemption was set:
 
-| `exemption_source` | Meaning |
-|---|---|
-| `admin` | Set by a staff member approving an exemption request in the admin UI. This is the authoritative, highest-precedence source. |
-| `org` | Set automatically by an exempt-organization rule that matched the customer's email domain. |
-| `hubspot_legacy` | A value migrated in from HubSpot before this system existed. Not an active input — it simply records that the value predates the current flow. |
-| `magento_legacy` | A value migrated in from Magento during the historical import. Not an active input — treated the same way as `hubspot_legacy` for filtering and display. |
+| `exemption_source` | Meaning                                                                                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin`            | Set by a staff member approving an exemption request in the admin UI. This is the authoritative, highest-precedence source.                              |
+| `org`              | Set automatically by an exempt-organization rule that matched the customer's email domain.                                                               |
+| `hubspot_legacy`   | A value migrated in from HubSpot before this system existed. Not an active input — it simply records that the value predates the current flow.           |
+| `magento_legacy`   | A value migrated in from Magento during the historical import. Not an active input — treated the same way as `hubspot_legacy` for filtering and display. |
 
 There is no `webhook` source — the external webhook concept no longer maps to anything in the system.
 
 Whenever an exemption is applied, SCW Commerce pushes the customer's exemption to **TaxJar** so the correct tax treatment (`$0` tax in the exempt states) applies at checkout, and writes an append-only audit row so the full history of every change is preserved.
 
----
+***
 
 ## How a Customer Requests an Exemption
 
 A logged-in customer requests an exemption from their account at **`/account/tax-exemption`**.
 
-![The customer-facing Tax Exemption page (/account/tax-exemption): the status card prompting "Buying for a tax-exempt organization?" with the "Request exemption" button](images/account-tax-exemption-form.png)
+![The customer-facing Tax Exemption page (/account/tax-exemption): the status card prompting "Buying for a tax-exempt organization?" with the "Request exemption" button](.gitbook/assets/account-tax-exemption-form.png)
 
 The page shows a status card:
 
-- **Not exempt, no pending request** — a "Request exemption" button opens a dialog.
-- **Under review** — a pending request exists; the customer is told the team is reviewing and will email them. The button is hidden while a request is pending.
-- **Tax-exempt** — the account is already exempt; the card shows the exempt states and an "Update documents" button.
+* **Not exempt, no pending request** — a "Request exemption" button opens a dialog.
+* **Under review** — a pending request exists; the customer is told the team is reviewing and will email them. The button is hidden while a request is pending.
+* **Tax-exempt** — the account is already exempt; the card shows the exempt states and an "Update documents" button.
 
 In the request dialog the customer:
 
@@ -50,25 +50,25 @@ Submitting `POST`s a multipart form to **`POST /api/account/tax-exemption`**. Th
 
 Staff can also create a request **on behalf of** a customer from the admin side (`POST /api/admin/tax-exemption-requests` with the customer's email and the documents); those requests are recorded with the admin's email as `submitted_by`.
 
----
+***
 
 ## How an Admin Reviews a Request
 
 Pending requests land in the admin review queue at **`/admin/tax-exemption-requests`**.
 
-![The admin Exemption Requests queue with Pending / Approved / Rejected tabs (each showing a count), the search box, and the list of requests](images/admin-tax-exemption-requests-list.png)
+![The admin Exemption Requests queue with Pending / Approved / Rejected tabs (each showing a count), the search box, and the list of requests](.gitbook/assets/admin-tax-exemption-requests-list.png)
 
-*The admin Exemption Requests queue with Pending / Approved / Rejected tabs (each showing a count), the search box, and the list of requests*
+_The admin Exemption Requests queue with Pending / Approved / Rejected tabs (each showing a count), the search box, and the list of requests_
 
 The queue has three tabs — **Pending**, **Approved**, and **Rejected** — each with a count badge, plus a search box. It defaults to the Pending tab. Clicking a request opens its detail page at **`/admin/tax-exemption-requests/{id}`**.
 
-> [SCREENSHOT: The admin Exemption Request detail page showing the customer panel, the uploaded documents list, and the "Review decision" card with the exemption-type select, states field, Approve button, and the reject reason box — images/admin-tax-exemption-request-detail.png]
+> \[SCREENSHOT: The admin Exemption Request detail page showing the customer panel, the uploaded documents list, and the "Review decision" card with the exemption-type select, states field, Approve button, and the reject reason box — images/admin-tax-exemption-request-detail.png]
 
 The detail page shows:
 
-- **Customer panel** — name, email, the requested type and states, who submitted it, and when.
-- **Documents** — the uploaded certificate(s), each opening in a new tab.
-- **Review decision** card (for pending requests) — the admin picks the **exemption type** (Wholesale, Government, or Other), enters the **states** (comma-separated), and clicks **Approve & apply exemption**; or enters a **reason** and clicks **Reject request**.
+* **Customer panel** — name, email, the requested type and states, who submitted it, and when.
+* **Documents** — the uploaded certificate(s), each opening in a new tab.
+* **Review decision** card (for pending requests) — the admin picks the **exemption type** (Wholesale, Government, or Other), enters the **states** (comma-separated), and clicks **Approve & apply exemption**; or enters a **reason** and clicks **Reject request**.
 
 If the customer pre-filled a requested type or states, those values pre-populate the approval form so the admin can confirm or adjust them.
 
@@ -76,8 +76,8 @@ If the customer pre-filled a requested type or states, those values pre-populate
 
 Before the Approve button, the review card shows a **scope banner** derived from the customer's email domain:
 
-- **Amber / "Organization-wide"** — the customer's email is on a corporate domain (not gmail, yahoo, etc.). Approving will call `upsertOrgForDomain` and cascade the exemption to **every existing and future account on that domain**. The banner names the domain so the admin can verify it before clicking.
-- **Gray / "Applies to … only"** — the customer's email is on a known public/webmail domain. Approving exempts only this account; no domain cascade occurs.
+* **Amber / "Organization-wide"** — the customer's email is on a corporate domain (not gmail, yahoo, etc.). Approving will call `upsertOrgForDomain` and cascade the exemption to **every existing and future account on that domain**. The banner names the domain so the admin can verify it before clicking.
+* **Gray / "Applies to … only"** — the customer's email is on a known public/webmail domain. Approving exempts only this account; no domain cascade occurs.
 
 The banner uses the same `extractEmailDomain` / `isPublicEmailDomain` helpers that `approveRequest` uses server-side, so the preview is never out of sync with what actually happens.
 
@@ -97,17 +97,17 @@ On success the API returns `{ ok: true }`. A request that is not found returns `
 
 Rejecting `POST`s to **`POST /api/admin/tax-exemption-requests/{id}/reject`** with `{ reason }` (a non-empty string is required). This marks the request `rejected`, stores the reason and the reviewing admin, and emails the customer the rejection reason. **Rejection does not touch the customer's exemption values** — an already-exempt customer stays exempt; a non-exempt customer stays non-exempt.
 
----
+***
 
 ## Outbound Make Webhook on Status Changes
 
-Separate from the (removed) *inbound* validation webhook described at the top of this page, SCW Commerce fires an **outbound** Make.com webhook every time a tax-exemption request changes status. This is what loops the team in automatically:
+Separate from the (removed) _inbound_ validation webhook described at the top of this page, SCW Commerce fires an **outbound** Make.com webhook every time a tax-exemption request changes status. This is what loops the team in automatically:
 
-| Transition | Event type | Who it notifies |
-|---|---|---|
-| Submitted | `tax_exemption.submitted` | Compliance — triggers the ClickUp admin-approval flow |
-| Approved | `tax_exemption.approved` | Sales — includes the applied type and states |
-| Rejected | `tax_exemption.rejected` | Sales — includes the reject reason |
+| Transition | Event type                | Who it notifies                                       |
+| ---------- | ------------------------- | ----------------------------------------------------- |
+| Submitted  | `tax_exemption.submitted` | Compliance — triggers the ClickUp admin-approval flow |
+| Approved   | `tax_exemption.approved`  | Sales — includes the applied type and states          |
+| Rejected   | `tax_exemption.rejected`  | Sales — includes the reject reason                    |
 
 **The submission event fires for every submission — both customer self-service and admin-on-behalf** (both paths run through the same `createRequest`), so on-behalf requests still reach the ClickUp approval flow.
 
@@ -115,12 +115,12 @@ All three events POST to **one shared Make hook** (configured by the `MAKE_TAX_E
 
 Delivery reuses the durable **Make integration outbox** (the same mechanism behind order- and refund-created webhooks):
 
-- The webhook is enqueued **after** the status change has committed and delivered on a **best-effort, non-blocking** basis — a Make outage never blocks or fails the customer/admin action.
-- If a delivery fails, the durable outbox row is retried by the `process-make-outbox` cron on a backoff schedule (1m → 2h) until it succeeds or is exhausted.
-- Each transition is delivered **exactly once** (idempotency keyed per request + transition), so submitted, approved, and rejected for the same request never collide or double-send.
-- If the webhook URL is **not configured** (or the event is disabled in the admin UI), the event is simply skipped — nothing is sent and no failed-delivery rows accumulate.
+* The webhook is enqueued **after** the status change has committed and delivered on a **best-effort, non-blocking** basis — a Make outage never blocks or fails the customer/admin action.
+* If a delivery fails, the durable outbox row is retried by the `process-make-outbox` cron on a backoff schedule (1m → 2h) until it succeeds or is exhausted.
+* Each transition is delivered **exactly once** (idempotency keyed per request + transition), so submitted, approved, and rejected for the same request never collide or double-send.
+* If the webhook URL is **not configured** (or the event is disabled in the admin UI), the event is simply skipped — nothing is sent and no failed-delivery rows accumulate.
 
----
+***
 
 ## What Approval Does — `applyExemption`
 
@@ -138,42 +138,42 @@ For an admin approval the audit/customer rows are written with `source = "admin"
 
 > **About the state codes:** `parseExemptRegions` normalizes the supplied list — it splits on commas/semicolons, upper-cases each token, and **drops any token that is not exactly two characters**. It does not check the tokens against a list of real US state codes, so a malformed two-letter string (e.g. `ZZ`) would pass through. Enter valid state codes.
 
----
+***
 
 ## Exempt Organizations
 
 For B2B accounts where everyone on a company's email domain should be exempt, admins manage **exempt organizations** at **`/admin/tax-exempt-orgs`**.
 
-![The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains](images/admin-tax-exempt-orgs.png)
+![The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains](.gitbook/assets/admin-tax-exempt-orgs.png)
 
-*The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains*
+_The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains_
 
 An exempt organization holds:
 
-- a **name**,
-- an **exemption type** and **states**, and
-- one or more **email domains** (e.g. `acme.com`).
+* a **name**,
+* an **exemption type** and **states**, and
+* one or more **email domains** (e.g. `acme.com`).
 
 Creating or updating an organization **cascades** the exemption to every customer whose email domain matches one of the org's domains, reusing the same trusted `applyExemption` path (so every cascaded write is audited and TaxJar-synced) with `source = "org"`. New sign-ups whose email domain is owned by an org are exempted automatically on account creation (a failure there is logged and never blocks sign-up).
 
 Two precedence rules are locked in:
 
-- **Admin beats org.** The cascade never overwrites a customer who is already exempt via a manual admin approval (`exemption_source = "admin"`).
-- **Deleting an org does not revoke exemptions.** Removing the org configuration leaves already-exempt customers exempt, so removing a rule never triggers a surprise tax change at checkout.
+* **Admin beats org.** The cascade never overwrites a customer who is already exempt via a manual admin approval (`exemption_source = "admin"`).
+* **Deleting an org does not revoke exemptions.** Removing the org configuration leaves already-exempt customers exempt, so removing a rule never triggers a surprise tax change at checkout.
 
----
+***
 
 ## The Read-Only Tax Exemptions List
 
 A read-only view of every exempt customer lives at **`/admin/tax-exemptions`**.
 
-![The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document](images/admin-tax-exemptions-list.png)
+![The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document](.gitbook/assets/admin-tax-exemptions-list.png)
 
-*The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document*
+_The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document_
 
 It shows, per exempt customer: email, name, exemption type, regions, **source** (`admin` / `org` / `hubspot_legacy` / `magento_legacy`), who validated it, and a link to the supporting document. It is searchable by email and paginated. This page does not edit anything — exemptions are set through the request-approval flow and the exempt-organization rules described above; this list just reflects the result.
 
----
+***
 
 ## Audit Trail
 

@@ -1,10 +1,10 @@
-# Customer Account Flows
+# Customer Accounts
 
 ## Overview
 
 SCW Commerce uses **AWS Cognito** for authentication and a local **PostgreSQL** database for customer profiles. Customers migrated from Magento go through a one-time password reset flow.
 
----
+***
 
 ## Customer Login
 
@@ -15,7 +15,7 @@ SCW Commerce uses **AWS Cognito** for authentication and a local **PostgreSQL** 
 3. Cognito authenticates → NextAuth creates a session (30-day max)
 4. Customer is redirected to their account page
 
-![The /login page: two-column layout — Registered Customers (email/password form + Forgot Your Password link) and New Customers (Create an Account button)](images/customer-accounts-login-page.png)
+![The /login page: two-column layout — Registered Customers (email/password form + Forgot Your Password link) and New Customers (Create an Account button)](.gitbook/assets/customer-accounts-login-page.png)
 
 ### Migrated Customers (from Magento)
 
@@ -23,16 +23,16 @@ Customers migrated from Magento have a special first-login flow:
 
 1. Customer enters their email and password on the login page
 2. The system detects their Cognito status is `FORCE_CHANGE_PASSWORD` (migrated account) — at this point a password reset code is **automatically sent to their email**
-3. Instead of an error, the customer sees an info message: *"Your account has been migrated to our new site. We've sent a password reset code to your email. Please check your inbox and use the link below to set a new password."* with a **"Reset Your Password →"** link
+3. Instead of an error, the customer sees an info message: _"Your account has been migrated to our new site. We've sent a password reset code to your email. Please check your inbox and use the link below to set a new password."_ with a **"Reset Your Password →"** link
 4. Customer clicks the link → taken to `/reset-password?email=<their-email>&migrated=true` (the reset form is pre-filled with their email)
 5. The code was already sent in step 2, so the customer does not need to request a new one — they enter the code from their inbox and choose a new password
 6. After reset, they can log in normally going forward
 
-> [SCREENSHOT: The login page after a migrated-user login attempt, showing the info-box message 'Your account has been migrated to our new site...' and the Reset Your Password link in place of an error — images/customer-accounts-login-migrated-message.png]
+> \[SCREENSHOT: The login page after a migrated-user login attempt, showing the info-box message 'Your account has been migrated to our new site...' and the Reset Your Password link in place of an error — images/customer-accounts-login-migrated-message.png]
 
-> [SCREENSHOT: Reset password page]
+> \[SCREENSHOT: Reset password page]
 
----
+***
 
 ## Customer Registration
 
@@ -42,9 +42,9 @@ Customers migrated from Magento have a special first-login flow:
 2. Fills in: First Name, Last Name, Email, Password
 3. The account is created in **Cognito only** (the local database record is created later, on first sign-in)
 4. Cognito emails a 6-digit verification code. The form moves to a **verify** step where the customer enters that code to confirm their email
-5. After verification, the customer sees *"Email verified! You can now sign in."* — they are **not** logged in automatically and must sign in on the `/login` page
+5. After verification, the customer sees _"Email verified! You can now sign in."_ — they are **not** logged in automatically and must sign in on the `/login` page
 
-![The /register page: Create New Customer Account form with Personal Information (First/Last Name) and Sign-in Information (Email, Password, Confirm Password) fieldsets](images/customer-accounts-register-page.png)
+![The /register page: Create New Customer Account form with Personal Information (First/Last Name) and Sign-in Information (Email, Password, Confirm Password) fieldsets](.gitbook/assets/customer-accounts-register-page.png)
 
 ### Auto-Provisioned by Sales Rep (via HubSpot webhook)
 
@@ -57,20 +57,22 @@ When the flag is enabled:
 1. Rep creates a Contact in HubSpot (enters email, name, company, etc.)
 2. HubSpot fires a webhook to SCW Commerce (`POST /api/webhooks/hubspot/contact`)
 3. SCW Commerce:
-   - Fetches the full contact details from HubSpot API
-   - Creates a Cognito login account (with temporary password)
-   - Creates a customer record in the local database, linked to the HubSpot Contact
-   - Sends a welcome email: **"Your SCW Account Has Been Created"** with a "Set Your Password" button — **only if `HUBSPOT_WEBHOOK_WELCOME_EMAIL=true` is also set** (a separate flag, also off by default, so a migration backfill doesn't mass-email stale Magento addresses). When suppressed, the account is still created but no email goes out.
+   * Fetches the full contact details from HubSpot API
+   * Creates a Cognito login account (with temporary password)
+   * Creates a customer record in the local database, linked to the HubSpot Contact
+   * Sends a welcome email: **"Your SCW Account Has Been Created"** with a "Set Your Password" button — **only if `HUBSPOT_WEBHOOK_WELCOME_EMAIL=true` is also set** (a separate flag, also off by default, so a migration backfill doesn't mass-email stale Magento addresses). When suppressed, the account is still created but no email goes out.
 4. The customer can set their password whenever they want — no urgency
 5. The sales rep can immediately use Payment Links or the Quote Builder for this customer
 
 **What the customer receives (when the welcome email is enabled):**
-- A welcome email explaining their account was created by their sales representative
-- A link to set their password at `/reset-password?email=<their-email>&welcome=true`
+
+* A welcome email explaining their account was created by their sales representative
+* A link to set their password at `/reset-password?email=<their-email>&welcome=true`
 
 **What the rep can do immediately:**
-- Build a quote and generate a payment link for the customer
-- Check out on behalf of the customer (the order is assigned to the customer's record)
+
+* Build a quote and generate a payment link for the customer
+* Check out on behalf of the customer (the order is assigned to the customer's record)
 
 ### Invitation by Sales Rep (manual invite link)
 
@@ -87,17 +89,17 @@ This path always requires the customer to set their own password through the tok
 
 When a rep updates a Contact in HubSpot, the HubSpot private app (**"Frantic-Actor / claude code key"**, app id `35018267` on portal `51265320`) fires a signed webhook at **`POST https://hubspot.getscw.com/api/webhooks/hubspot/contact`**. SCW Commerce verifies the signature, groups the events by HubSpot object ID (so a contact's creation is processed before its property changes), and updates the matching `customers` row. (Note: there is no event-ID deduplication — events are ordered, not de-duplicated.)
 
-| HubSpot Property | SCW Commerce Field | Webhook Subscribed? | Handler? |
-|---|---|---|---|
-| `email` | `customers.email` | ✅ | ✅ |
-| `firstname` | `customers.firstName` | ✅ | ✅ |
-| `lastname` | `customers.lastName` | ✅ | ✅ |
-| `company` | `customers.company` | ❌ not subscribed — add in HubSpot if needed | ✅ |
-| `phone` | `customers.phone` | ❌ not subscribed — add in HubSpot if needed | ✅ |
-| `approved_for_credit_terms` | `customers.approvedForCreditTerms` | ❌ not handled by incoming webhook — credit terms are admin-owned in SCW; changes are pushed **out** to HubSpot via the outbox | ❌ falls through to `webhook_unhandled_property` log |
-| `credit_limit` | `customers.creditLimit` | ❌ not handled by incoming webhook — mirrored out to HubSpot on each admin save | ❌ falls through to `webhook_unhandled_property` log |
-| `tax_exemption_type` | — (intended `customers.exemptionType`) | ❌ no such Contact property in HubSpot | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
-| `tax_exempt_regions` | — (intended `customers.exemptRegions`) | ❌ no such Contact property in HubSpot | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
+| HubSpot Property            | SCW Commerce Field                     | Webhook Subscribed?                                                                                                           | Handler?                                                                |
+| --------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `email`                     | `customers.email`                      | ✅                                                                                                                             | ✅                                                                       |
+| `firstname`                 | `customers.firstName`                  | ✅                                                                                                                             | ✅                                                                       |
+| `lastname`                  | `customers.lastName`                   | ✅                                                                                                                             | ✅                                                                       |
+| `company`                   | `customers.company`                    | ❌ not subscribed — add in HubSpot if needed                                                                                   | ✅                                                                       |
+| `phone`                     | `customers.phone`                      | ❌ not subscribed — add in HubSpot if needed                                                                                   | ✅                                                                       |
+| `approved_for_credit_terms` | `customers.approvedForCreditTerms`     | ❌ not handled by incoming webhook — credit terms are admin-owned in SCW; changes are pushed **out** to HubSpot via the outbox | ❌ falls through to `webhook_unhandled_property` log                     |
+| `credit_limit`              | `customers.creditLimit`                | ❌ not handled by incoming webhook — mirrored out to HubSpot on each admin save                                                | ❌ falls through to `webhook_unhandled_property` log                     |
+| `tax_exemption_type`        | — (intended `customers.exemptionType`) | ❌ no such Contact property in HubSpot                                                                                         | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
+| `tax_exempt_regions`        | — (intended `customers.exemptRegions`) | ❌ no such Contact property in HubSpot                                                                                         | ❌ **not handled** — falls through to a `webhook_unhandled_property` log |
 
 The webhook handler only maps `email`, `firstname`, `lastname`, `company`, and `phone`. `approved_for_credit_terms` and `credit_limit` are **not** handled by the incoming webhook — credit terms are managed in the SCW admin panel and pushed **out** to HubSpot via the outbox on each save (see Credit Terms docs). `tax_exemption_type` and `tax_exempt_regions` do **not** exist as HubSpot Contact properties and have no handler case — any unmapped property change is logged as `webhook_unhandled_property` and ignored.
 
@@ -108,7 +110,7 @@ Properties not in the list above **are not synced inbound**. There is **no** dai
 1. HubSpot → gear icon (Settings) → **Integrations → Private Apps**
 2. Open the **"Frantic-Actor / claude code key"** app
 3. **Webhooks** tab → scroll to **Event subscriptions → Contact**
-4. To add a new property subscription: **Create subscription** → Object type: *Contact* → Event: *Property change* → pick the property → Save, then **Activate** at the top.
+4. To add a new property subscription: **Create subscription** → Object type: _Contact_ → Event: _Property change_ → pick the property → Save, then **Activate** at the top.
 
 Direct link (sandbox portal): `https://app.hubspot.com/private-apps/51265320/35018267/webhooks`
 
@@ -125,11 +127,12 @@ There are two paths:
 **Path A (sales-initiated):** The rep creates the Contact in HubSpot first → webhook auto-creates the SCW account. The HubSpot Contact exists from the start.
 
 **Path B (self-registration):** The customer registers on the website → a HubSpot Contact is created when they place an order and that order syncs to HubSpot. Contact resolution runs on **every** order sync (not just the first) and is idempotent — it looks the contact up by `hubspotContactId`, then by email, and only creates a new one if neither matches, so repeat orders never create duplicates. On each sync the system:
+
 1. Checks if a HubSpot Contact already exists for this email
 2. If not, creates one
 3. Associates the Ecommerce Order with the Contact
 
----
+***
 
 ## Password Reset
 
@@ -139,71 +142,72 @@ There are two paths:
 4. Customer enters the code and new password on `/reset-password`
 5. Password updated — customer can log in with the new password
 
-![The Forgot Your Password page: a Password Reset card with an email field and a Send Reset Code button](images/customer-accounts-forgot-password.png)
+![The Forgot Your Password page: a Password Reset card with an email field and a Send Reset Code button](.gitbook/assets/customer-accounts-forgot-password.png)
 
----
+***
 
 ## My Account Dashboard
 
 After logging in, the customer can access their account at `/account`:
 
-![The /account page for a logged-in customer showing the sidebar navigation (My Account, My Orders, Address Book, Account Information, Change Password, Tax Exemption) and the main content area](images/customer-accounts-account-dashboard.png)
+![The /account page for a logged-in customer showing the sidebar navigation (My Account, My Orders, Address Book, Account Information, Change Password, Tax Exemption) and the main content area](.gitbook/assets/customer-accounts-account-dashboard.png)
 
-*The /account page for a logged-in customer showing the sidebar navigation (My Account, My Orders, Address Book, Account Information, Change Password, Tax Exemption) and the main content area*
+_The /account page for a logged-in customer showing the sidebar navigation (My Account, My Orders, Address Book, Account Information, Change Password, Tax Exemption) and the main content area_
 
 ### Account Sections
 
-| Section | Path | What It Shows |
-|---|---|---|
-| **My Account** | `/account` | Overview with contact info and default addresses |
-| **My Orders** | `/account/orders` | All orders with status, date, total |
-| **Address Book** | `/account/addresses` | Saved shipping and billing addresses |
-| **Account Information** | `/account/profile` | Edit name, phone, company (email is read-only — *"Email cannot be changed. Contact support if needed."*) |
-| **Change Password** | `/account/change-password` | Update password via Cognito |
-| **Tax Exemption** | `/account/tax-exemption` | View/manage tax-exemption status |
+| Section                 | Path                       | What It Shows                                                                                            |
+| ----------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **My Account**          | `/account`                 | Overview with contact info and default addresses                                                         |
+| **My Orders**           | `/account/orders`          | All orders with status, date, total                                                                      |
+| **Address Book**        | `/account/addresses`       | Saved shipping and billing addresses                                                                     |
+| **Account Information** | `/account/profile`         | Edit name, phone, company (email is read-only — _"Email cannot be changed. Contact support if needed."_) |
+| **Change Password**     | `/account/change-password` | Update password via Cognito                                                                              |
+| **Tax Exemption**       | `/account/tax-exemption`   | View/manage tax-exemption status                                                                         |
 
----
+***
 
 ## Order History
 
 The **My Orders** page shows all orders associated with the customer's account:
 
-| Column | Description |
-|---|---|
-| **Order #** | Order number (e.g., `SCW-20260406-A1B2`) |
-| **Date** | When the order was placed |
-| **Ship To** | Shipping address (if available) |
-| **Order Total** | Grand total |
-| **Status** | Current status. The display only capitalizes the **first character** of the raw status, so the values a customer sees are: Pending, `Pending_payment` (with the underscore), Authorized, Paid, Processing, Shipped, Delivered, Cancelled |
-| **Action** | "View Order" link to order detail page |
+| Column          | Description                                                                                                                                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Order #**     | Order number (e.g., `SCW-20260406-A1B2`)                                                                                                                                                                                                 |
+| **Date**        | When the order was placed                                                                                                                                                                                                                |
+| **Ship To**     | Shipping address (if available)                                                                                                                                                                                                          |
+| **Order Total** | Grand total                                                                                                                                                                                                                              |
+| **Status**      | Current status. The display only capitalizes the **first character** of the raw status, so the values a customer sees are: Pending, `Pending_payment` (with the underscore), Authorized, Paid, Processing, Shipped, Delivered, Cancelled |
+| **Action**      | "View Order" link to order detail page                                                                                                                                                                                                   |
 
-![The /account/orders page showing the My Orders table with columns Order #, Date, Ship To, Order Total, Status, Action and several orders in differing statuses](images/customer-accounts-order-history.png)
+![The /account/orders page showing the My Orders table with columns Order #, Date, Ship To, Order Total, Status, Action and several orders in differing statuses](.gitbook/assets/customer-accounts-order-history.png)
 
-*The /account/orders page showing the My Orders table with columns Order #, Date, Ship To, Order Total, Status, Action and several orders in differing statuses*
+_The /account/orders page showing the My Orders table with columns Order #, Date, Ship To, Order Total, Status, Action and several orders in differing statuses_
 
 ### Order Detail Page
 
 Click **View Order** to see:
-- Full order summary (items, quantities, prices)
-- Order totals (subtotal, shipping, tax, grand total)
-- Shipping and billing addresses
-- Order status
-- Customer notes (if any)
+
+* Full order summary (items, quantities, prices)
+* Order totals (subtotal, shipping, tax, grand total)
+* Shipping and billing addresses
+* Order status
+* Customer notes (if any)
 
 > The customer-facing order detail page does **not** currently display the payment method or tracking/shipment information — those fields are not part of the order shape passed to this view.
 
-![An order detail page at /account/orders/{orderNumber} showing the items table, totals, shipping address card, and billing address card](images/customer-accounts-order-detail.png)
+![An order detail page at /account/orders/{orderNumber} showing the items table, totals, shipping address card, and billing address card](.gitbook/assets/customer-accounts-order-detail.png)
 
-*An order detail page at /account/orders/{orderNumber} showing the items table, totals, shipping address card, and billing address card*
+_An order detail page at /account/orders/{orderNumber} showing the items table, totals, shipping address card, and billing address card_
 
 ### Which Orders Appear Here?
 
-- Orders placed by the customer directly (credit card checkout)
-- Orders placed by a sales rep on behalf of the customer (via payment link)
-- Historical orders migrated from Magento (order numbers like `1068857454`)
-- **Offline payment orders** (Check, Wire, PO) — these show with status "Pending_payment" until the admin invoices them
+* Orders placed by the customer directly (credit card checkout)
+* Orders placed by a sales rep on behalf of the customer (via payment link)
+* Historical orders migrated from Magento (order numbers like `1068857454`)
+* **Offline payment orders** (Check, Wire, PO) — these show with status "Pending\_payment" until the admin invoices them
 
----
+***
 
 ## Address Book
 
@@ -216,58 +220,24 @@ Customers can save multiple shipping and billing addresses:
 5. Save
 
 Saved addresses are available:
-- At checkout (as selectable cards instead of manual entry)
-- When a sales rep checks out on behalf of the customer (addresses load automatically)
 
-![The /account/addresses page showing saved shipping and billing address cards with Set as Default and Delete actions](images/customer-accounts-address-book.png)
+* At checkout (as selectable cards instead of manual entry)
+* When a sales rep checks out on behalf of the customer (addresses load automatically)
 
-*The /account/addresses page showing saved shipping and billing address cards with Set as Default and Delete actions*
+![The /account/addresses page showing saved shipping and billing address cards with Set as Default and Delete actions](.gitbook/assets/customer-accounts-address-book.png)
 
-> [SCREENSHOT: Checkout showing saved address cards]
+_The /account/addresses page showing saved shipping and billing address cards with Set as Default and Delete actions_
 
----
+> \[SCREENSHOT: Checkout showing saved address cards]
+
+***
 
 ## Account Lifecycle — How Data Flows
 
 ### Path A: Sales-Initiated (most B2B customers)
 
-<section class="modern-flow" aria-label="Sales-initiated customer account lifecycle">
-  <div class="modern-flow__header">
-    <div>
-      <span class="modern-flow__eyebrow">Path A</span>
-      <span class="modern-flow__title">Sales-created HubSpot contacts automatically become SCW customer accounts</span>
-    </div>
-    <span class="modern-flow__badge">B2B default</span>
-  </div>
-  <div class="modern-flow__track">
-    <span class="modern-flow__node modern-flow__node--start">HubSpot Contact<small>Sales rep creates Contact</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--success">Auto-provision<small>Cognito user, local customer row, and welcome email</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--action">Quote link<small>Rep builds quote and sends payment link</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--ship">Checkout + fulfillment<small>Order links to Contact; ShipEdge receives order if invoiced</small></span>
-  </div>
-  <div class="modern-flow__note">Auto-provisioning (and the welcome email) is gated OFF by default — it runs only when <code>HUBSPOT_WEBHOOK_AUTOPROVISION=true</code> (and <code>HUBSPOT_WEBHOOK_WELCOME_EMAIL=true</code>) is set. Credit terms are managed in the SCW admin panel (Admin → Credit Terms) and mirrored out to HubSpot — not the reverse. When an admin approves credit terms in SCW, the PO option appears at checkout for that customer immediately.</div>
-</section>
+Path A Sales-created HubSpot contacts automatically become SCW customer accountsB2B defaultHubSpot ContactSales rep creates Contact Auto-provisionCognito user, local customer row, and welcome email Quote linkRep builds quote and sends payment link Checkout + fulfillmentOrder links to Contact; ShipEdge receives order if invoicedAuto-provisioning (and the welcome email) is gated OFF by default — it runs only when `HUBSPOT_WEBHOOK_AUTOPROVISION=true` (and `HUBSPOT_WEBHOOK_WELCOME_EMAIL=true`) is set. Credit terms are managed in the SCW admin panel (Admin → Credit Terms) and mirrored out to HubSpot — not the reverse. When an admin approves credit terms in SCW, the PO option appears at checkout for that customer immediately.
 
 ### Path B: Self-Service (website registration)
 
-<section class="modern-flow" aria-label="Self-service customer account lifecycle">
-  <div class="modern-flow__header">
-    <div>
-      <span class="modern-flow__eyebrow">Path B</span>
-      <span class="modern-flow__title">Self-service customers start local, then sync to HubSpot on first order</span>
-    </div>
-    <span class="modern-flow__badge">Website</span>
-  </div>
-  <div class="modern-flow__track">
-    <span class="modern-flow__node modern-flow__node--start">Register<small>Customer registers on SCW Commerce</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--success">Local account<small>Cognito user and local customer profile are created</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--action">First order<small>HubSpot Contact is created or matched</small></span>
-    <span class="modern-flow__arrow" aria-hidden="true"></span>
-    <span class="modern-flow__node modern-flow__node--ship">Linked order<small>Ecommerce Order links to Contact and local customerId</small></span>
-  </div>
-</section>
+Path B Self-service customers start local, then sync to HubSpot on first orderWebsiteRegisterCustomer registers on SCW Commerce Local accountCognito user and local customer profile are created First orderHubSpot Contact is created or matched Linked orderEcommerce Order links to Contact and local customerId

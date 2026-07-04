@@ -1,5 +1,7 @@
 # Table of contents
 
+* [README](README.md)
+
 ## Foundations
 
 * [Platform Overview](platform-overview.md)
