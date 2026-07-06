@@ -218,6 +218,8 @@ The refund files to the **same jurisdiction the sale was taxed in**. For shipped
 
 If TaxJar is unreachable at the moment of refund, the report is enqueued in the DLQ. The `process-dlq` cron runs every 5 minutes and retries due items with exponential backoff — 1, 2, 4, 8, then 16 minutes between attempts, up to 5 attempts. The refund itself still succeeds — TaxJar reconciles when it comes back online.
 
+The refund files under its **own date**, not the date the retry happens to succeed. So a report that is delayed — even one that lands in the next day or month — still books to the correct tax filing period rather than the period it was retried in. (A sale files the same way, under the date payment was collected.)
+
 ***
 
 ## Offline Payment Refunds

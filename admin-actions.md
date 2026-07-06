@@ -73,6 +73,8 @@ Where `{ORDER_ID}` is the internal order ID (shown as `eo_source_id` on the Ecom
 
 The invoice endpoint accepts orders in either `pending_payment` or `pending` status.
 
+> **Safe against double-clicks:** confirming payment / invoicing an order is protected against duplicate submits. If the button is clicked twice, or two admins act on the same order at once, only the first request creates the invoice. A duplicate submit gets back **"Payment confirmation is already in progress for this order"** (while the first one is still running) or **"This order has already been invoiced"** (once it's done) instead of creating a second invoice. This also prevents the sale from being reported to TaxJar twice.
+
 ![Ecommerce Order record showing the Data highlights section with ORDER ID — this is the eo\_source\_id value used in the invoice API call (e.g. POST /api/admin/orders/{ORDER\_ID}/invoice).](.gitbook/assets/hubspot-order-source-id.png)
 
 _The Data highlights section shows ORDER ID (the internal database ID / eo\_source\_id), used when calling the invoice endpoint directly._
