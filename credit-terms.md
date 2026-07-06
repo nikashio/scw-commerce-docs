@@ -138,7 +138,7 @@ When a Purchase Order order is created, the order service:
 * Sums open PO exposure for that customer
 * Rejects the order when `open exposure + this order total` exceeds the customer's credit limit
 
-Open exposure means Purchase Order orders that are not cancelled and do not have a settled invoice. Paid and fully refunded invoices are treated as settled; shipped-but-unpaid NET30 orders still consume credit.
+Open exposure is calculated per Purchase Order order (excluding cancelled orders) as the order total minus what has been settled through paid or refunded invoices, never below zero. A partial invoice only clears the portion it covers — a paid deposit invoice does not release the rest of the order's credit. Shipped-but-unpaid NET30 orders still consume credit until their invoices are paid.
 
 If the limit is exceeded, the order is not created and checkout shows: _"Purchase Order total exceeds the approved credit limit. Please contact your account manager."_ Support should review the customer's open PO balance, paid/refunded invoice state, and configured credit limit before retrying, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
 
