@@ -191,6 +191,40 @@ _The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Reg
 
 ***
 
+## Managing Categories
+
+The **Categories** page (`/admin/categories`, under **Catalog** in the admin sidebar) manages the storefront category tree — hierarchy, menu visibility, and metadata. Before this page existed, category changes required developer scripts.
+
+The page is split into two panes: a searchable category tree on the left, and an editor for the selected category on the right.
+
+### Creating a category
+
+Click **New category** (top right) for a top-level category, or use a tree row's **⋯ → Add child** to create underneath a specific parent. Name and slug are required; the slug must be kebab-case (lowercase letters, numbers, single hyphens) and unique among its sibling categories. New categories are appended at the end of their parent's list.
+
+### Editing a category
+
+Select a category in the tree to edit its name, slug, active toggle, navigation settings (include in menu, mega-menu mode, custom URL, position), image URL, and SEO metadata (meta title/description/keywords). A save bar appears when there are unsaved changes; switching to another category with unsaved edits prompts for confirmation first.
+
+**Slug changes break old URLs.** Changing a slug shows a warning: the old URL is not redirected — search engines and existing links to it will 404. Only change slugs deliberately.
+
+Category **descriptions** (the rich content on category pages) are not edited here — they are built as typed React components by the development team.
+
+### Moving a category
+
+Use **⋯ → Move** on a tree row. Pick the new parent (or "Top level") and where the category should sit among that parent's children. A category can never be moved into itself or one of its own subcategories. Moving preserves the category's products and subcategories.
+
+### Deleting a category
+
+Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: how many subcategories and product assignments will be removed. **Deleting cascades** — the category and its entire subtree are permanently removed (same behavior as Magento). The products themselves are **not** deleted; they just lose the category assignment. Deleting a top-level category additionally requires typing the category's name to confirm.
+
+### When changes appear on the storefront
+
+- **Navigation / mega menu:** updates within about 5 minutes (menu cache).
+- **Category pages:** update within about 60 seconds.
+- **Search:** active categories are updated in site search immediately after a save; a full reindex also runs on every deploy.
+
+***
+
 ## Quick Reference: Admin Actions by Payment Method
 
 | Scenario                                            | Action                                                                   | Result                                         |
