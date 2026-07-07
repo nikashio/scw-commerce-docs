@@ -115,6 +115,8 @@ This runs daily at 3 AM UTC. When an order is auto-cancelled:
 
 There is no public cancel button in the current documented admin workflow. For a manual cancellation before the auto-cancel deadline, use an internal admin/engineering status correction. If the order was already pushed to ShipEdge, coordinate the ShipEdge cancellation or stop-work separately.
 
+> **A shipped or delivered order cannot be cancelled — refund it instead.** Once an order has been fulfilled, a status change to `cancelled` is rejected: it would leave the customer charged and would not stop the warehouse or reverse sales tax. To unwind a fulfilled order, issue a **refund** (below). A full refund reverses the Authorize.net charge and the TaxJar transaction and then marks the order `cancelled`. Direct cancellation is only possible before the order ships (through `processing`).
+
 ***
 
 ## Reviewing a Purchase Order
@@ -198,5 +200,6 @@ _The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Reg
 | Wire transfer confirmed in bank                     | Invoice the order                                                        | Status → Processing → Ships                    |
 | Check not received in 14 days                       | Nothing — auto-cancels                                                   | Status → Cancelled                             |
 | Wire not received in 21 days                        | Nothing — auto-cancels                                                   | Status → Cancelled                             |
-| Customer wants to cancel                            | Escalate for internal admin/engineering cancellation                     | Status → Cancelled                             |
+| Customer wants to cancel (not yet shipped)          | Escalate for internal admin/engineering cancellation                     | Status → Cancelled                             |
+| Customer wants to cancel (already shipped/delivered)| Issue a **refund** — a direct cancel is rejected on a fulfilled order    | Refund reverses charge + tax, then Status → Cancelled |
 | Check arrived but not cleared, 14-day deadline near | Escalate for deadline extension; do not move to Processing until cleared | Avoids bypassing invoice and ShipEdge workflow |

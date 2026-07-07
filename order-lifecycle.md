@@ -12,7 +12,7 @@ Order starts here
 
 ### Placed order enters the payment decision path
 
-SCW CommerceOrder Placed Customer submits checkoutpending Order just createdCredit Card defaultpaid Payment chargedOffline Methods Check / Wire / POpending\_payment Waiting for admin invoiceAdmin clicks **Invoice**Auth-Only rareauthorized Card held, not chargedAdmin clicks **Capture**paid Payment capturedprocessing ShipEdge has the orderShipEdge creates shipping labelshipped Tracking # assignedCarrier deliversdelivered Order complete**Cancellation path:** Check / Wire orders auto-cancel from `pending_payment` when stale; manual cancellation is an internal admin/engineering correction and ShipEdge cancellation is separate once fulfillment has started.
+SCW CommerceOrder Placed Customer submits checkoutpending Order just createdCredit Card defaultpaid Payment chargedOffline Methods Check / Wire / POpending\_payment Waiting for admin invoiceAdmin clicks **Invoice**Auth-Only rareauthorized Card held, not chargedAdmin clicks **Capture**paid Payment capturedprocessing ShipEdge has the orderShipEdge creates shipping labelshipped Tracking # assignedCarrier deliversdelivered Order complete**Cancellation path:** Check / Wire orders auto-cancel from `pending_payment` when stale. A pre-fulfilment order (through `processing`) can be cancelled directly, but a **shipped or delivered order can only be unwound by issuing a refund** — a direct cancel of a fulfilled order is rejected because it would leave the customer charged (see the note under Status Definitions).
 
 ***
 
@@ -27,7 +27,9 @@ SCW CommerceOrder Placed Customer submits checkoutpending Order just createdCred
 | `processing`      | Order accepted by ShipEdge, in the warehouse queue | System (ShipEdge confirms) or Admin (invoices offline order) | Warehouse team is picking & packing                                   |
 | `shipped`         | Shipping label created, package handed to carrier  | ShipEdge webhook or 5-minute sync fallback                   | Customer receives shipping notification email                         |
 | `delivered`       | Carrier confirms delivery                          | ShipEdge webhook or 5-minute sync fallback                   | Order complete                                                        |
-| `cancelled`       | Order cancelled                                    | Admin (manual) or System (auto-cancel for Check/Wire)        | No further action                                                     |
+| `cancelled`       | Order cancelled                                    | System (auto-cancel for stale Check/Wire/PO) or the refund path once money is reversed | No further action                                                     |
+
+> **A shipped or delivered order can never be cancelled directly.** Cancelling does no financial work — it does not void the card charge, does not tell the warehouse to stop (ShipEdge has no cancel API), and does not reverse sales tax with TaxJar. So a bare "cancel" on a fulfilled order would look done while leaving the customer charged. The only way to unwind a shipped/delivered order is a **refund** (see [Admin Actions](admin-actions.md)): a full refund reverses the Authorize.net charge and the TaxJar transaction, and *then* marks the order `cancelled`. A direct cancel of a fulfilled order is rejected with an error that points the admin to refunds. Orders that have not yet shipped (`pending`, `pending_payment`, `authorized`, `paid`, `processing`) can still be cancelled directly.
 
 > **How ShipEdge statuses map to these four fulfillment statuses:** ShipEdge reports many granular remote statuses, and the sync collapses them into the local set. Anything in-warehouse-but-not-yet-shipped (`backorder`, `hold`, `error`, `incomplete`, `divided`, `dropship`, `editing`, `sent to shipedge`, `packing error`, `low balance`, and similar) maps to local **`processing`**. `shipped`, `shipped by shipedge`, and `shipped by cotim` map to **`shipped`**; `delivered` maps to **`delivered`**; `cancel` / `cancelled` map to **`cancelled`**. So a clean `processing → shipped → delivered` path is the happy case, but several distinct ShipEdge states all surface locally as `processing`.
 
@@ -82,7 +84,7 @@ Credit card default Payment is captured automatically and the order moves straig
 | processing → shipped | ShipEdge creates shipping label | When warehouse ships (webhook, with 5-minute fallback sync) |
 | shipped → delivered  | Carrier confirms delivery       | When delivered (webhook, with 5-minute fallback sync)       |
 
-**No admin action required.** The entire flow is automatic. The shipping-notification email is sent automatically as part of this status change — when (and only when) an order transitions to `shipped`, SCW Commerce sends the customer the shipping notification with carrier and tracking details from the latest shipment.
+**No admin action required.** The entire flow is automatic. The shipping-notification email is sent automatically as part of this status change — when (and only when) an order transitions to `shipped`, SCW Commerce sends the customer the shipping notification with carrier and tracking details from the latest shipment. Reps can resend that shipment email from the HubSpot Ecommerce Shipment card when needed.
 
 ### Credit Card Flow — Auth-Only (Admin Captures Later)
 
