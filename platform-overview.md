@@ -49,7 +49,16 @@ Key features:
 
 ***
 
-## How the Systems Connect
+## How Updates Are Deployed (Zero Downtime)
+
+Code changes reach production by merging a pull request into the `main` branch on GitHub — never by hand. As of July 2026, deployments are **zero-downtime**:
+
+1. Each deploy builds a complete, self-contained copy of the site (a "release") in its own folder on the server, while the current version keeps serving customers untouched. The database is backed up automatically before any schema change.
+2. The new version starts on a **standby set of app processes**, and is health-checked (database connectivity, key pages) before it is allowed to receive any traffic.
+3. Traffic switches to the new version in a single instant. Customers never see an error during a deploy — an automated monitor requests key pages continuously through every deployment and fails the deploy if even one request errors.
+4. If a build fails, nothing changes for customers — the broken release deletes itself. If a problem is found *after* a release goes live, the previous release is still on the server and can be restored in about a minute with a single command (no rebuild needed).
+
+**What this means for the business:** deploys can happen safely at any time of day, including during business hours, with no maintenance windows.
 
 ![SCW Commerce System Architecture](.gitbook/assets/system-architecture.svg)
 
