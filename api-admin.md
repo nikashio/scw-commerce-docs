@@ -118,10 +118,10 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `POST /api/admin/orders/[id]/resend-email`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Manually (re)send a transactional email for an order. The `[id]` param is the order number string (same resolution as `GET /api/admin/orders/[id]`). Called by the HubSpot Lambda when a rep clicks a resend button on the OrderActions or CreditMemo card.
+- **Purpose:** Manually (re)send a transactional email for an order. The `[id]` param is the order number string (same resolution as `GET /api/admin/orders/[id]`). Called by the HubSpot Lambda when a rep clicks a resend button on the OrderActions, CreditMemo, or Ecommerce Shipment card.
 - **Path params:** `id: string (order number)`
 - **Query params:** none
-- **Request body:** `{ type: 'order' | 'invoice' | 'credit_memo', documentNumber?: string }` — `documentNumber` (invoice or credit-memo number) is required when `type` is `invoice` or `credit_memo`.
+- **Request body:** `{ type: 'order' | 'invoice' | 'credit_memo' | 'shipment', documentNumber?: string }` — `documentNumber` (invoice, credit-memo, or shipment number) is required when `type` is `invoice`, `credit_memo`, or `shipment`.
 - **Response (200):** `{ success: true, recipient }`
 - **Response (404):** `{ success: false, error }` — order/document not found
 - **Response (502):** `{ success: false, error }` — email delivery failed
@@ -649,6 +649,16 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Purpose:** Read-only list of customer groups. Used by the admin product editor to populate group-price selectors.
 - **Response (200):** `{ groups[] }`
 - **Side effects:** read-only
+
+#### `GET /api/admin/customers/website-cart`
+
+- **Auth:** Admin (session or API key). Called by the HubSpot **Website Cart → Quote** card (via the HubSpot app Lambda, using `X-Admin-Api-Key`).
+- **Purpose:** Resolve a HubSpot contact to their SCW Commerce account and return that customer's **live website cart** for sales viewing. Strictly read-only — never creates or extends a cart, and excludes expired and rep-checkout (deal) carts.
+- **Query params:** `contactId` (HubSpot contact ID) and/or `email`. At least one is required; matching tries `contactId` first, then falls back to `email`.
+- **Response (200):** `{ data: SalesCartViewResult }` — either `{ cart: { cartId, updatedAt, cartHash, itemCount, subtotal, items[] }, customer }` or `{ cart: null, reason: 'no_account' | 'empty' | 'expired', customer? }`. `cartHash` is a stale-detection token the caller echoes back when building the quote.
+- **Side effects:** read-only.
+
+> **Where the quote is built:** the cart → quote **build** itself is performed by the HubSpot app (the Lambda assembles a draft Ecommerce Quote + Ecommerce Line Items from this cart view and associates it to the contact). SCW Commerce's role in the live flow is this read endpoint — see [Quote Builder & Payment Links](quote-builder.md#starting-a-quote-from-a-customers-website-cart).
 
 ---
 

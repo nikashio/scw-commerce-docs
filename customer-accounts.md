@@ -192,9 +192,10 @@ Click **View Order** to see:
 * Order totals (subtotal, shipping, tax, grand total)
 * Shipping and billing addresses
 * Order status
+* Shipping method and tracking number for shipped orders
 * Customer notes (if any)
 
-> The customer-facing order detail page does **not** currently display the payment method or tracking/shipment information — those fields are not part of the order shape passed to this view.
+For shipped orders, the detail page shows a **Shipment** section with the shipping method, tracking number, carrier, and shipped date from the latest shipment. If the carrier provides a tracking URL, the tracking number links directly to the carrier tracking page.
 
 ![An order detail page at /account/orders/{orderNumber} showing the items table, totals, shipping address card, and billing address card](.gitbook/assets/customer-accounts-order-detail.png)
 

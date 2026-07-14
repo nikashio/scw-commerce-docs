@@ -132,13 +132,14 @@ _A HubSpot Ecommerce Invoice record showing ei\_status, ei\_total, ei\_invoice\_
 
 * Shipment number — a bare-numeric number (no prefix), generated via the `seq_shipment_number` PostgreSQL sequence; also the shipment's key (`es_shipment_id`) on the HubSpot Ecommerce Shipment object
 * Tracking number
+* Shipping method
 * Carrier (UPS)
 * Shipped date
 * Delivered date
 
 **Where it lives:** ShipEdge (primary), synced to SCW Commerce DB and HubSpot.
 
-> **Note:** Ecommerce Shipment records are created **automatically** by ShipEdge's fulfillment webhook when an order ships — they are not created by hand, so there is no manual screen to walk through. Each shipment carries its tracking number, carrier, and ship date, and associates back to its parent Ecommerce Order.
+> **Note:** Ecommerce Shipment records are created **automatically** by ShipEdge's fulfillment webhook when an order ships — they are not created by hand, so there is no manual screen to walk through. Each shipment carries its tracking number, shipping method, carrier, and ship date, and associates back to its parent Ecommerce Order.
 
 ***
 

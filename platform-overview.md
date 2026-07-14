@@ -77,6 +77,8 @@ Sales-assisted Rep creates the HubSpot quote and drives the checkout pathHubSpot
 
 The rep starts by creating a Contact in HubSpot. A webhook receives the event. Account auto-provisioning (Cognito + database) and the welcome email are both gated behind feature flags (`HUBSPOT_WEBHOOK_AUTOPROVISION` and `HUBSPOT_WEBHOOK_WELCOME_EMAIL`), both disabled by default to prevent mass provisioning during bulk contact imports. When enabled, the webhook creates the Cognito + DB account and sends a welcome email. The rep can then use the **Quote Builder** to configure products, set prices, and generate a payment link. The link takes the customer (or the rep) to a pre-loaded checkout. This is used for B2B sales, phone orders, and custom pricing.
 
+**Starting from the customer's website cart.** When a customer has already assembled a cart on the storefront, the rep doesn't have to re-key it. The **Website Cart → Quote** card on the Contact record shows that customer's live cart and turns it into a draft Ecommerce Quote in one click, ready to finish in the Quote Builder. See [Quote Builder & Payment Links](quote-builder.md#starting-a-quote-from-a-customers-website-cart).
+
 ![The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy).](.gitbook/assets/hubspot-quote-builder-card.png)
 
 _The HubSpot Quote Builder custom card showing product selection and the Payment Link button (Open/Copy)._

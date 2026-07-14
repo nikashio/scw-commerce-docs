@@ -33,6 +33,54 @@ You can also access quotes linked to a specific customer:
 
 ***
 
+## Starting a Quote from a Customer's Website Cart
+
+When a customer assembles a cart on getscw.com and then calls or emails, you can pull their **live website cart** straight into a quote — no re-keying, and no asking them to screenshot their cart.
+
+### The "Website Cart → Quote" Card
+
+On a **Contact** record in HubSpot, the **Website Cart → Quote** card appears in the right sidebar. It matches the contact to their SCW Commerce account — by HubSpot contact ID first, falling back to the contact's email — and shows that customer's current website cart:
+
+- **Items** and **Subtotal** at the top
+- Each cart line: product name, SKU, any selected options, quantity, unit price, and line total
+- If you've already built a quote from this cart, a **Quote {number}** tile with an **Open quote** button
+
+Use **Refresh cart** to re-pull the latest cart if the customer just changed it.
+
+> [SCREENSHOT: The "Website Cart → Quote" sidebar card on a Contact record — items list with qty/unit price/line total, the Items + Subtotal stats, and the Build quote button. — images/website-cart-card.png]
+
+If there's nothing to show, the card explains why:
+
+| Card message | What it means |
+|---|---|
+| No SCW Commerce account linked to this contact | The contact's HubSpot ID and email don't match any storefront account. |
+| This customer has no items in their website cart | The account exists, but the cart is empty. |
+| The customer's website cart has expired | The cart is older than 30 days (carts expire after 30 days of inactivity). |
+| No email — cannot look up their website cart | The contact has no email address to match on. |
+
+### Building the Quote
+
+1. Click **Build quote**.
+2. A confirmation panel summarizes what will be created — *"a new Ecommerce Quote with N line items ($X subtotal) for {email}."*
+3. Confirm. A **draft Ecommerce Quote** is created with the cart's line items and associated to the contact.
+4. The card shows a success message with the quote number and an **Open quote** button. Open it in the **Quote Builder** to adjust pricing, apply discounts, set the shipping address, and generate a payment link — the normal quote flow from here (see the sections below).
+
+### Updating an Existing Quote
+
+If you build again from the same cart (for example, the customer added items and called back), the button reads **Update quote**. The quote is matched to the cart, so updating **replaces** the linked quote's line items with the current cart contents instead of creating a duplicate. Re-apply any pricing or discounts in the Quote Builder afterward.
+
+### Built-in Safeguards
+
+- **Cart-changed protection.** If the cart changed between opening the card and clicking Build, the build is rejected and the card refreshes — review the new contents and try again. You can't accidentally quote a stale cart.
+- **Unpriceable items block the build.** If any cart item can't be priced, the build stops and lists the affected SKUs rather than create an incomplete quote.
+- **Unmapped products are kept, not dropped.** If a cart product isn't linked to a HubSpot product, it's still added as a line item with a warning noting it — so the quote is always complete.
+
+### What Gets Created
+
+A draft **Ecommerce Quote** plus its **Ecommerce Line Items**, associated to the Contact. From there it behaves like any other quote — continue with *Building a Quote* and *Generating a Payment Link* below.
+
+---
+
 ## Building a Quote
 
 ### Adding Products
