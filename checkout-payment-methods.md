@@ -278,6 +278,18 @@ A sale is reported to TaxJar only when **money is actually collected**, on the d
 
 Filed transactions carry the customer's TaxJar ID (so exempt customers' sales file as exempt sales, not taxable-with-$0), and per-line product tax codes (installation services, software licensing) so category-level filings are accurate. If TaxJar is unreachable, the report is queued and retried automatically.
 
+### Proactive Address Validation — "Suggested address"
+
+Before the order is ever placed, checkout validates the shipping address with **TaxJar address validation** as soon as the customer finishes entering it (street, city, state, and ZIP — US addresses only). This mirrors the old Magento checkout's "Suggested Addresses" step.
+
+**What the customer sees**
+
+* If TaxJar returns a corrected address (wrong state for the ZIP, misspelled city, or a more precise ZIP+4), a **"Suggested address"** panel appears under the shipping form showing **"You entered"** vs **"Suggested"**, with the corrected parts highlighted. **"Use suggested address"** applies the fix in one click; **"Keep what I entered"** dismisses the suggestion (it will not re-appear for the same address). The suggestion is advisory — the customer can still place the order with the address they typed.
+* If TaxJar finds **no matching address at all**, a soft warning appears: _"We couldn't verify this address. Please double-check the street, city, state, and ZIP."_ This does **not** block checkout.
+* While the address is flagged by either state above, the red **"no shipping rates"** error in Shipping Methods is suppressed — the address panel already explains the real problem, and the always-available methods (Free Ground / In-Store Pickup) still show. A genuine UPS outage on a clean address still shows the rates error.
+
+Validation is a customer-experience aid only — all tax and total amounts are still recomputed and enforced server-side at Place Order (see the blocks below).
+
 ### Blocked — State / ZIP Tax Mismatch
 
 Checkout now **blocks** an order when the customer selects a **sales-tax (nexus) state** but enters a **ZIP code that geolocates to a different jurisdiction** (or one where SCW collects no tax). That combination would otherwise return $0 tax for a state SCW actually collects in — i.e., **under-collected sales tax**. Blocking it forces the address to be corrected before the order is placed.
@@ -286,7 +298,7 @@ Checkout now **blocks** an order when the customer selects a **sales-tax (nexus)
 
 1. The order is **not** placed.
 2. An error explains: _"We couldn't verify your shipping address. Please double-check the state and ZIP code so we can apply the correct sales tax."_
-3. Where TaxJar can supply a corrected (ZIP-resolved) address, checkout offers a one-click **"Use this address"** suggestion — _"Did you mean … ?"_ — that fills in the canonical street, city, state, and ZIP. Editing any address field clears the suggestion.
+3. Where TaxJar can supply a corrected (ZIP-resolved) address, checkout offers a one-click **"Use this address"** suggestion — _"Did you mean … ?"_ — that fills in the canonical street, city, state, and ZIP. Editing any address field clears the suggestion. (With proactive validation above, most customers see and fix the mismatch **before** reaching Place Order — this block is the server-side safety net.)
 
 > \[SCREENSHOT: Checkout address-correction banner reading Did you mean … with a Use this address button after a state/ZIP mismatch — images/checkout-address-suggestion.png]
 
