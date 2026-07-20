@@ -25,6 +25,52 @@ The Credit Terms table shows an **Active now / Inactive** badge per customer, so
 
 ***
 
+## API: Setting Credit Terms by Email (Automation / Make.com)
+
+For automated flows (for example Make.com scenarios), two admin API endpoints set credit terms without needing the internal customer ID. Both authenticate with either an admin session or the `X-Admin-Api-Key` header, and both write through the same path as the admin panel: the change is audit logged and mirrored to the customer's HubSpot contact.
+
+### Set one customer: `POST /api/admin/credit-terms/by-email`
+
+Request body:
+
+```json
+{
+  "email": "customer@example.com",
+  "approved": true,
+  "creditLimit": "50000",
+  "revalidationMonths": 18,
+  "note": "Approved via Make scenario"
+}
+```
+
+* `email` and `approved` are required. `creditLimit`, `revalidationMonths`, and `note` are optional: when omitted, the customer's current values are preserved. Sending `creditLimit: null` (or an empty string) clears the limit.
+* Response `200`: `{ "ok": true, "customerId": 123 }`
+* Response `404`: `{ "error": "customer_not_found" }` (the email does not match a store customer)
+* Response `400`: `{ "error": "validation_error", ... }` for a malformed body
+
+### Mass set (bulk): `POST /api/admin/credit-terms/bulk`
+
+Sets eligibility for up to **500 customers** in one call.
+
+```json
+{
+  "items": [
+    { "email": "a@example.com", "approved": true, "creditLimit": "25000" },
+    { "email": "b@example.com", "approved": false }
+  ],
+  "note": "Quarterly eligibility refresh"
+}
+```
+
+* Each item takes the same fields as the by-email endpoint (minus `note`, which applies to the whole batch).
+* Items are processed independently: a customer that is not found (or fails) never blocks the rest of the batch.
+* Duplicate emails in one request are rejected with `400` and a `duplicates` list.
+* Response `200`: `{ "ok": true, "updated": 42, "notFound": ["x@example.com"], "results": [{ "email": "...", "status": "updated" | "not_found" | "error" }] }`
+
+> **Note:** Customers must already exist in SCW Commerce. A contact that exists only in HubSpot and was never a store customer has no account to attach credit terms to, so the endpoint returns `customer_not_found` for them.
+
+***
+
 ## Approving a Customer for Credit Terms (Legacy HubSpot workflow)
 
 > **⚠️ Deprecated — historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Operations → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them** — the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
