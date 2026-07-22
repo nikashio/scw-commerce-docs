@@ -2,26 +2,26 @@
 
 ## Overview
 
-Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and an optional **validity window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
+Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
 
 > **Note:** This supersedes the older "set the property in HubSpot" workflow described further below. The HubSpot contact properties are now a **mirror** of the admin panel, not the source of truth. (Those lower sections predate the admin panel and are kept for historical context.)
 
 ***
 
-## Validity Window (Active From / Active Until)
+## Revalidation Window (Revalidate After)
 
-Each customer's credit-terms approval can carry an optional date window, set in the admin **Credit Terms** panel:
+Each approved customer carries a **Revalidate after** value (default 18 months), set in the admin **Credit Terms** panel. Their credit terms stay active for that many months counted from the **later** of:
 
-| Field            | Meaning                                                                                      |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| **Active from**  | First day the customer may use Purchase-Order terms. Leave empty = active immediately.       |
-| **Active until** | Last day (inclusive) the customer may use Purchase-Order terms. Leave empty = never expires. |
+* their most recent order, or
+* the last time their credit-terms agreement was revalidated (they re-signed the agreement, or an admin pressed **Revalidate**).
 
-A customer can use the **Purchase Order (NET30)** option at checkout only when they are **Approved** _and_ today falls within this window (evaluated in US/Eastern time). Outside the window — before the start date or after the end date — the Purchase Order option is hidden at checkout **and** rejected by the server if a request is submitted directly. Leaving both dates empty means the approval never expires (this is the default, and matches how every existing approval behaves).
+A customer can use the **Purchase Order (NET30)** option at checkout only when they are **Approved** _and_ that window has not expired. Once it expires, the Purchase Order option is hidden at checkout, rejected by the server if a request is submitted directly, and quote conversion to a PO order is blocked. A customer with no orders and no revalidation date on record never expires while approved.
 
-The Credit Terms table shows an **Active now / Inactive** badge per customer, so you can tell at a glance whether an approved customer's window is currently in effect (for example, an approval that is set up but whose start date hasn't arrived yet shows **Inactive**).
+The Credit Terms table shows an **Active now / Inactive** badge per customer, plus the computed invalidation date and which event anchors it ("Last order ..." or "Re-signed ...").
 
-> **Note:** The validity window is enforced entirely in SCW Commerce. The start/end dates are not (yet) mirrored to HubSpot.
+**Reactivating an expired customer:** when a customer re-signs the Credit Terms Agreement, open **Admin → Operations → Credit Terms**, find the customer, and press **Revalidate** (the button appears on approved but inactive rows). This stamps a fresh revalidation date and reactivates them immediately, no new order required. Newly approving a customer (flipping them from not approved to Approved) stamps the revalidation date automatically.
+
+> **Note:** The revalidation window is enforced entirely in SCW Commerce. The revalidation date is not mirrored to HubSpot (only the approval flag and credit limit are).
 
 ***
 
@@ -124,7 +124,7 @@ with the cron authorization header.
 
 ## Revoking Credit Terms (Legacy HubSpot workflow)
 
-> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Operations → Credit Terms** panel — toggle the customer's approval off, or set an **Active until** date that has passed. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
+> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Operations → Credit Terms** panel by toggling the customer's approval off. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
 
 To remove a customer's ability to use Purchase Orders:
 
@@ -157,7 +157,7 @@ The Purchase Order option is completely hidden — the customer has no way to se
 
 Credit terms are **admin-owned in SCW Commerce** (the admin panel is the source of truth). When an admin saves a credit-terms change, the system:
 
-1. Writes the new values (`approved_for_credit_terms`, `credit_limit`, start/end dates) to the local customer row inside a transaction.
+1. Writes the new values (`approved_for_credit_terms`, `credit_limit`, revalidation months, and when applicable a fresh revalidation date) to the local customer row inside a transaction.
 2. Appends an audit event to `credit_terms_events`.
 3. Enqueues a `customer.credit_terms_changed` row in the HubSpot outbox (part of the same transaction — failure rolls back the edit).
 4. Kicks off async delivery of that outbox row: `approved_for_credit_terms` + `credit_limit` are pushed to the matching HubSpot Contact via `PATCH /crm/v3/objects/contacts/{id}`.
