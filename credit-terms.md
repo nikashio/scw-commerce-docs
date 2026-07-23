@@ -13,13 +13,13 @@ Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orde
 Each approved customer carries a **Revalidate after** value (default 18 months), set in the admin **Credit Terms** panel. Their credit terms stay active for that many months counted from the **later** of:
 
 * their most recent order, or
-* the last time their credit-terms agreement was revalidated (they re-signed the agreement, or an admin pressed **Revalidate**).
+* the last time an admin saved them as Approved in the Credit Terms panel (typically after they re-signed the agreement).
 
 A customer can use the **Purchase Order (NET30)** option at checkout only when they are **Approved** _and_ that window has not expired. Once it expires, the Purchase Order option is hidden at checkout, rejected by the server if a request is submitted directly, and quote conversion to a PO order is blocked. A customer with no orders and no revalidation date on record never expires while approved.
 
 The Credit Terms table shows an **Active now / Inactive** badge per customer, plus the computed invalidation date and which event anchors it ("Last order ..." or "Re-signed ...").
 
-**Reactivating an expired customer:** when a customer re-signs the Credit Terms Agreement, open **Admin → Operations → Credit Terms**, find the customer, and press **Revalidate** (the button appears on approved but inactive rows). This stamps a fresh revalidation date and reactivates them immediately, no new order required. Newly approving a customer (flipping them from not approved to Approved) stamps the revalidation date automatically.
+**Reactivating an expired customer:** when a customer re-signs the Credit Terms Agreement, open **Admin → Operations → Credit Terms**, find the customer, open their edit form, and save it with **Approved** checked (the values can stay the same, saving is what counts). Every approving save stamps a fresh approval date and reactivates them immediately, no new order required. Removing approval clears the stamp.
 
 > **Note:** The revalidation window is enforced entirely in SCW Commerce. The revalidation date is not mirrored to HubSpot (only the approval flag and credit limit are).
 
