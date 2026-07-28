@@ -4,12 +4,14 @@
 
 SCW Commerce supports four payment methods at checkout. The available methods depend on the customer's account settings.
 
-| Payment Method             | Available To                | Payment Collected At Checkout?  | Ships Immediately?                    |
-| -------------------------- | --------------------------- | ------------------------------- | ------------------------------------- |
-| **Credit Card**            | All customers               | Yes — charged via Authorize.net | Yes — sent to ShipEdge automatically  |
-| **Purchase Order (NET30)** | Approved B2B customers only | No — invoiced later by admin    | No — ships after admin invoices       |
-| **Check / Money Order**    | All customers               | No — mailed by customer         | No — ships after check clears         |
-| **ACH / Wire Transfer**    | All customers               | No — wired by customer          | No — ships after admin verifies funds |
+| Payment Method             | Available To                | Payment Collected At Checkout?     | Ships Immediately?                    |
+| -------------------------- | --------------------------- | ---------------------------------- | ------------------------------------- |
+| **Credit Card**            | All customers               | Yes — charged via Authorize.net    | Yes — sent to ShipEdge automatically  |
+| **Credit Terms (NET30)**   | Approved B2B customers only | No — invoiced automatically, customer pays within terms | Yes — auto-invoiced and sent to ShipEdge at checkout |
+| **Check / Money Order**    | All customers               | No — mailed by customer            | No — ships after check clears         |
+| **ACH / Wire Transfer**    | All customers               | No — wired by customer             | No — ships after admin verifies funds |
+
+> **Naming note (July 2026):** the checkout option previously labeled **"Purchase Order (NET30)"** is now labeled **"Credit Terms (NET30)"**. It is the same payment method — the customer still enters their company's PO number. Older screenshots in these docs may show the old label. Internally (HubSpot properties, API values) it is still recorded as `purchase_order`.
 
 Signed-in customers can also save credit cards to their **Wallet** (Authorize.net CIM / Customer Profiles) for faster checkout. Saved cards are a feature of the Credit Card method — they are not a separate payment method.
 
@@ -96,9 +98,9 @@ Credit-card checkout protects against the "money taken but no order" failure mod
 
 ***
 
-## Purchase Order (NET30)
+## Credit Terms (NET30)
 
-For pre-approved B2B customers only. The customer buys now and pays within 30 days.
+For pre-approved B2B customers only. The customer buys now and pays within 30 days. (Labeled "Purchase Order (NET30)" before July 2026 — same method, new name.)
 
 ### Who Can See This Option
 
@@ -108,18 +110,28 @@ If the customer is not approved (or their approval window has not started or has
 
 At order creation, SCW Commerce also enforces the customer's configured credit limit. The check includes existing open Purchase Order exposure, including shipped-but-unpaid NET30 orders. If the new order would exceed the limit, checkout rejects it before creating the order and shows: _"Purchase Order total exceeds the approved credit limit. Please contact your account manager."_
 
-Support should review the customer's credit limit, open PO exposure, and invoice settlement state before retrying the PO, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
+Support should review the customer's credit limit, open credit-terms exposure, and invoice settlement state before retrying, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
 
 ### Customer Experience
 
-1. Customer selects **Purchase Order (NET30)**
+1. Customer selects **Credit Terms (NET30)**
 2. A required **Purchase Order Number** field appears
 3. Customer enters their company's PO reference (e.g., `PO-2026-0412`)
-4. A note explains: _"This order is subject to NET30 terms and will be reviewed by our admin team. Your order will be processed once the PO is verified against your credit limit."_
-5. Customer clicks **Submit Purchase Order**
-6. Two emails sent:
+4. Customer clicks **Submit Credit Terms Order**
+5. Two emails sent:
    * Order confirmation showing the PO details
-   * A separate **"Purchase Order Received"** instruction email containing the PO number and the _"pending admin review"_ message — _"Your order is currently pending admin review. Once the PO is verified against your credit limit, the order will be processed and shipped."_
+   * The **NET30 invoice** for the order, created automatically (see below)
+
+### Auto-Invoicing (July 2026)
+
+Because credit-terms customers are pre-approved, these orders no longer wait for an admin. At checkout the system automatically:
+
+1. Creates the order's invoice (status **Pending** — the customer pays it within their NET30 terms; it is _not_ marked paid)
+2. Emails the invoice to the customer
+3. Moves the order to **Processing** and pushes it to ShipEdge for fulfillment
+4. Syncs the order and invoice to HubSpot
+
+Admins no longer manually invoice credit-terms orders. Check and Wire orders keep their manual flow, and credit-terms orders **migrated from Magento** are not part of auto-invoicing.
 
 > \[SCREENSHOT: Purchase Order form showing PO Number field and NET30 note — images/checkout-purchase-order-form.png]
 
@@ -127,8 +139,7 @@ Support should review the customer's credit limit, open PO exposure, and invoice
 
 | Step                                                   | SCW Commerce DB                                                                                                                                                      | HubSpot                                                                                                               | ShipEdge                                                                          |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Order placed                                           | Active credit terms and credit limit rechecked; if allowed, order created: `status = pending_payment`, `payment_method = purchase_order`, `po_number = PO-2026-0412` | Ecommerce Order created: `status = pending`, `eo_payment_method_type = purchase_order`, `eo_po_number = PO-2026-0412` | **Nothing** — order is NOT sent to ShipEdge                                       |
-| Admin invoices (see [Admin Actions](admin-actions.md)) | Status → `processing`, Invoice created                                                                                                                               | Status → `processing`                                                                                                 | Order pushed to ShipEdge                                                          |
+| Order placed                                           | Active credit terms and credit limit rechecked; if allowed, order created with `payment_method = purchase_order`, `po_number = PO-2026-0412`; **invoice auto-created (Pending)**; status → `processing` | Ecommerce Order + Ecommerce Invoice created: `eo_payment_method_type = purchase_order`, `eo_po_number = PO-2026-0412`, status `processing` | **Order pushed to ShipEdge automatically**                                        |
 | Warehouse ships                                        | Status → `shipped`                                                                                                                                                   | Status → `shipped`                                                                                                    | Tracking number created                                                           |
 | Carrier delivers                                       | Status → `delivered`                                                                                                                                                 | Status → `delivered`                                                                                                  | —                                                                                 |
 | Manual cancel / correction (before delivery)           | Status → `cancelled`                                                                                                                                                 | Status → `cancelled`                                                                                                  | Stop or cancel fulfillment separately in ShipEdge if the order was already pushed |
@@ -139,10 +150,10 @@ _HubSpot Ecommerce Order record for a purchase-order checkout showing pending st
 
 ### Important
 
-* No payment is collected at checkout
-* The order will **not** ship until an admin invoices it
+* No payment is collected at checkout — the customer pays the emailed NET30 invoice within their terms
+* The invoice is created and the order ships **automatically**; no admin action is needed
 * The PO Number is visible on the Ecommerce Order in HubSpot for admin reference
-* There is **no automatic cancellation** for PO orders — they stay in Pending Payment until the admin acts
+* The credit limit is enforced at checkout, including open NET30 exposure from earlier unpaid orders
 
 ***
 
@@ -235,9 +246,9 @@ Customer at checkout Each payment method decides when payment is collected and w
 
 Payment chargedAuthorize.net captures payment at checkoutOrder: ProcessingShipEdge receives the order automaticallyShipsWarehouse ships and tracking syncs back
 
-#### Purchase Order
+#### Credit Terms (NET30)
 
-No paymentNET30 approved customers only; PO # savedOrder: Pending PaymentWaits for admin reviewAdmin invoices → ShipEdge → ShipsNo automatic cancellation
+No payment at checkoutApproved customers only; PO # savedInvoice auto-created and emailedOrder: ProcessingShipEdge receives the order automaticallyShipsCustomer pays the invoice within terms
 
 #### Check
 
@@ -274,7 +285,8 @@ A sale is reported to TaxJar only when **money is actually collected**, on the d
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | **Credit card, immediate charge** (`auth_capture`) | At checkout, on the order date                                                                                     |
 | **Credit card, authorize-only** (`auth_only`)      | At **capture** (admin captures the payment later), on the capture date — a voided authorization never files a sale |
-| **Check / Wire / Purchase Order**                  | When the admin **records the payment** (the order is invoiced and marked paid), on that date                       |
+| **Check / Wire**                                   | When the admin **records the payment** (the order is invoiced and marked paid), on that date                       |
+| **Credit Terms (NET30)**                           | At checkout, when the invoice is auto-created — the sale is on the books even though the customer pays later       |
 
 Filed transactions carry the customer's TaxJar ID (so exempt customers' sales file as exempt sales, not taxable-with-$0), and per-line product tax codes (installation services, software licensing) so category-level filings are accurate. If TaxJar is unreachable, the report is queued and retried automatically.
 

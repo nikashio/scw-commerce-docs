@@ -2,7 +2,7 @@
 
 ## Overview
 
-Credit Terms (Purchase Order / NET30) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
+Credit Terms (NET30 — labeled "Purchase Order" at checkout before July 2026) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
 
 > **Note:** This supersedes the older "set the property in HubSpot" workflow described further below. The HubSpot contact properties are now a **mirror** of the admin panel, not the source of truth. (Those lower sections predate the admin panel and are kept for historical context.)
 
@@ -15,7 +15,7 @@ Each approved customer carries a **Revalidate after** value (default 18 months),
 * their most recent order, or
 * the last time their credit-terms agreement was revalidated (they re-signed the agreement, or an admin pressed **Revalidate**).
 
-A customer can use the **Purchase Order (NET30)** option at checkout only when they are **Approved** _and_ that window has not expired. Once it expires, the Purchase Order option is hidden at checkout, rejected by the server if a request is submitted directly, and quote conversion to a PO order is blocked. A customer with no orders and no revalidation date on record never expires while approved.
+A customer can use the **Credit Terms (NET30)** option at checkout (labeled "Purchase Order (NET30)" before July 2026) only when they are **Approved** _and_ that window has not expired. Once it expires, the Credit Terms option is hidden at checkout, rejected by the server if a request is submitted directly, and quote conversion to a credit-terms order is blocked. A customer with no orders and no revalidation date on record never expires while approved.
 
 The Credit Terms table shows an **Active now / Inactive** badge per customer, plus the computed invalidation date and which event anchors it ("Last order ..." or "Re-signed ...").
 
@@ -67,7 +67,21 @@ Sets eligibility for up to **500 customers** in one call.
 * Duplicate emails in one request are rejected with `400` and a `duplicates` list.
 * Response `200`: `{ "ok": true, "updated": 42, "notFound": ["x@example.com"], "results": [{ "email": "...", "status": "updated" | "not_found" | "error" }] }`
 
-> **Note:** Customers must already exist in SCW Commerce. A contact that exists only in HubSpot and was never a store customer has no account to attach credit terms to, so the endpoint returns `customer_not_found` for them.
+> **Note:** Customers must already exist in SCW Commerce. A contact that exists only in HubSpot and was never a store customer has no account to attach credit terms to, so the endpoint returns `customer_not_found` for them. (Admins can create the account first with the **Create ecommerce account** button on the HubSpot contact card — see [Customer Accounts](customer-accounts.md).)
+
+***
+
+## Credit Terms Record — Agreement Copy, Notes, Xero Link
+
+Each row in **Admin → Operations → Credit Terms** has a **Record** button that opens the customer's credit-terms record. It holds three things (all optional):
+
+| Field | What it's for |
+| --- | --- |
+| **Signed agreement (PDF)** | Upload the customer's signed Credit Terms Agreement so the paperwork lives with the approval. The Record button shows a green dot when an agreement is on file, and the stored file opens via a short-lived secure link. Uploading a new file replaces the current one. |
+| **Notes** | Free-text internal notes about the account (context for approvals, collection history, special arrangements). Never shown to the customer. |
+| **Xero Contact ID** | The customer's Xero contact identifier, so finance can jump from the SCW record to the matching Xero contact. This is a reference field only — it does not connect to Xero. |
+
+Saving the Record dialog changes **only** these reference fields. It never touches the customer's approval, credit limit, or revalidation window, and it does not generate audit events or sync anything to HubSpot.
 
 ***
 
@@ -141,15 +155,15 @@ To remove a customer's ability to use Purchase Orders:
 
 ### Approved Customer (4 payment methods)
 
-> \[SCREENSHOT: Checkout showing Credit Card, Purchase Order (NET30), Check / Money Order, ACH / Wire Transfer]
+> \[SCREENSHOT: Checkout showing Credit Card, Credit Terms (NET30), Check / Money Order, ACH / Wire Transfer]
 
-The approved customer sees four payment methods: **Credit Card**, **Purchase Order (NET30)**, **Check / Money Order**, and **ACH / Wire Transfer**. The Purchase Order option shows the subtitle "Subject to credit approval."
+The approved customer sees four payment methods: **Credit Card**, **Credit Terms (NET30)** (labeled "Purchase Order (NET30)" before July 2026), **Check / Money Order**, and **ACH / Wire Transfer**. The Credit Terms option shows the subtitle "Subject to credit approval."
 
 ### Non-Approved Customer (3 payment methods)
 
-> \[SCREENSHOT: The checkout payment method section showing only three options: Credit Card, Check / Money Order, ACH / Wire Transfer — no Purchase Order. — images/checkout-payment-methods-not-approved.png]
+> \[SCREENSHOT: The checkout payment method section showing only three options: Credit Card, Check / Money Order, ACH / Wire Transfer — no Credit Terms. — images/checkout-payment-methods-not-approved.png]
 
-The Purchase Order option is completely hidden — the customer has no way to select it. The remaining three methods (**Credit Card**, **Check / Money Order**, **ACH / Wire Transfer**) are always available.
+The Credit Terms option is completely hidden — the customer has no way to select it. The remaining three methods (**Credit Card**, **Check / Money Order**, **ACH / Wire Transfer**) are always available.
 
 ***
 

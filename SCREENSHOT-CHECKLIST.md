@@ -13,9 +13,9 @@ Working list of every screenshot the docs still need. Not a published page (inte
 Drop the PNG at the listed path and the marker is ready to convert to an embed.
 
 - [ ] **credit-terms.md:26** — `images/hubspot-contact-credit-terms.png` — HubSpot Contact property panel showing **Approved for Credit Terms (Yes)** and **Credit Limit**.
-- [ ] **credit-terms.md:73** — `images/checkout-payment-methods-not-approved.png` — Checkout payment section showing only **three** options (Credit Card, Check/Money Order, ACH/Wire) — **no Purchase Order**.
+- [ ] **credit-terms.md:73** — `images/checkout-payment-methods-not-approved.png` — Checkout payment section showing only **three** options (Credit Card, Check/Money Order, ACH/Wire) — **no Credit Terms option**.
 - [ ] **checkout-payment-methods.md:43** — `images/checkout-credit-card-form.png` — Credit-card entry form with Card Number, MM/YY, CVV and the encrypted-card security notice.
-- [ ] **checkout-payment-methods.md:92** — `images/checkout-purchase-order-form.png` — Purchase Order form with the PO Number field and NET30 note.
+- [ ] **checkout-payment-methods.md:92** — `images/checkout-purchase-order-form.png` — Credit Terms form (formerly labeled Purchase Order) with the PO Number field and NET30 note.
 - [ ] **checkout-payment-methods.md:132** — `images/checkout-check-instructions.png` — Check/Money Order checkout instructions: payee, Asheville NC mailing address, 14-day auto-cancel warning.
 - [ ] **checkout-payment-methods.md:145** — `images/checkout-check-instruction-email.png` — Check payment instruction **email**: payee, Asheville NC address, memo instruction, 14-day cancellation warning.
 - [ ] **checkout-payment-methods.md:170** — `images/checkout-ach-wire-instructions.png` — ACH/Wire checkout instructions: bank details emailed after order, ships only after funds verified.

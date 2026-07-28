@@ -21,7 +21,7 @@ SCW CommerceOrder Placed Customer submits checkoutpending Order just createdCred
 | Status            | Meaning                                            | Who Triggers It                                              | What's Happening                                                      |
 | ----------------- | -------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
 | `pending`         | Order just created, payment not yet attempted      | System (automatic)                                           | Exists for milliseconds before payment result                         |
-| `pending_payment` | Waiting for offline payment (Check, Wire, or PO)   | System (automatic for offline methods)                       | Admin must invoice to proceed. **ShipEdge does NOT have this order.** |
+| `pending_payment` | Waiting for offline payment (Check, Wire, or a migrated credit-terms order) | System (automatic for offline methods)                       | Admin must invoice to proceed. **ShipEdge does NOT have this order.** New Credit Terms (NET30) orders skip this state — they auto-invoice at checkout. |
 | `authorized`      | Card authorized but not charged (auth-only mode)   | System (rare — only for auth-only transactions)              | Admin must capture to proceed                                         |
 | `paid`            | Payment successfully charged                       | System (Authorize.net confirms)                              | About to go to ShipEdge                                               |
 | `processing`      | Order accepted by ShipEdge, in the warehouse queue | System (ShipEdge confirms) or Admin (invoices offline order) | Warehouse team is picking & packing                                   |
@@ -59,7 +59,7 @@ Any status not in this map falls back to `pending` in HubSpot.
 **When the HubSpot Ecommerce Order is created**
 
 * **Credit Card orders** — the Ecommerce Order is enqueued after payment is approved. HubSpot displays local `paid` and `authorized` as `processing` because HubSpot has no separate paid/auth-only order status; ShipEdge acceptance then moves the local order to `processing`.
-* **Offline orders (Check, ACH / Wire, Purchase Order)** — the Ecommerce Order is created at checkout with status `pending`, and updates to `processing` after the admin invoices.
+* **Offline orders (Check, ACH / Wire)** — the Ecommerce Order is created at checkout with status `pending`, and updates to `processing` after the admin invoices. **Credit Terms (NET30) orders** are auto-invoiced, so they appear as `processing` right away.
 
 > **Sequencing note:** a status-change is only pushed to HubSpot once the order already has its HubSpot Ecommerce Order object id. If a transition happens before the initial `order.created` sync has created that object, the transition isn't enqueued separately — the new status is instead reflected when `order.created` syncs the order's current status.
 
@@ -102,20 +102,19 @@ Auth-only Admin captures the held card authorization before fulfillment beginsMa
 
 **Admin action required at the `authorized → paid` step.** See [Admin Actions](admin-actions.md).
 
-### Purchase Order (NET30) Flow
+### Credit Terms (NET30) Flow
 
-For approved B2B customers paying on NET30 terms. The order is created immediately but waits for the admin to invoice it after verifying the PO.
+For approved B2B customers paying on NET30 terms. (Labeled "Purchase Order (NET30)" before July 2026.) Since auto-invoicing shipped in July 2026, these orders **do not wait for an admin**: the credit limit is enforced at checkout, the invoice is created automatically (status Pending — paid later by the customer), emailed, and the order moves straight to Processing.
 
-Purchase order PO orders wait in pending payment until an admin invoices themNET30pending\_paymentPO submitted and saved Admin InvoicesPO verified against credit limit processing → shipped → deliveredShipEdge fulfillment path
+Credit terms NET30 orders auto-invoice at checkout and go straight to fulfillmentNET30Order placedCredit limit enforced, invoice auto-created and emailed processing → shipped → deliveredShipEdge fulfillment path
 
-| Transition                    | Trigger                                                              | Timing                                                         |
-| ----------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------- |
-| pending → pending\_payment    | Order placed with Purchase Order method                              | Instant (at checkout)                                          |
-| pending\_payment → processing | **Admin invoices the order** through the HubSpot action or admin API | When admin verifies the PO against the customer's credit limit |
-| processing → shipped          | ShipEdge creates shipping label                                      | When warehouse ships (webhook, with 5-minute fallback sync)    |
-| shipped → delivered           | Carrier confirms delivery                                            | When delivered (webhook, with 5-minute fallback sync)          |
+| Transition           | Trigger                                                                             | Timing                                                      |
+| -------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| pending → processing | Order placed on Credit Terms — **invoice auto-created and emailed**, ShipEdge push starts | Instant (at checkout)                                       |
+| processing → shipped | ShipEdge creates shipping label                                                     | When warehouse ships (webhook, with 5-minute fallback sync) |
+| shipped → delivered  | Carrier confirms delivery                                                           | When delivered (webhook, with 5-minute fallback sync)       |
 
-**No auto-cancellation** for PO orders — the order stays in `pending_payment` until an admin acts. See [Admin Actions](admin-actions.md) and [Credit Terms Management](credit-terms.md).
+**No auto-cancellation** for credit-terms orders. **Migrated (Magento) credit-terms orders** still follow the old manual flow: they wait in `pending_payment` until an admin invoices them. See [Admin Actions](admin-actions.md) and [Credit Terms Management](credit-terms.md).
 
 ### Check / Money Order Flow
 
@@ -155,7 +154,7 @@ ACH / wire transfer Wire orders ship after funds are verified or auto-cancel aft
 | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
 | Check / Money Order    | **14 days** in `pending_payment` | Status → `cancelled`; no ShipEdge order exists because the order was not invoiced |
 | ACH / Wire Transfer    | **21 days** in `pending_payment` | Status → `cancelled`; no ShipEdge order exists because the order was not invoiced |
-| Purchase Order (NET30) | **Never**                        | Stays in `pending_payment` until admin acts                                       |
+| Credit Terms (NET30)   | **Never**                        | Auto-invoiced at checkout; migrated Magento ones wait in `pending_payment` for an admin |
 | Credit Card            | **Never**                        | Payment is immediate                                                              |
 
 The auto-cancel process runs daily at 3 AM UTC.
@@ -167,7 +166,7 @@ The auto-cancel process runs daily at 3 AM UTC.
 | **Manual cancel / correction**        | Internal admin or engineering update | Any time before delivery — from `pending`, `pending_payment`, `authorized`, `paid`, `processing`, or `shipped`. The transition table also permits cancelling a `delivered` order (for example via a post-delivery full refund), so `delivered` is not strictly terminal |
 | **Auto-cancel — Check / Money Order** | System (daily cron at 3 AM UTC)      | After **14 days** in `pending_payment`                                                                                                                                                                                                                                  |
 | **Auto-cancel — ACH / Wire Transfer** | System (daily cron at 3 AM UTC)      | After **21 days** in `pending_payment`                                                                                                                                                                                                                                  |
-| **No auto-cancel**                    | —                                    | Credit Card orders (payment is immediate) and Purchase Order (NET30) orders (no time limit; waits for admin)                                                                                                                                                            |
+| **No auto-cancel**                    | —                                    | Credit Card orders (payment is immediate) and Credit Terms (NET30) orders (auto-invoiced at checkout; no time limit)                                                                                                                                                    |
 
 A cancelled order stays in HubSpot for reference. If the order had already been pushed to ShipEdge, the warehouse/admin team must also cancel or stop fulfillment in ShipEdge.
 
@@ -183,7 +182,7 @@ Admin payment actions are performed from the HubSpot action card when it is depl
 
 | Admin action                                      | Where to click                                      | Status transition                                                              | Side effects                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Convert quote to order** (offline methods only) | Quote Builder card on the Ecommerce Quote record    | Creates a new order in `pending_payment`                                       | This action handles only the offline payment methods on a quote (Check, ACH / Wire, or Purchase Order): it creates the order via `POST /api/admin/orders/from-quote`, creates a HubSpot Ecommerce Order, and emails the customer an order confirmation plus payment instructions. It does **not** handle credit-card quotes and does **not** generate a payment link — credit-card quotes are paid via the customer payment link through standard checkout, which produces a `paid` order. |
+| **Convert quote to order** (offline methods only) | Quote Builder card on the Ecommerce Quote record    | Creates a new order in `pending_payment` (Check / Wire) or straight to `processing` (Credit Terms — auto-invoiced) | This action handles only the offline payment methods on a quote (Check, ACH / Wire, or Credit Terms): it creates the order via `POST /api/admin/orders/from-quote`, creates a HubSpot Ecommerce Order, and emails the customer an order confirmation plus payment instructions. Credit-terms quote orders auto-invoice like checkout ones. It does **not** handle credit-card quotes and does **not** generate a payment link — credit-card quotes are paid via the customer payment link through standard checkout, which produces a `paid` order. |
 | **Invoice offline order**                         | HubSpot action card or direct admin API             | `pending_payment` → `processing`                                               | SCW Commerce creates the invoice and pushes the order to ShipEdge; HubSpot Ecommerce Invoice record created                                                                                                                                                                                                                                                                                                                                                                                |
 | **Capture auth-only credit card**                 | HubSpot action card or direct admin API             | `authorized` → `paid`                                                          | Authorize.net captures the held funds; SCW Commerce creates the invoice and pushes the order to ShipEdge                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Cancel order**                                  | Internal admin / engineering action                 | Any pre-delivery status → `cancelled`                                          | SCW Commerce updates the local order and HubSpot status; ShipEdge cancellation is separate if fulfillment already started                                                                                                                                                                                                                                                                                                                                                                  |

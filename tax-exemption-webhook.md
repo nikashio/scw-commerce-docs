@@ -111,7 +111,7 @@ Separate from the (removed) _inbound_ validation webhook described at the top of
 
 **The submission event fires for every submission — both customer self-service and admin-on-behalf** (both paths run through the same `createRequest`), so on-behalf requests still reach the ClickUp approval flow.
 
-All three events POST to **one shared Make hook** (configured by the `MAKE_TAX_EXEMPTION_WEBHOOK_URL` env var, overridable per-event in **Admin → Integrations → Make Webhooks**). The payload carries a top-level `status` field (`submitted` / `approved` / `rejected`) so a single Make scenario can branch on it. Each payload includes: the request id, the customer's id and email, the requested type and states, the applied type and states (on approval), the reject reason (on rejection), and `submitted_by` plus a derived `submitted_by_kind` (`customer` vs `admin`).
+All three events POST to **one shared Make hook** (configured by the `MAKE_TAX_EXEMPTION_WEBHOOK_URL` env var, overridable per-event in **Admin → Integrations → Make Webhooks**). The payload carries a top-level `status` field (`submitted` / `approved` / `rejected`) so a single Make scenario can branch on it. Each payload includes: the request id, the customer's id and email, the customer's **HubSpot contact id** (`hubspot_contact_id`) and **company** (both sent as `null` when not on file — added July 2026 so a Make scenario can look up the assigned account owner and loop them in), the requested type and states, the applied type and states (on approval), the reject reason (on rejection), and `submitted_by` plus a derived `submitted_by_kind` (`customer` vs `admin`).
 
 Delivery reuses the durable **Make integration outbox** (the same mechanism behind order- and refund-created webhooks):
 

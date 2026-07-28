@@ -2,7 +2,9 @@
 
 ## Overview
 
-For offline payment methods (Purchase Order, Check, Wire), the order sits in **Pending Payment** until an admin confirms the payment and invoices the order. This page covers the admin's day-to-day workflow.
+For **Check and Wire** orders, the order sits in **Pending Payment** until an admin confirms the payment and invoices the order. This page covers the admin's day-to-day workflow.
+
+> **Credit Terms (NET30) orders no longer need manual invoicing** (July 2026). Because those customers are pre-approved, the system auto-creates the invoice at checkout, emails it to the customer, and moves the order straight to Processing/ShipEdge. See [Checkout & Payment Methods](checkout-payment-methods.md). The manual steps below apply to Check and Wire orders — and to credit-terms orders migrated from Magento, which are not auto-invoiced.
 
 ***
 
@@ -28,7 +30,7 @@ _Ecommerce Orders list — add the Payment Method Type column to quickly identif
 
 | Payment Method Type | What to Do                                                              |
 | ------------------- | ----------------------------------------------------------------------- |
-| `purchase_order`    | Verify the PO Number against the customer's credit limit, then invoice  |
+| `purchase_order`    | (Credit Terms) Auto-invoiced at checkout — should not sit in Pending. A Pending one is either migrated from Magento (invoice manually) or worth investigating |
 | `check`             | Wait for the check to arrive and clear, then invoice                    |
 | `ach_wire`          | Check the bank portal for the transfer (match by Order #), then invoice |
 | `credit_card`       | Should not be in Pending — investigate if you see this                  |
@@ -47,7 +49,7 @@ Verify:
 
 * **Status:** Pending
 * **Payment Method Type:** The offline method used
-* **PO Number:** (for Purchase Orders) — verify against the customer's credit limit
+* **PO Number:** (for credit-terms orders) — verify against the customer's credit limit
 * **Total:** Matches the payment received
 
 ![An Ecommerce Order detail page in HubSpot showing the Order Actions panel with ORDER TOTAL, PAYMENT METHOD (purchase\_order), and INVOICES count — the left panel shows billing address fields and the right sidebar shows associated Contacts and Ecommerce Invoices.](.gitbook/assets/hubspot-order-pending-detail.png)
@@ -103,7 +105,7 @@ _After invoicing, the order status moves to Processing and the Ecommerce Invoice
 
 * **Check orders:** Automatically cancelled after **14 days** in Pending Payment
 * **Wire orders:** Automatically cancelled after **21 days** in Pending Payment
-* **Purchase Orders:** Never auto-cancelled — admin must act manually
+* **Credit Terms (NET30) orders:** Never auto-cancelled — and since auto-invoicing (July 2026) they move to Processing at checkout rather than waiting in Pending Payment
 
 This runs daily at 3 AM UTC. When an order is auto-cancelled:
 
@@ -119,15 +121,13 @@ There is no public cancel button in the current documented admin workflow. For a
 
 ***
 
-## Reviewing a Purchase Order
+## Reviewing a Credit Terms (NET30) Order
 
-When a PO order comes in:
+Since July 2026 these orders **auto-invoice at checkout** — the credit limit check (including open NET30 exposure) is enforced by the system before the order is created, so there is no manual gate. What an admin still does:
 
-1. **Check the PO Number** on the Ecommerce Order (`eo_po_number` property)
-2. **Check the customer's credit limit** — go to the associated Contact, find "Credit Limit" property
-3. **Verify the order total** doesn't exceed the credit limit
-4. **Check existing open PO orders** for this customer — make sure total outstanding credit doesn't exceed the limit
-5. If everything checks out, **invoice the order**
+1. **Monitor** — the order appears in HubSpot already in Processing with its Ecommerce Invoice attached; the PO Number is on `eo_po_number`
+2. **Collect** — the customer pays the emailed NET30 invoice; chase overdue invoices per normal AR process
+3. **Manual invoicing remains only for Magento-migrated credit-terms orders**, which follow the old flow: verify the PO number and credit limit, then invoice
 
 ![A HubSpot Contact record showing the About this Contact section — scroll to the SCW custom properties to find Approved for Credit Terms and Credit Limit values to verify before invoicing a PO order.](.gitbook/assets/hubspot-contact-credit-approved.png)
 
@@ -229,7 +229,8 @@ Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: ho
 
 | Scenario                                            | Action                                                                   | Result                                         |
 | --------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- |
-| PO order received, PO verified                      | Invoice the order                                                        | Status → Processing → Ships                    |
+| Credit Terms (NET30) order placed                   | Nothing — auto-invoiced at checkout                                      | Status → Processing → Ships; customer pays invoice |
+| Migrated (Magento) credit-terms order, PO verified  | Invoice the order                                                        | Status → Processing → Ships                    |
 | Check received and cleared                          | Invoice the order                                                        | Status → Processing → Ships                    |
 | Wire transfer confirmed in bank                     | Invoice the order                                                        | Status → Processing → Ships                    |
 | Check not received in 14 days                       | Nothing — auto-cancels                                                   | Status → Cancelled                             |

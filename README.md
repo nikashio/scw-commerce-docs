@@ -9,7 +9,7 @@ Welcome to the SCW Commerce documentation. This guide is for **sales representat
 | Role | What You'll Use This Guide For |
 |---|---|
 | **Sales Representative** | Building quotes, generating payment links, checking out on behalf of customers, managing credit terms |
-| **Administrator** | Invoicing offline payment orders, reviewing purchase orders, monitoring order status, managing customer accounts |
+| **Administrator** | Invoicing check/wire orders, monitoring credit-terms and order status, managing customer accounts |
 | **Operations / Shipping** | Understanding how orders flow from checkout to ShipEdge fulfillment |
 
 ---
@@ -31,7 +31,7 @@ This guide follows the natural order of how work flows through the system — fr
 6. [Admin Actions — Invoicing & Order Management](admin-actions.md) — How to invoice offline payment orders and manage the fulfillment pipeline
 
 ### Configuration
-7. [Credit Terms Management](credit-terms.md) — How to approve B2B customers for Purchase Order (NET30) payment
+7. [Credit Terms Management](credit-terms.md) — How to approve B2B customers for Credit Terms (NET30) payment
 8. [Customer Accounts](customer-accounts.md) — Customer login, registration, password reset, and order history
 
 ### Developer Reference
