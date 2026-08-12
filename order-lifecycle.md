@@ -35,6 +35,8 @@ SCW CommerceOrder Placed Customer submits checkoutpending Order just createdCred
 
 > **Recovery step in the fallback sync:** the ShipEdge order-sync cron does more than poll status. On each batch run it first re-pushes any fulfillment-ready orders (status `paid` or `processing`) that are missing a ShipEdge order id, then polls open orders for status updates. This means an order that failed to push to ShipEdge initially gets retried automatically rather than being stuck.
 
+> **In Store Pickup orders go to ShipEdge too.** SCW does not ship them — the customer collects at the counter — but the warehouse still picks and packs them, so ShipEdge must have the order to track that work. They follow the same status path as a shipped order and are sent with ShipEdge ship method `PICK-UP`. Orders whose contents never ship at all (service-only / no-shipment-required) and install-crew deliveries are the exception: those are never sent to ShipEdge.
+
 ***
 
 ## How Statuses Appear in HubSpot
