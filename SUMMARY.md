@@ -20,6 +20,7 @@
 
 ## Configuration
 
+* [Entitlement Request Workflows](entitlement-request-workflows.md)
 * [Credit Terms Management](credit-terms.md)
 * [Customer Accounts](customer-accounts.md)
 
