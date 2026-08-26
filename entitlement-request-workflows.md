@@ -35,6 +35,13 @@ An administrator can also add a member by hand on the company page in **Entitlem
 
 A **plain HubSpot association grants nothing**. A representative associating a contact with a company in the CRM is a sales note. It creates no membership and no entitlement on its own. It is still the thing an approved guest link rests on, which is why removing it takes the approval back.
 
+### What the Member Sees
+
+Membership is visible to the customer on two storefront surfaces, both resolved through the same functions the credit gate and tax computation use, so neither can promise something an order would be refused for:
+
+* **My Companies** (`/account/organizations`) lists the companies the customer can buy for and what each one grants: exempt states, whether NET30 is available and why not when it is not, and partner pricing. See [Customer Accounts](customer-accounts.md).
+* **"Who is this order for?"** at checkout is where the customer chooses between a personal order and a company order. A member of exactly one company has it preselected; a member of several picks explicitly. See [Checkout & Payment Methods](checkout-payment-methods.md).
+
 ### Removing Access
 
 | Membership | Effect of removing the HubSpot association |

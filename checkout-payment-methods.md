@@ -21,6 +21,35 @@ _Checkout payment-method selector showing Credit Card, Purchase Order (NET30), C
 
 ***
 
+## "Who is this order for?": Personal or Company
+
+A signed-in customer who is a member of at least one company sees a **"Who is this order for?"** section at checkout, above the payment methods. It decides whether the order is personal or bought for the company, and that choice drives tax and payment options for the rest of checkout.
+
+Every company offered is one the customer is a **member** of. A contact a rep merely associated with a company in HubSpot is not a member and never appears. See [Entitlement Request Workflows](entitlement-request-workflows.md) for how membership is granted.
+
+| Choice | What it applies |
+| --- | --- |
+| **Myself** | _"Sales tax applies. Pay by card, check, or ACH."_ The consumer path: no company exemption, no company credit terms. |
+| A company | The company's tax exemption (the row names the exempt states) and, when the company's credit terms are active, the option to bill the company account on NET30. |
+
+Each company row states both halves so the customer knows before the payment step whether the company account is on offer. When it is not, the row says why: the company is not set up to pay on account, or its credit terms are due for revalidation.
+
+### What Is Preselected
+
+* **Exactly one membership**: the company is preselected for the customer. This is deliberate: with one company there is only one thing they could have meant, and leaving it unselected charged tax to exempt buyers who never noticed the chooser.
+* **Two or more memberships**: the order stays on **Myself** until the customer picks. Guessing between an employer and a church could apply the wrong exemption to a real order.
+* **An explicit "Myself"** is remembered and never overridden by the preselect on a later page load.
+* **No memberships**: the section is not shown at all, so a consumer never sees an empty box implying they are missing something.
+* **Guests and quote payment links** do not see it. Neither has memberships to offer.
+
+The chooser is never a gate. If the choice cannot be saved, checkout continues as a **personal order** and the customer is told: _"We could not apply that company to this order. It will check out as a personal order."_
+
+The choice is stored on the cart, so tax computation, the credit-terms gate, and the order record all read the same answer. The customer can review the same information any time at **My Companies** (`/account/organizations`). See [Customer Accounts](customer-accounts.md).
+
+> \[SCREENSHOT: The checkout "Who is this order for?" section showing the Myself row and a company row with its tax and NET30 detail line - images/checkout-who-is-this-order-for.png]
+
+***
+
 ## Credit Card
 
 The standard payment method. Available to all customers.

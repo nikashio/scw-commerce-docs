@@ -164,6 +164,7 @@ _The /account page for a logged-in customer showing the sidebar navigation (My A
 | **Account Information** | `/account/profile`         | Edit name, phone, company (email is read-only — _"Email cannot be changed. Contact support if needed."_) |
 | **Change Password**     | `/account/change-password` | Update password via Cognito                                                                              |
 | **Tax Exemption**       | `/account/tax-exemption`   | View/manage tax-exemption status                                                                         |
+| **My Companies**        | `/account/organizations`   | The companies the customer can buy for, and what each one grants                                         |
 
 ***
 
@@ -230,6 +231,28 @@ Saved addresses are available:
 _The /account/addresses page showing saved shipping and billing address cards with Set as Default and Delete actions_
 
 > \[SCREENSHOT: Checkout showing saved address cards]
+
+***
+
+## My Companies
+
+**My Companies** (`/account/organizations`) is where a signed-in customer sees the companies they can buy for and what each one gives them. Sales tax and credit terms come from the company, not from the customer's personal account, so this page is the customer-facing answer to "why is this order taxed?" and "why can't I bill this to the company?".
+
+Every company listed is one the customer is a **member** of. A contact a rep merely associated with a company in HubSpot is not a member and does not appear here. See [Entitlement Request Workflows](entitlement-request-workflows.md) for how membership is granted.
+
+The page shows a card per company with up to three lines:
+
+| Line | What it says |
+| --- | --- |
+| **Sales tax** | The exempt states when the company holds an exemption ("Tax exempt on orders shipped to NC, SC. Sales tax still applies everywhere else."), or that sales tax applies. |
+| **Credit terms (NET30)** | Whether the customer can bill this company account at checkout. When they cannot, the message names the reason: the company is not set up to pay on account, its credit terms are due for revalidation (with the date), or the account is no longer linked to the company. Each reason points at the account manager rather than a generic failure. |
+| **Partner pricing** | Shown only when the company holds Trusted Installer status. Partner pricing applies to orders the customer places for that company. |
+
+A customer with no company memberships sees a single notice: _"Your account is not linked to a company. Orders you place are billed to you personally."_
+
+Every answer on this page is resolved through the same functions checkout and the credit gate use, so the page cannot offer something the order endpoint would then refuse.
+
+> \[SCREENSHOT: The /account/organizations My Companies page showing a company card with its Sales tax, Credit terms (NET30), and Partner pricing lines - images/customer-accounts-my-companies.png]
 
 ***
 
