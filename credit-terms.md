@@ -2,7 +2,7 @@
 
 ## Overview
 
-Credit Terms (NET30 — labeled "Purchase Order" at checkout before July 2026) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Entitlements → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
+Credit Terms (NET30, labeled "Purchase Order" at checkout before July 2026) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Entitlements → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
 
 > **Note:** This supersedes the older "set the property in HubSpot" workflow described further below. The HubSpot contact properties are now a **mirror** of the admin panel, not the source of truth. (Those lower sections predate the admin panel and are kept for historical context.)
 
@@ -99,7 +99,7 @@ Saving the Record dialog changes **only** these reference fields. It never touch
 
 ## Approving a Customer for Credit Terms (Legacy HubSpot workflow)
 
-> **⚠️ Deprecated — historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Entitlements → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them** — the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
+> **⚠️ Deprecated, historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Entitlements → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them:** the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
 
 ### Step 1: Open the Contact in HubSpot
 
@@ -150,7 +150,7 @@ with the cron authorization header.
 
 ## Revoking Credit Terms (Legacy HubSpot workflow)
 
-> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Entitlements → Credit Terms** panel by toggling the customer's approval off. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
+> **⚠️ Deprecated, historical reference only.** Revoke credit terms in the **SCW Commerce admin → Entitlements → Credit Terms** panel by toggling the customer's approval off. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
 
 To remove a customer's ability to use Purchase Orders:
 
