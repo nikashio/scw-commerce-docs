@@ -104,13 +104,13 @@ For pre-approved B2B customers only. The customer buys now and pays within 30 da
 
 ### Who Can See This Option
 
-Only customers with **"Approved for Credit Terms"** set to **Yes** on their HubSpot Contact record **and** today falling within the approval's optional active window (start/end dates). See [Credit Terms Management](credit-terms.md) for how to approve a customer and configure the validity window.
+Customers who hold active credit terms, either on their own account or through membership of a company that holds them, and whose revalidation window has not lapsed. Approval is owned by SCW Commerce (**Admin → Entitlements → Credit Terms** and **Admin → Entitlements → Organizations**); the HubSpot contact properties are a one-way mirror and setting them by hand changes nothing. See [Credit Terms Management](credit-terms.md) for how to approve a customer and configure the revalidation window.
 
-If the customer is not approved (or their approval window has not started or has expired), this option is hidden — they only see Credit Card, Check, and Wire. This check is enforced server-side at checkout as well; a direct API call cannot bypass it.
+If the customer is not approved (or their revalidation window has lapsed), this option is hidden and they only see Credit Card, Check, and Wire. This check is enforced server-side at checkout as well; a direct API call cannot bypass it.
 
-At order creation, SCW Commerce also enforces the customer's configured credit limit. The check includes existing open Purchase Order exposure, including shipped-but-unpaid NET30 orders. If the new order would exceed the limit, checkout rejects it before creating the order and shows: _"Purchase Order total exceeds the approved credit limit. Please contact your account manager."_
+At order creation, SCW Commerce also enforces the credit limit. The check includes existing open Purchase Order exposure, including shipped-but-unpaid NET30 orders. When the buyer is billing a company, that exposure is the **company's shared pool**: open purchase orders from every member count together. If the new order would exceed the limit, checkout rejects it before creating the order and shows: _"Purchase Order total exceeds the approved credit limit. Please contact your account manager."_
 
-Support should review the customer's credit limit, open credit-terms exposure, and invoice settlement state before retrying, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
+Support should review the credit limit, open credit-terms exposure (per account, or the company pool on the organization page), and invoice settlement state before retrying, increasing the limit, or directing the customer to Credit Card, Check, or ACH/Wire.
 
 ### Customer Experience
 

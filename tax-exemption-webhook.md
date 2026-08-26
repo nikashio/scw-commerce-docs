@@ -1,6 +1,8 @@
 # Tax-Exemption Management
 
-This page describes how a customer's tax-exempt status is set in SCW Commerce: how a customer requests an exemption, how an admin reviews and approves or rejects it, what approval does behind the scenes, and how organization-level exemptions cascade to many customers at once.
+This page describes how a customer's tax-exempt status is set in SCW Commerce: how a customer requests an exemption, how an admin reviews and approves or rejects it, what approval does behind the scenes, and how a company exemption reaches every member of that company.
+
+> **A tax exemption belongs to the company.** A person receives it by being a member of a company that holds one, either through an email domain match or through an administrator-approved guest link. A plain HubSpot association grants nothing. Exemptions approved for an individual account before the company model still work and are never re-decided. See [Entitlement Request Workflows](entitlement-request-workflows.md) for the membership model.
 
 > **Note — the external validation webhook was removed.** An earlier design accepted exemptions from an external doc-review system over a signed inbound webhook (`POST /api/webhooks/tax-exemption`, secured with `TAX_EXEMPTION_WEBHOOK_SECRET`). That endpoint, its signature helper, its validator, and the shared-secret env var were all removed (commit `ca65706a`, "drop external webhook; ExemptionSource = admin|hubspot\_legacy"). There is no external webhook to call any more — any request to the old URL returns `404`. Exemptions are now set entirely inside SCW Commerce through the admin review flow and the customer self-service request flow described below. HubSpot is **not** an input to exemption status; historical values imported before this system are simply marked `hubspot_legacy`.
 
@@ -18,7 +20,7 @@ A third field, `exemption_source`, records **how** the exemption was set:
 | `exemption_source` | Meaning                                                                                                                                                  |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `admin`            | Set by a staff member approving an exemption request in the admin UI. This is the authoritative, highest-precedence source.                              |
-| `org`              | Set automatically by an exempt-organization rule that matched the customer's email domain.                                                               |
+| `org`              | Set automatically by a company exemption reaching this account through its registered email domain.                                                      |
 | `hubspot_legacy`   | A value migrated in from HubSpot before this system existed. Not an active input — it simply records that the value predates the current flow.           |
 | `magento_legacy`   | A value migrated in from Magento during the historical import. Not an active input — treated the same way as `hubspot_legacy` for filtering and display. |
 
@@ -72,16 +74,18 @@ The detail page shows:
 
 If the customer pre-filled a requested type or states, those values pre-populate the approval form so the admin can confirm or adjust them.
 
-#### Scope banner — org-wide vs. per-account
+#### Scope banner: company-wide vs. per-account
 
 Before the Approve button, the review card shows a **scope banner** derived from the customer's email domain:
 
-* **Amber / "Organization-wide"** — the customer's email is on a corporate domain (not gmail, yahoo, etc.). Approving will call `upsertOrgForDomain` and cascade the exemption to **every existing and future account on that domain**. The banner names the domain so the admin can verify it before clicking.
+* **Amber / "Organization-wide"** means the customer's email is on a corporate domain (not gmail, yahoo, etc.). Approving will call `upsertOrgForDomain` and apply the exemption to **every existing and future account on that domain**. The banner names the domain so the admin can verify it before clicking.
 * **Gray / "Applies to … only"** — the customer's email is on a known public/webmail domain. Approving exempts only this account; no domain cascade occurs.
 
 The banner uses the same `extractEmailDomain` / `isPublicEmailDomain` helpers that `approveRequest` uses server-side, so the preview is never out of sync with what actually happens.
 
-When creating a request on behalf of a customer (`/admin/tax-exemption-requests/new`), the email field shows a helper note warning that a company domain will cascade company-wide — identical guidance, earlier in the flow.
+A buyer on a public/webmail address who genuinely purchases for a company reaches the company exemption a different way: a rep files **Link Guest Email to Company** on the HubSpot contact card, an admin approves it under **Requests → Membership Requests**, and the approved membership carries the company's exemption. Approving a per-account exemption for them instead creates a personal grant that no company change can take back.
+
+When creating a request on behalf of a customer (`/admin/tax-exemption-requests/new`), the email field shows a helper note warning that a company domain will apply company-wide. Identical guidance, earlier in the flow.
 
 ### Approving
 
@@ -140,26 +144,20 @@ For an admin approval the audit/customer rows are written with `source = "admin"
 
 ***
 
-## Exempt Organizations
+## Company Exemptions
 
-For B2B accounts where everyone on a company's email domain should be exempt, admins manage **exempt organizations** at **`/admin/tax-exempt-orgs`**.
+For B2B accounts where everyone at a company should be exempt, the exemption is held by the **company** and reaches people through **membership**.
 
-![The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains](.gitbook/assets/admin-tax-exempt-orgs.png)
+Approving an exemption request from a corporate email domain creates or updates the company exemption for that domain (`upsertOrgForDomain`) and applies it to every customer whose email domain matches, reusing the same trusted `applyExemption` path so every write is audited and TaxJar-synced, with `source = "org"`. New sign-ups whose email domain belongs to an exempt company are exempted automatically on account creation (a failure there is logged and never blocks sign-up).
 
-_The admin Exempt Organizations page showing the add/edit form (name, exemption type, states, comma-separated domains) and the list of existing organizations with their domains_
+A member whose own email is on a public/webmail domain reaches the same company exemption through an **administrator-approved guest link** rather than through the domain rule. A plain HubSpot association grants nothing.
 
-An exempt organization holds:
-
-* a **name**,
-* an **exemption type** and **states**, and
-* one or more **email domains** (e.g. `acme.com`).
-
-Creating or updating an organization **cascades** the exemption to every customer whose email domain matches one of the org's domains, reusing the same trusted `applyExemption` path (so every cascaded write is audited and TaxJar-synced) with `source = "org"`. New sign-ups whose email domain is owned by an org are exempted automatically on account creation (a failure there is logged and never blocks sign-up).
+Companies, their domains, their members, and their entitlements are managed at **Admin → Entitlements → Organizations** (`/admin/organizations`). The company page carries a **Revoke** action for the exemption and a **Remove** action per member, and both are audited.
 
 Two precedence rules are locked in:
 
-* **Admin beats org.** The cascade never overwrites a customer who is already exempt via a manual admin approval (`exemption_source = "admin"`).
-* **Deleting an org does not revoke exemptions.** Removing the org configuration leaves already-exempt customers exempt, so removing a rule never triggers a surprise tax change at checkout.
+* **Admin beats company.** A company exemption never overwrites a customer who is already exempt via a manual admin approval (`exemption_source = "admin"`).
+* **Removing the company configuration does not revoke exemptions.** Already-exempt customers stay exempt, so removing a rule never triggers a surprise tax change at checkout. Revoke the exemption explicitly when that is the intent.
 
 ***
 
@@ -171,7 +169,7 @@ A read-only view of every exempt customer lives at **`/admin/tax-exemptions`**.
 
 _The read-only Tax Exemptions list showing the exempt-customer count and a table of email, name, type, regions, source, validated-by, and document_
 
-It shows, per exempt customer: email, name, exemption type, regions, **source** (`admin` / `org` / `hubspot_legacy` / `magento_legacy`), who validated it, and a link to the supporting document. It is searchable by email and paginated. This page does not edit anything — exemptions are set through the request-approval flow and the exempt-organization rules described above; this list just reflects the result.
+It shows, per exempt customer: email, name, exemption type, regions, **source** (`admin` / `org` / `hubspot_legacy` / `magento_legacy`), who validated it, and a link to the supporting document. It is searchable by email and paginated. This page does not edit anything: exemptions are set through the request-approval flow and the company exemptions described above, and this list just reflects the result.
 
 ***
 

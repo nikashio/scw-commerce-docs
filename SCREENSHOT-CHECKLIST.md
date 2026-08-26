@@ -4,14 +4,15 @@ Working list of every screenshot the docs still need. Not a published page (inte
 
 **How to use:** capture each screenshot, save it to `images/<filename>` using the exact filename below, then replace the matching `> [SCREENSHOT: …]` marker in the doc with `![<caption>](images/<filename>)`.
 
-**Totals:** 18 wired-but-uncaptured · 19 unnamed markers · 4 wrong/duplicate re-shoots · 1 orphan to resolve. Several can be satisfied by reusing one capture (noted inline), so the real shooting list is smaller.
+**Totals:** 19 wired-but-uncaptured · 19 unnamed markers · 4 wrong/duplicate re-shoots · 1 orphan to resolve. Several can be satisfied by reusing one capture (noted inline), so the real shooting list is smaller.
 
 ---
 
-## ① Markers with a filename already assigned — file is missing (18)
+## ① Markers with a filename already assigned — file is missing (19)
 
 Drop the PNG at the listed path and the marker is ready to convert to an embed.
 
+- [ ] **entitlement-request-workflows.md:106** — `images/entitlement-admin-membership-queue.png` — Membership Requests queue: Pending / Approved / Rejected tabs, contact and company columns, and the **Personal email** marker on a free-email applicant.
 - [ ] **credit-terms.md:26** — `images/hubspot-contact-credit-terms.png` — HubSpot Contact property panel showing **Approved for Credit Terms (Yes)** and **Credit Limit**.
 - [ ] **credit-terms.md:73** — `images/checkout-payment-methods-not-approved.png` — Checkout payment section showing only **three** options (Credit Card, Check/Money Order, ACH/Wire) — **no Credit Terms option**.
 - [ ] **checkout-payment-methods.md:43** — `images/checkout-credit-card-form.png` — Credit-card entry form with Card Number, MM/YY, CVV and the encrypted-card security notice.

@@ -567,7 +567,7 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 - **Response (200):** `{ runId, enqueued }`
 - **Side effects:** HubSpot outbox rows created; delivery kicked off for each.
 
-> **Note — `/api/admin/tax-exempt-orgs` routes:** The `tax-exempt-org.service.ts` service exists but the corresponding admin API routes (`GET/POST /api/admin/tax-exempt-orgs`, `GET/PATCH/DELETE /api/admin/tax-exempt-orgs/[id]`) have not yet been built. Org management currently happens through direct DB writes or the admin UI if wired separately.
+> **Note: there are no `/api/admin/tax-exempt-orgs` routes.** The `tax-exempt-org.service.ts` service is still what applies a company exemption to a matching email domain (it runs inside exemption approval), but it has no admin API routes and no admin screen of its own. Companies, their domains, their members, and their entitlements are managed through **Admin → Entitlements → Organizations** (`/api/admin/organizations/*`).
 
 #### `GET /api/admin/tax-exemption-requests`
 

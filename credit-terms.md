@@ -2,9 +2,21 @@
 
 ## Overview
 
-Credit Terms (NET30 — labeled "Purchase Order" at checkout before July 2026) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Operations → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
+Credit Terms (NET30 — labeled "Purchase Order" at checkout before July 2026) allow approved B2B customers to place orders without paying upfront. Approval, the credit limit, and the **revalidation window** are managed in the **SCW Commerce admin → Entitlements → Credit Terms** panel. Every change is audit-logged and mirrored one-way to the customer's HubSpot contact (`approved_for_credit_terms`, `credit_limit`) for reference.
 
 > **Note:** This supersedes the older "set the property in HubSpot" workflow described further below. The HubSpot contact properties are now a **mirror** of the admin panel, not the source of truth. (Those lower sections predate the admin panel and are kept for historical context.)
+
+***
+
+## Where Credit Terms Live: the Company
+
+Credit terms belong to a **company**, and a person reaches them by being a **member** of that company. There are two ways to become a member: the person's own email domain is registered to the company, or an administrator approves a guest link filed from the HubSpot contact card. Both grant the same thing. A plain HubSpot association grants nothing.
+
+The company holds **one shared credit pool**. Every open purchase order from any member counts against the company's limit until the order is paid. A blank limit means uncapped. The revalidation window (18 months by default) is checked at order time along with the pool balance.
+
+Company membership and the shared pool are managed at **Admin → Entitlements → Organizations**. New approvals are worked from **Admin → Requests → Credit Terms Requests**. See [Entitlement Request Workflows](entitlement-request-workflows.md) for the request and approval flow.
+
+> **Grandfathered personal approvals.** Credit terms granted to an individual account before the company model still work exactly as they did, and are never re-decided. The HubSpot Storefront Account card labels which is which: **(personal)** for a grant on the contact's own account, **via `<company>`** for one that comes through a membership.
 
 ***
 
@@ -19,7 +31,7 @@ A customer can use the **Credit Terms (NET30)** option at checkout (labeled "Pur
 
 The Credit Terms table shows an **Active now / Inactive** badge per customer, plus the computed invalidation date and which event anchors it ("Last order ..." or "Re-signed ...").
 
-**Reactivating an expired customer:** when a customer re-signs the Credit Terms Agreement, open **Admin → Operations → Credit Terms**, find the customer, and press **Revalidate** (the button appears on approved but inactive rows). This stamps a fresh revalidation date and reactivates them immediately, no new order required. Newly approving a customer (flipping them from not approved to Approved) stamps the revalidation date automatically.
+**Reactivating an expired customer:** when a customer re-signs the Credit Terms Agreement, open **Admin → Entitlements → Credit Terms**, find the customer, and press **Revalidate** (the button appears on approved but inactive rows). This stamps a fresh revalidation date and reactivates them immediately, no new order required. Newly approving a customer (flipping them from not approved to Approved) stamps the revalidation date automatically.
 
 > **Note:** The revalidation window is enforced entirely in SCW Commerce. The revalidation date is not mirrored to HubSpot (only the approval flag and credit limit are).
 
@@ -73,7 +85,7 @@ Sets eligibility for up to **500 customers** in one call.
 
 ## Credit Terms Record — Agreement Copy, Notes, Xero Link
 
-Each row in **Admin → Operations → Credit Terms** has a **Record** button that opens the customer's credit-terms record. It holds three things (all optional):
+Each row in **Admin → Entitlements → Credit Terms** has a **Record** button that opens the customer's credit-terms record. It holds three things (all optional):
 
 | Field | What it's for |
 | --- | --- |
@@ -87,7 +99,7 @@ Saving the Record dialog changes **only** these reference fields. It never touch
 
 ## Approving a Customer for Credit Terms (Legacy HubSpot workflow)
 
-> **⚠️ Deprecated — historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Operations → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them** — the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
+> **⚠️ Deprecated — historical reference only.** Credit terms are now approved in the **SCW Commerce admin → Entitlements → Credit Terms** panel (see **Overview** and **Validity Window** above). The HubSpot-entry steps below predate the admin panel and are kept only for historical context. **Do not follow them** — the "2 AM UTC reconciliation cron" and the `GET /api/cron/sync-credit-terms` endpoint mentioned in Step 3 **no longer exist**, and setting the HubSpot property by hand does **not** change a customer's approval. Credit terms now flow one-way **SCW → HubSpot**; the inbound HubSpot webhook ignores credit-terms changes.
 
 ### Step 1: Open the Contact in HubSpot
 
@@ -138,7 +150,7 @@ with the cron authorization header.
 
 ## Revoking Credit Terms (Legacy HubSpot workflow)
 
-> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Operations → Credit Terms** panel by toggling the customer's approval off. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
+> **⚠️ Deprecated — historical reference only.** Revoke credit terms in the **SCW Commerce admin → Entitlements → Credit Terms** panel by toggling the customer's approval off. The HubSpot steps below are retired; editing the HubSpot property does **not** sync back to SCW.
 
 To remove a customer's ability to use Purchase Orders:
 
@@ -204,6 +216,10 @@ If the limit is exceeded, the order is not created and checkout shows: _"Purchas
 
 Leaving **Credit Limit** blank means the customer is approved for uncapped credit terms while their approval is active.
 
+When the buyer is billing a **company** rather than a personal approval, the same rules run against the company's shared pool: open purchase orders from every member of that company count together against the company limit, and the company's revalidation window applies. The pool balance is visible on the company page at **Admin → Entitlements → Organizations**.
+
+When existing per-customer approvals were converted into a company, the company took the **highest** credit limit among them, and any uncapped account overrode the ceiling entirely.
+
 ***
 
 ## Tax Exemptions
@@ -231,9 +247,11 @@ There are three ways a customer becomes exempt:
 
 An admin can create or edit an exemption directly from **Admin → Tax Exemptions** (`/admin/tax-exemptions`) without waiting for a customer request — for example when migrating a known wholesale account. This runs through the same `applyExemption()` path.
 
-**3. Exempt organization (email-domain rule)**
+**3. Company membership**
 
-SCW maintains a list of **tax-exempt organizations** keyed by email domain (**Admin → Tax-Exempt Orgs**, `/admin/tax-exempt-orgs`). Any customer whose email matches an exempt domain automatically inherits that organization's exemption type and exempt regions. This is useful for large accounts (e.g. a school district or government agency) where every employee buying with a `@org.gov` address should be exempt.
+A tax exemption approved for a company applies to every member of that company. Membership comes from an email domain match or from an administrator-approved guest link, and either one carries the exemption. This is what covers large accounts (a school district or a government agency) where everyone buying with an `@org.gov` address should be exempt, and it is also what covers the buyer on a personal address whom an admin has linked to the company.
+
+Companies and their members are managed at **Admin → Entitlements → Organizations**.
 
 For every path, the exemption value is one of:
 
@@ -262,7 +280,7 @@ Every customer's exemption carries a **source** so an admin can see how it was s
 | `exemption_source` | Meaning                                                                             |
 | ------------------ | ----------------------------------------------------------------------------------- |
 | `admin`            | Set by an admin via the review queue or the Tax Exemptions admin page               |
-| `org`              | Inherited automatically from a matching tax-exempt organization (email domain)      |
+| `org`              | Applied by a company exemption reaching this account through its email domain       |
 | `hubspot_legacy`   | Migrated from the previous Magento/HubSpot data — the default for pre-existing rows |
 
 Alongside the source, the customer record stores who validated it and when (`exemption_validated_by`, `exemption_validated_at`), a reference to the document on file (`exemption_document_reference`), and the last update time (`exemption_updated_at`). Every change is also written to an **append-only `tax_exemption_events` audit table**, so the full history of who changed an exemption and when is preserved.
@@ -273,7 +291,7 @@ Alongside the source, the customer record stores who validated it and when (`exe
 
 The exemption write path is **SCW Admin → SCW Database → TaxJar** — HubSpot is not involved.
 
-1. An admin approves a request (or an org rule matches), calling `applyExemption()`.
+1. An admin approves a request (or a company exemption reaches the account), calling `applyExemption()`.
 2. `applyExemption()` is **idempotent** — if the exemption type and regions are unchanged it does nothing (no DB write, no audit row, no TaxJar call).
 3. When the exemption changed, it pushes the customer record to the **TaxJar Customer API** (`POST/PUT /v2/customers/{id}`) — this is what makes TaxJar apply $0 tax during calculation — and stores the returned TaxJar customer id on `customers.taxjar_customer_id`. The TaxJar push runs whenever the new type is not `non_exempt`, or whenever a TaxJar record already exists for the customer (so revocations are pushed too).
 4. It writes `customers.exemption_type` / `customers.exempt_regions` (plus provenance fields) and appends a row to `tax_exemption_events`.
@@ -306,7 +324,7 @@ Tax exemption changes apply the moment an admin approves the request in the admi
 
 * **Exemptions are state-specific by default.** If you list specific states in the customer's exempt regions, the customer is exempt **only** in those states. To exempt a customer in **every** SCW nexus state, leave the exempt regions **empty**.
 * **Changes apply immediately on approval.** Approving an exemption request writes the database and pushes to TaxJar in the same operation — there is no waiting period and no daily reconciliation cron for tax exemptions.
-* **Exemptions are managed in SCW Commerce, not HubSpot.** There are no `tax_exemption_type` or `tax_exempt_regions` properties in HubSpot, and no webhook or cron that reads exemptions from HubSpot. All exemption changes go through the admin review queue (or an exempt-org email-domain rule).
+* **Exemptions are managed in SCW Commerce, not HubSpot.** There are no `tax_exemption_type` or `tax_exempt_regions` properties in HubSpot, and no webhook or cron that reads exemptions from HubSpot. All exemption changes go through the admin review queue, or reach an account through its company membership.
 * **Revoking an exemption** is done in the SCW admin panel — an admin sets the customer's exemption type back to `non_exempt` through the **Tax Exemption Requests** or **Tax Exemptions** admin UI. Because a TaxJar record already exists, the revocation is pushed to TaxJar too.
 
 ***
@@ -329,8 +347,9 @@ If a quote or order is still charging tax for a customer you set as exempt, work
    * If `taxjar_customer_id` is empty → the TaxJar customer record was never created. The record is created during admin approval (`applyExemption → syncCustomerExemption`), and only when the exemption is non-`non_exempt`. Re-run the approval / save flow for the customer to force creation.
 3. **Are you on staging with sandbox TaxJar?**
    * Sandbox and production TaxJar have **separate customer records**. A customer synced to prod TaxJar does **not** exist in sandbox TaxJar. Re-running the admin approval flow creates/updates whichever environment staging is currently pointed at.
-4. **Is the customer covered by an exempt-org rule?**
-   * If the customer's exemption should come from a tax-exempt organization, confirm their email domain matches an entry in **Admin → Tax-Exempt Orgs** and that the org's exempt regions include the ship-to state.
+4. **Is the customer covered by a company exemption?**
+   * Open the company at **Admin → Entitlements → Organizations** and confirm three things: the company holds an exemption, its exempt regions include the ship-to state, and this customer appears in the member list.
+   * If they are missing from the member list, their email domain is not registered to the company and no guest link has been approved for them. A HubSpot association on its own grants nothing. File **Link Guest Email to Company** from the contact card and approve it under **Requests → Membership Requests**.
 
 ***
 
@@ -392,7 +411,7 @@ Orders shipping to states **not** on this list are never taxed, regardless of ex
 
 ### Current Exempt Customer Data
 
-The system was seeded with exempt customers migrated from the previous Magento 2 platform. These migrated rows carry `exemption_source = 'hubspot_legacy'`, and each has its exempt regions (specific US states) already configured. New exemptions are managed through the SCW admin review queue going forward (`exemption_source = 'admin'`) or via tax-exempt organization email-domain rules (`exemption_source = 'org'`).
+The system was seeded with exempt customers migrated from the previous Magento 2 platform. These migrated rows carry `exemption_source = 'hubspot_legacy'`, and each has its exempt regions (specific US states) already configured. New exemptions are managed through the SCW admin review queue going forward (`exemption_source = 'admin'`) or reach an account from its company through a registered email domain (`exemption_source = 'org'`).
 
 > To get current counts by exemption type, query the production database:
 >
@@ -412,7 +431,7 @@ The system was seeded with exempt customers migrated from the previous Magento 2
 1. Check `customers.exemption_type` in the SCW Commerce database — is it set to something other than `non_exempt`?
 2. Check `customers.exempt_regions` — does it include the shipping state (or is it empty for a blanket exemption)?
 3. Confirm the admin has **approved** the customer's exemption request in **Admin → Tax Exemption Requests**. There are no HubSpot webhook subscriptions for tax exemptions and no daily tax-exemption cron — approval is what applies the exemption.
-4. If the exemption should come from an exempt org, confirm the customer's email domain matches an entry in **Admin → Tax-Exempt Orgs**.
+4. If the exemption should come from their company, open the company at **Admin → Entitlements → Organizations** and confirm the customer is in its member list. A HubSpot association on its own grants nothing; membership comes from a registered email domain or an approved guest link.
 
 **Tax is $0 for a customer who shouldn't be exempt:**
 
