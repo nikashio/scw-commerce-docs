@@ -140,6 +140,16 @@ The internal rejection reason is retained for the SCW team. It is not included i
 
 Every entitlement change is audited, whichever queue produced it.
 
+### Requested By
+
+Every Admin task that SCW Commerce raises in ClickUp (tax exemption, Trusted Installer, credit terms, company membership, and payment fraud holds) carries a **Requested By** person, and the matching #admin-requests post tags the same person:
+
+* When a member of staff filed the request (an administrator in SCW Admin, or a sales representative through the HubSpot card), Requested By is that staff member.
+* When the customer filed it, or the system raised it, Requested By is the HubSpot owner of the contact, or of the company when the contact has no owner.
+* When neither can be found, the field is left blank and the task description starts with "Requester not identified" followed by whatever name and email are known.
+
+SCW Commerce resolves this once when the request is filed and passes it to Make; the Make scenarios only look the person up in Slack and ClickUp. A person who is not in Slack is named in plain text with their email instead of being tagged.
+
 ## Company Membership
 
 ### Requesting a Guest Link
@@ -304,11 +314,16 @@ Rejection leaves the current terms unchanged, records the internal reason, sends
 
 ### The NET30 Application Chain
 
-A purchase order terms application still drives the downstream chain the sales and compliance teams work from:
+A purchase order terms application drives the downstream chain the sales and compliance teams work from:
 
-* An eSignatures agreement is raised for the credit terms paperwork.
-* A ClickUp task is created for the review.
-* A post lands in the **#admin-requests** Slack channel.
+* An eSignatures agreement is raised for the credit terms paperwork and sent to the signer named on the application.
+* A ClickUp task is created for the review in the **Waiting on Client** status, with the Requested By person set (see [Requested By](#requested-by)).
+* A post lands in the **#admin-requests** Slack channel. It names the company, says who the agreement was sent to, tags the salesperson, and links the task and the application.
+* SCW Commerce records the ClickUp task, the Slack thread, and the eSignatures contract on the application, so every later step can find them.
+
+When the client signs, SCW Commerce files the signed PDF onto the application automatically (it appears in the signed agreement slot on the review page), the ClickUp task moves to **To Do**, and the Slack thread gets a reply tagging the salesperson with a link to the application. If the request was already decided by then, the task is left alone and the thread says so.
+
+This is a ClickUp workflow gate, not an approval gate: an administrator can still approve or reject in SCW Admin at any time, and a missing agreement shows a warning on the approve button rather than blocking it. Requests filed by a sales representative from the HubSpot card do not send an agreement; their task starts in Waiting on Client and Admin moves it by hand.
 
 ## The HubSpot Storefront Account Card
 
