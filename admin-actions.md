@@ -193,37 +193,99 @@ _The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Reg
 
 ## Managing the Menu
 
-The **Menu** page (`/admin/menu`, under **Catalog** in the admin sidebar) manages the storefront menu tree: hierarchy, menu visibility, and mega-menu layout. Before this page existed, these changes required developer scripts. The old `/admin/categories` address still works and sends you here.
+The **Menu** page (`/admin/menu`, under **Catalog** in the admin sidebar) is the storefront navigation: the six headings across the top of the site, the groups inside each dropdown, and every link in them. It is its own list now. It is no longer the category tree, so you can add, rename, reorder, or drop a navigation entry without touching the catalog.
 
-The page is split into two panes: a searchable menu tree on the left, and an editor for the selected menu item on the right.
+The page is split into two panes: a searchable menu tree on the left, and an editor for the selected item on the right.
 
-Page SEO is no longer edited on this page. It moved to **Content**, described below.
+### Adding an item
 
-### Creating a menu item
+Click **New top-level item** (top right) for a new heading across the top of the site, or use a tree row's **⋯ → Add child** to add one inside an existing heading or group. New items are added at the end of their parent's list, so you will usually want to move them up afterwards.
 
-Click **New menu item** (top right) for a top-level entry, or use a tree row's **⋯ → Add child** to create one underneath a specific parent. Name and slug are required; the slug must be kebab-case (lowercase letters, numbers, single hyphens) and unique among its siblings. New entries are appended at the end of their parent's list.
+### What an item points at
 
-### Editing a menu item
+Every item has a **Label**, which is the text shoppers read, and a **Points at** setting, which is where clicking it takes them. There are four choices:
 
-Select an entry in the tree to edit its name, slug, active toggle, navigation settings (include in menu, mega-menu mode, custom URL, position), and image URL. A save bar appears when there are unsaved changes; switching to another entry with unsaved edits prompts for confirmation first.
+| Points at | Use it for |
+| ------------------------------ | ------------------------------------------------------------------------------------------- |
+| A category page | A catalog page such as Bullet or NVRs. Search for the category by name and pick it from the list; the editor shows the address it will link to |
+| A CMS page | A built page such as `about-us`. Type the path without the leading slash |
+| A URL | An internal path starting with `/`, or a full `https://` address for somewhere off the site |
+| Nothing, a section header | Group headings such as Products or Surveillance, which shoppers see as a label but cannot click |
 
-**Slug changes break old URLs.** Changing a slug shows a warning: the old URL is not redirected, so search engines and existing links to it will 404. Only change slugs deliberately.
+The label is independent of whatever the item points at, so renaming a category does not rename the menu entry, and renaming a menu entry does not rename the category.
 
-Category **descriptions** (the rich content on category pages) are not edited here. They are built as typed React components by the development team.
+Only internal paths and full `https://` addresses are accepted for a URL. Anything else is rejected with an inline message before it is saved.
 
-### Moving a menu item
+### Shown in the menu
 
-Use **⋯ → Move** on a tree row. Pick the new parent (or "Top level") and where the entry should sit among that parent's children. An entry can never be moved into itself or one of its own children. Moving preserves its products and its subcategories.
+The **Shown in the menu** switch hides an item without deleting it. Turning it off hides the item **and everything nested under it**, which is the quickest way to pull a whole dropdown group off the site temporarily. Hidden rows are marked in the tree.
 
-### Deleting a menu item
+### Reordering and re-parenting
 
-Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: how many subcategories and product assignments will be removed. **Deleting cascades**, so the entry and its entire subtree are permanently removed (same behavior as Magento). The products themselves are **not** deleted; they just lose the category assignment. Deleting a top-level entry additionally requires typing its name to confirm.
+Each tree row's **⋯** menu has three options:
+
+- **Move up** and **Move down** swap the item with its neighbour in the same list.
+- **Move to…** opens a picker of every possible parent, including **Top level**. The item lands last under its new parent, so use Move up to place it. Everything nested under it moves with it.
+
+### Removing an item
+
+Use the editor's **Remove from menu** button, or a tree row's **⋯ → Remove**. The confirmation says how many items are nested underneath, because they are removed too.
+
+**The page itself is not deleted, it just leaves the menu.** A removed item only stops appearing in the navigation. The category page, CMS page, or external site it pointed at is untouched and still reachable at its own address.
 
 ### When changes appear on the storefront
 
-- **Navigation / mega menu:** updates within about 5 minutes (menu cache).
+Menu changes appear on the storefront immediately. There is no waiting period and nothing to clear: save the item and reload the site to see it.
+
+***
+
+## Managing Categories
+
+The **Categories** page (`/admin/categories`, under **Catalog** in the admin sidebar) manages the catalog tree: which categories exist, how they nest, and what each one is called. It is the taxonomy products are filed under, not the navigation.
+
+The page is split into two panes: a searchable category tree on the left, and an editor for the selected category on the right.
+
+### What you can edit
+
+Select a category in the tree to edit:
+
+- **Name**, the category's name in the catalog and on its page.
+- **Slug**, the last part of its web address. It must be lowercase letters, numbers, and single hyphens, and unique among its siblings.
+- **Active**, which switches the category off. An inactive category is hidden from the storefront, along with everything under it.
+- **Position**, the order among its sibling categories. Lower numbers show first.
+- **Image URL**, the thumbnail used in category tiles.
+
+A save bar appears when there are unsaved changes, and switching to another category with unsaved edits asks you to confirm first.
+
+**Menu placement is not here any more.** Include in menu, mega-menu mode, and custom URL are gone from this editor. Whether a category appears in the site navigation, where it sits, and what it is labelled there are all decided on the **Menu** page.
+
+Category **descriptions**, the rich content on category pages, are not edited here either. They are built as typed React components by the development team.
+
+Page SEO is not edited here. It moved to **Content**, described below.
+
+### Creating a category
+
+Click **New category** (top right) for a top-level category, or use a tree row's **⋯ → Add child** to create one underneath a specific parent. Name and slug are both required.
+
+### Moving a category
+
+Use **⋯ → Move** on a tree row. Pick the new parent (or "Top level") and where the category should sit among that parent's children. A category can never be moved into itself or one of its own children. Moving preserves its products and its subcategories.
+
+### Deleting a category
+
+Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: how many subcategories and product assignments will be removed. **Deleting cascades**, so the category and its entire subtree are permanently removed (same behavior as Magento). The products themselves are **not** deleted; they just lose the category assignment. Deleting a top-level category additionally requires typing its name to confirm.
+
+**Deleting a category also removes any menu item pointing at it.** If the category appeared in the site navigation, that navigation entry disappears with it, along with anything nested under that entry. Check the **Menu** page first if you are not sure.
+
+### Slug changes break old URLs
+
+Changing a slug shows a warning: the old URL is not redirected, so search engines and existing links to it will 404. Only change slugs deliberately.
+
+### When changes appear on the storefront
+
 - **Category pages:** update within about 60 seconds.
 - **Search:** active categories are updated in site search immediately after a save; a full reindex also runs on every deploy.
+- **Navigation:** a category rename does not change its menu label, because the two are separate. Deleting a category does remove its menu entry, immediately.
 
 ***
 
