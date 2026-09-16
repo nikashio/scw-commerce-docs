@@ -191,37 +191,87 @@ _The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Reg
 
 ***
 
-## Managing Categories
+## Managing the Menu
 
-The **Categories** page (`/admin/categories`, under **Catalog** in the admin sidebar) manages the storefront category tree — hierarchy, menu visibility, and metadata. Before this page existed, category changes required developer scripts.
+The **Menu** page (`/admin/menu`, under **Catalog** in the admin sidebar) manages the storefront menu tree: hierarchy, menu visibility, and mega-menu layout. Before this page existed, these changes required developer scripts. The old `/admin/categories` address still works and sends you here.
 
-The page is split into two panes: a searchable category tree on the left, and an editor for the selected category on the right.
+The page is split into two panes: a searchable menu tree on the left, and an editor for the selected menu item on the right.
 
-### Creating a category
+Page SEO is no longer edited on this page. It moved to **Content**, described below.
 
-Click **New category** (top right) for a top-level category, or use a tree row's **⋯ → Add child** to create underneath a specific parent. Name and slug are required; the slug must be kebab-case (lowercase letters, numbers, single hyphens) and unique among its sibling categories. New categories are appended at the end of their parent's list.
+### Creating a menu item
 
-### Editing a category
+Click **New menu item** (top right) for a top-level entry, or use a tree row's **⋯ → Add child** to create one underneath a specific parent. Name and slug are required; the slug must be kebab-case (lowercase letters, numbers, single hyphens) and unique among its siblings. New entries are appended at the end of their parent's list.
 
-Select a category in the tree to edit its name, slug, active toggle, navigation settings (include in menu, mega-menu mode, custom URL, position), image URL, and SEO metadata (meta title/description/keywords). A save bar appears when there are unsaved changes; switching to another category with unsaved edits prompts for confirmation first.
+### Editing a menu item
 
-**Slug changes break old URLs.** Changing a slug shows a warning: the old URL is not redirected — search engines and existing links to it will 404. Only change slugs deliberately.
+Select an entry in the tree to edit its name, slug, active toggle, navigation settings (include in menu, mega-menu mode, custom URL, position), and image URL. A save bar appears when there are unsaved changes; switching to another entry with unsaved edits prompts for confirmation first.
 
-Category **descriptions** (the rich content on category pages) are not edited here — they are built as typed React components by the development team.
+**Slug changes break old URLs.** Changing a slug shows a warning: the old URL is not redirected, so search engines and existing links to it will 404. Only change slugs deliberately.
 
-### Moving a category
+Category **descriptions** (the rich content on category pages) are not edited here. They are built as typed React components by the development team.
 
-Use **⋯ → Move** on a tree row. Pick the new parent (or "Top level") and where the category should sit among that parent's children. A category can never be moved into itself or one of its own subcategories. Moving preserves the category's products and subcategories.
+### Moving a menu item
 
-### Deleting a category
+Use **⋯ → Move** on a tree row. Pick the new parent (or "Top level") and where the entry should sit among that parent's children. An entry can never be moved into itself or one of its own children. Moving preserves its products and its subcategories.
 
-Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: how many subcategories and product assignments will be removed. **Deleting cascades** — the category and its entire subtree are permanently removed (same behavior as Magento). The products themselves are **not** deleted; they just lose the category assignment. Deleting a top-level category additionally requires typing the category's name to confirm.
+### Deleting a menu item
+
+Use **⋯ → Delete**. The confirmation dialog shows the blast radius first: how many subcategories and product assignments will be removed. **Deleting cascades**, so the entry and its entire subtree are permanently removed (same behavior as Magento). The products themselves are **not** deleted; they just lose the category assignment. Deleting a top-level entry additionally requires typing its name to confirm.
 
 ### When changes appear on the storefront
 
 - **Navigation / mega menu:** updates within about 5 minutes (menu cache).
 - **Category pages:** update within about 60 seconds.
 - **Search:** active categories are updated in site search immediately after a save; a full reindex also runs on every deploy.
+
+***
+
+## Content
+
+The **Content** page (`/admin/content`, under **Catalog** in the admin sidebar) lists the pages the storefront serves, and it is where page SEO is edited. It has two tabs: **Categories** and **CMS pages**.
+
+### Categories tab
+
+One row per category that renders as a page. Menu-only rows (section headers, redirects, links out to another address) are left out, because they have no page of their own.
+
+Each row shows the page name, the path the storefront serves it at, and the parent chain above it. The parent chain is how you tell apart two pages whose names or slugs look the same.
+
+**Status** says whether the page is reachable:
+
+| Status | Meaning |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| Live | The storefront serves this page |
+| Hidden | The category itself is switched off, so nothing is served |
+| Parent hidden | The category is on, but a category above it is off, so nothing is served |
+| CMS page wins | A built CMS page sits at the same path and is served instead, so this page and its SEO never appear |
+
+**SEO** says where the live page takes its meta tags from:
+
+| SEO | Meaning |
+| ---------- | ------------------------------------------------------------------------------------- |
+| Typed page | The built page supplies all three meta tags, so nothing stored here is used |
+| Partly typed | The built page supplies some meta tags; the stored values fill in the rest |
+| Custom | The meta tags stored on this page are the ones used |
+| Default | Nothing is stored, so the site falls back to its defaults |
+| Not shown | A CMS page wins at this path, so none of this is used |
+
+Search filters by name or path. **View** opens the live page in a new tab.
+
+### Edit SEO
+
+Click **Edit SEO** on a row to set the meta title, meta description, and meta keywords for that page. The header repeats the parent chain and the storefront path, so you can confirm which page you are editing.
+
+Two notices can appear:
+
+- **A typed page value is already in use.** When the built page sets a meta tag itself, the field says so and quotes the value visitors actually see. What you type is still saved, but it will not show on the live page until the development team changes the built page.
+- **A CMS page is published at this path.** Shown in amber above the form. The page you are editing is never served, so its SEO has no effect anywhere.
+
+Saves show up on the live page within about a minute.
+
+### CMS pages tab
+
+Every built CMS page, listed by path. These are **read only** here: their content and their SEO live in code, and only the development team can change them. **View** opens one in a new tab.
 
 ***
 
