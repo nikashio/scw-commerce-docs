@@ -16,7 +16,22 @@ The company holds **one shared credit pool**. Every open purchase order from any
 
 Company membership and the shared pool are managed at **Admin → Entitlements → Organizations**. New approvals are worked from **Admin → Requests → Credit Terms Requests**. See [Entitlement Request Workflows](entitlement-request-workflows.md) for the request and approval flow.
 
-> **Grandfathered personal approvals.** Credit terms granted to an individual account before the company model still work exactly as they did, and are never re-decided. The HubSpot Storefront Account card labels which is which: **(personal)** for a grant on the contact's own account, **via `<company>`** for one that comes through a membership.
+### One pool per business
+
+Anyone who belongs to a company buys on the **company's** credit, never on a personal approval of their own. Personal credit terms are only for buyers who belong to no company, which in practice means people on a personal email address (Gmail, Yahoo and the like) that no company can own.
+
+What that means day to day:
+
+* **Admin → Entitlements → Credit Terms** shows a company member as "Orders on `<company>`'s credit" with the company's limit and an **Open company** link. There is nothing to approve on that row; change the limit or approval on the company page.
+* If the company has no credit yet, the row says so. Approve credit on the company page and every member can order on it.
+* **Add credit terms** will not approve a company member personally. It shows which company they belong to instead.
+* When reviewing a request under **Credit Terms Requests**, an applicant who belongs to a company must be approved onto a company. The "this person only" choice is not offered for them.
+* At checkout, a member who picks **Myself** under "Who is this order for?" is told to choose their company to pay by purchase order.
+* When a rep converts a quote for a company member, the order is billed to the company. If the company has no credit yet, the rep is told to approve the company.
+
+A few personal approvals that predate this rule belong to people whose company has no credit of its own. Those keep working, and can still be edited or removed on the Credit Terms screen, until the company is approved.
+
+The HubSpot Storefront Account card labels which is which: **(personal)** for a grant on the contact's own account, **via `<company>`** for one that comes through a membership.
 
 ***
 
@@ -58,6 +73,7 @@ Request body:
 * `email` and `approved` are required. `creditLimit`, `revalidationMonths`, and `note` are optional: when omitted, the customer's current values are preserved. Sending `creditLimit: null` (or an empty string) clears the limit.
 * Response `200`: `{ "ok": true, "customerId": 123 }`
 * Response `404`: `{ "error": "customer_not_found" }` (the email does not match a store customer)
+* Response `409`: `{ "error": "company_member", "message": "...", "organizationId": 123 }` when the email belongs to a company member who is not already approved. Their credit is set on the company instead (see "One pool per business" above).
 * Response `400`: `{ "error": "validation_error", ... }` for a malformed body
 
 ### Mass set (bulk): `POST /api/admin/credit-terms/bulk`
@@ -77,7 +93,8 @@ Sets eligibility for up to **500 customers** in one call.
 * Each item takes the same fields as the by-email endpoint (minus `note`, which applies to the whole batch).
 * Items are processed independently: a customer that is not found (or fails) never blocks the rest of the batch.
 * Duplicate emails in one request are rejected with `400` and a `duplicates` list.
-* Response `200`: `{ "ok": true, "updated": 42, "notFound": ["x@example.com"], "results": [{ "email": "...", "status": "updated" | "not_found" | "error" }] }`
+* Response `200`: `{ "ok": true, "updated": 42, "notFound": ["x@example.com"], "results": [{ "email": "...", "status": "updated" | "not_found" | "company_member" | "error" }] }`
+* `company_member` means the email belongs to a company member who is not already approved; nothing was changed for them.
 
 > **Note:** Customers must already exist in SCW Commerce. A contact that exists only in HubSpot and was never a store customer has no account to attach credit terms to, so the endpoint returns `customer_not_found` for them. (Admins can create the account first with the **Create ecommerce account** button on the HubSpot contact card — see [Customer Accounts](customer-accounts.md).)
 
