@@ -310,6 +310,8 @@ An administrator can file the same request from **Credit Terms Requests > New re
 
 Approval grants NET30 purchase order terms with the selected limit and revalidation window. It records the credit audit event, schedules the HubSpot update, emails the customer, and creates a `credit_terms_request.approved` Make event.
 
+When the approval goes to a company that has no AP contact yet, the accounts payable email from the application becomes the company's AP contact, with an audit entry on the company page. An AP contact the company already has is never replaced.
+
 Rejection leaves the current terms unchanged, records the internal reason, sends only the customer-facing note or standard rejection copy, and creates a `credit_terms_request.rejected` event.
 
 ### The NET30 Application Chain
