@@ -245,28 +245,32 @@ When existing per-customer approvals were converted into a company, the company 
 
 Tax exemptions allow qualifying B2B customers to check out without paying sales tax in states where they hold a valid exemption. Common exempt customer types include wholesale/reseller businesses, government entities, and non-profit organizations.
 
-Tax exemptions are **not** managed through HubSpot. They are managed through the **admin review queue inside SCW Commerce**. A customer (or an admin) submits an exemption request with supporting documents, an admin reviews and approves it in the admin panel, and approval immediately writes the customer record and pushes the exemption to TaxJar, which then applies $0 tax automatically during checkout.
+Tax exemptions are **not** managed through HubSpot. They are managed through the **admin review queue inside SCW Commerce** and on the company page. A customer (or an admin) submits an exemption request with supporting documents, an admin reviews and approves it in the admin panel, and the exemption applies from the next order.
+
+Exemptions belong to **companies**. An order is exempt when the company it is for holds an exemption covering the ship-to state. The company is the one the buyer picks at checkout ("Who is this order for?"), else the company the HubSpot quote was written for, else the buyer's only company, else the company that owns their email domain. Personal exemptions apply only to buyers on a free email address (gmail, yahoo, and similar), such as a church volunteer. See [Which Exemption an Order Gets](tax-exemption-webhook.md#which-exemption-an-order-gets) for the full rule.
 
 ***
 
 ### How a Tax Exemption Gets Set Up
 
-There are three ways a customer becomes exempt:
+There are three ways an exemption is set up:
 
 **1. Customer-submitted request (self-service)**
 
 1. A logged-in customer submits their exemption documents from the account portal (`POST /api/account/tax-exemption`).
 2. The request lands in the admin review queue.
 3. An admin opens **Admin → Tax Exemption Requests** (`/admin/tax-exemption-requests`), reviews the certificate, and approves or rejects it.
-4. On approval (`POST /api/admin/tax-exemption-requests/[id]/approve`), the system calls `applyExemption()`, which writes the customer's exemption type and exempt regions to the database and pushes the record to TaxJar.
+4. On approval (`POST /api/admin/tax-exemption-requests/[id]/approve`), the exemption lands on a company or a person:
+   * **Company email**: always on a company. That is the company that owns the email domain unless the admin picks another one. If no company owns the domain yet, approval creates one for it. "This person only" is not offered.
+   * **Free email**: on the person's own account ("This person only"), which is also pushed to TaxJar. If the admin picks a company, the exemption goes on that company, the applicant becomes a member, and the applicant also gets the exemption as their own.
 
-**2. Admin-created exemption**
+**2. Admin-set company exemption**
 
-An admin can create or edit an exemption directly from **Admin → Tax Exemptions** (`/admin/tax-exemptions`) without waiting for a customer request — for example when migrating a known wholesale account. This runs through the same `applyExemption()` path.
+An admin can set or change a company's exemption type, exempt states, and certificate expiry directly on the company page at **Admin → Entitlements → Organizations**, without waiting for a request. **Admin → Tax Exemptions** is read-only.
 
-**3. Company membership**
+**3. Company membership and email domain**
 
-A tax exemption approved for a company applies to every member of that company. Membership comes from an email domain match or from an administrator-approved guest link, and either one carries the exemption. This is what covers large accounts (a school district or a government agency) where everyone buying with an `@org.gov` address should be exempt, and it is also what covers the buyer on a personal address whom an admin has linked to the company.
+A company's exemption reaches everyone who buys for it: its members (email domain match, approved guest link, or added by an admin), every account on its email domains, and every HubSpot quote written for it. This is what covers large accounts (a school district or a government agency) where everyone buying with an `@org.gov` address should be exempt, and it is also what covers the buyer on a personal address whom an admin has linked to the company. Nothing is copied onto people's accounts: tax reads the company on every order.
 
 Companies and their members are managed at **Admin → Entitlements → Organizations**.
 
@@ -279,7 +283,7 @@ For every path, the exemption value is one of:
 
 The **exempt regions** are a comma-separated list of state codes (e.g. `CA,NY,TX`):
 
-* **Leave exempt regions EMPTY** to exempt the customer in **every nexus state** (blanket exemption).
+* **At least one state is required.** Empty exempt regions mean **not exempt anywhere**. There is no blanket "every state" exemption; select every state the certificate covers.
 * **List specific states** for partial exemption (e.g., a wholesaler with a KY cert but not NC → set `KY` → they'll still pay NC tax).
 
 > **Warning:** Never approve an exempt type without a valid exemption certificate on file. If the customer is audited, SCW pays the unpaid tax.
@@ -292,13 +296,17 @@ _The SCW admin Tax Exemption Requests review queue showing a pending request wit
 
 ### Exemption Provenance & Audit Trail
 
-Every customer's exemption carries a **source** so an admin can see how it was set:
+A company's exemption (type, states, certificate expiry) is stored on the company, and every change to it is recorded in the company's edit history in **Admin → Entitlements → Organizations**.
 
-| `exemption_source` | Meaning                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| `admin`            | Set by an admin via the review queue or the Tax Exemptions admin page               |
-| `org`              | Applied by a company exemption reaching this account through its email domain       |
-| `hubspot_legacy`   | Migrated from the previous Magento/HubSpot data — the default for pre-existing rows |
+An exemption on a customer's own account carries a **source** so an admin can see how it was set:
+
+| `exemption_source` | Meaning |
+| ------------------ | ------- |
+| `admin`            | A personal exemption approved by an admin in the review queue |
+| `org`              | A legacy copy of a company exemption, written onto member accounts before exemptions moved to companies. Tax ignores it and reads the company. No new `org` rows are written. |
+| `hubspot_legacy`   | Migrated from the previous Magento/HubSpot data (the default for pre-existing rows). Treated as a personal exemption. |
+
+A personal exemption (`admin` or `hubspot_legacy`) applies only while the account's email is a free email. On a company email it is not applied, and **Admin → Tax Exemptions** marks it **Not applied: company email**.
 
 Alongside the source, the customer record stores who validated it and when (`exemption_validated_by`, `exemption_validated_at`), a reference to the document on file (`exemption_document_reference`), and the last update time (`exemption_updated_at`). Every change is also written to an **append-only `tax_exemption_events` audit table**, so the full history of who changed an exemption and when is preserved.
 
@@ -306,24 +314,29 @@ Alongside the source, the customer record stores who validated it and when (`exe
 
 ### How the Sync Works
 
-The exemption write path is **SCW Admin → SCW Database → TaxJar** — HubSpot is not involved.
+HubSpot is not an input to tax exemption. There are two write paths:
 
-1. An admin approves a request (or a company exemption reaches the account), calling `applyExemption()`.
-2. `applyExemption()` is **idempotent** — if the exemption type and regions are unchanged it does nothing (no DB write, no audit row, no TaxJar call).
-3. When the exemption changed, it pushes the customer record to the **TaxJar Customer API** (`POST/PUT /v2/customers/{id}`) — this is what makes TaxJar apply $0 tax during calculation — and stores the returned TaxJar customer id on `customers.taxjar_customer_id`. The TaxJar push runs whenever the new type is not `non_exempt`, or whenever a TaxJar record already exists for the customer (so revocations are pushed too).
-4. It writes `customers.exemption_type` / `customers.exempt_regions` (plus provenance fields) and appends a row to `tax_exemption_events`.
+* **Company exemption: SCW Admin → SCW Database.** Approval (or an edit on the company page) writes the exemption onto the company. Nothing goes to TaxJar: when the order's company covers the ship-to state, SCW sets tax to $0 itself.
+* **Personal exemption (free email only): SCW Admin → SCW Database → TaxJar.**
+  1. An admin approves a request as "This person only" (or approves a free-email applicant for a company), calling `applyExemption()`.
+  2. `applyExemption()` is **idempotent**: if the exemption type and regions are unchanged it does nothing (no DB write, no audit row, no TaxJar call).
+  3. When the exemption changed, it pushes the customer record to the **TaxJar Customer API** (`POST/PUT /v2/customers/{id}`), which is what lets TaxJar apply the exemption during calculation, and stores the returned TaxJar customer id on `customers.taxjar_customer_id`. The TaxJar push runs whenever the new type is not `non_exempt`, or whenever a TaxJar record already exists for the customer (so revocations are pushed too).
+  4. It writes `customers.exemption_type` / `customers.exempt_regions` (plus provenance fields) and appends a row to `tax_exemption_events`.
 
-Changes take effect **immediately** on approval — there is no daily reconciliation cron for tax exemptions (the 2 AM UTC cron reconciles credit terms only).
+SCW Commerce then updates the display-only HubSpot contact properties `tax_exemption_type` and `tax_exempt_regions` through the outbox, with the same answer checkout uses. See [HubSpot Contact Properties](tax-exemption-webhook.md#hubspot-contact-properties).
+
+Changes take effect **immediately**: there is no daily reconciliation cron for tax exemptions (the 2 AM UTC cron reconciles credit terms only).
 
 ### Applying Changes Immediately
 
-Tax exemption changes apply the moment an admin approves the request in the admin panel — there is no separate sync step or cron endpoint to trigger. To re-push a customer to TaxJar (for example after a TaxJar environment switch), an admin re-runs the approval / save flow for that customer.
+Tax exemption changes apply from the next order and the next quote price once an admin approves the request or saves the company. There is no separate sync step or cron endpoint to trigger. To re-push a personal exemption to TaxJar (for example after a TaxJar environment switch), an admin re-runs the approval for that customer.
 
 ### What the Customer Sees
 
-* At checkout, if the customer is exempt in the shipping destination state, sales tax shows as **$0**
-* No special action is required from the customer — the exemption applies automatically
-* If the customer is not exempt in the shipping state, normal tax rates apply
+* At checkout, if the company the order is for covers the shipping destination state (or, for a free-email buyer, their personal exemption does), sales tax shows as **$0**
+* No special action is required from the customer: the exemption applies automatically
+* If the order is not exempt in the shipping state, normal tax rates apply
+* The account's **Tax Exemption** page and **My Companies** show the same answer checkout uses
 
 ***
 
@@ -339,34 +352,41 @@ Tax exemption changes apply the moment an admin approves the request in the admi
 
 ### Important Notes
 
-* **Exemptions are state-specific by default.** If you list specific states in the customer's exempt regions, the customer is exempt **only** in those states. To exempt a customer in **every** SCW nexus state, leave the exempt regions **empty**.
-* **Changes apply immediately on approval.** Approving an exemption request writes the database and pushes to TaxJar in the same operation — there is no waiting period and no daily reconciliation cron for tax exemptions.
-* **Exemptions are managed in SCW Commerce, not HubSpot.** There are no `tax_exemption_type` or `tax_exempt_regions` properties in HubSpot, and no webhook or cron that reads exemptions from HubSpot. All exemption changes go through the admin review queue, or reach an account through its company membership.
-* **Revoking an exemption** is done in the SCW admin panel — an admin sets the customer's exemption type back to `non_exempt` through the **Tax Exemption Requests** or **Tax Exemptions** admin UI. Because a TaxJar record already exists, the revocation is pushed to TaxJar too.
+* **Exemptions are per state.** An exemption covers **only** the states listed in its exempt regions. Empty exempt regions mean **not exempt anywhere**. List each state the certificate covers.
+* **The company decides, not the person.** A buyer on a company email always uses their company's exemption, and a personal exemption on a company email is never applied. Personal exemptions are for free-email buyers only.
+* **Changes apply immediately on approval.** There is no waiting period and no daily reconciliation cron for tax exemptions.
+* **Exemptions are managed in SCW Commerce, not HubSpot.** The HubSpot contact properties `tax_exemption_type` and `tax_exempt_regions` are **display only**: SCW writes the same answer checkout uses, and editing them in HubSpot changes nothing. No webhook or cron reads exemptions from HubSpot.
+* **Revoking a company exemption** is done with **Revoke** on the company page in **Admin → Entitlements → Organizations**. Orders for that company are taxed from then on. The admin has no revoke control for a personal exemption: **Tax Exemption Requests** can only amend the type and states, and **Tax Exemptions** is read-only. Ask engineering to clear one.
 
 ***
 
-### Troubleshooting — Tax Still Charged When Customer Is Marked Exempt
+### Troubleshooting: Tax Still Charged When Customer Is Marked Exempt
 
 If a quote or order is still charging tax for a customer you set as exempt, work through these in order:
 
-1. **Is the exempt region the same as the ship-to state?**
-   * A customer exempt only in TN (exempt regions = `TN`) will still pay IL tax on an IL order. This is correct behavior.
-   * Fix: clear the restrictive state(s) for a blanket exemption, or add the ship-to state to the customer's exempt regions.
-2. **Has the exemption actually been approved?**
-   *   Check `customers.exemption_type` in the SCW Commerce database by email:
+1. **Which company is the order for?** The first match wins:
+   * the company the buyer picked at checkout under "Who is this order for?" (a pick beats everything, even when another company, such as the one owning their email domain, would exempt them);
+   * on a quote, the company SCW picked for the quote (see [Quote Builder](quote-builder.md)). That HubSpot company counts only when it is linked to a company in **Admin → Entitlements → Organizations**;
+   * the buyer's only company. A member of two or more companies has none by default and must pick at checkout;
+   * the company that owns the buyer's email domain.
+
+   The buyer must be signed in (or on a quote payment link). An email typed at guest checkout never makes an order exempt.
+2. **Does that company cover the ship-to state?**
+   * Open the company at **Admin → Entitlements → Organizations** and confirm it holds an exemption and its exempt regions include the ship-to state.
+   * A company exempt only in TN (exempt regions = `TN`) still pays IL tax on an IL order. This is correct behavior. Fix: add the ship-to state to the company's exempt regions when the certificate covers it.
+   * If the buyer should belong to the company but is not a member and is not on its email domain, file **Link Guest Email to Company** from the contact card and approve it under **Requests → Membership Requests**. A HubSpot association on its own grants nothing.
+3. **Is it a personal exemption?** Personal exemptions apply only to free-email buyers (gmail, yahoo, and similar).
+   *   Check the account in the SCW Commerce database by email:
 
        ```sql
        SELECT id, email, exemption_type, exempt_regions, taxjar_customer_id, exemption_source
        FROM customers WHERE email = '<customer-email>';
        ```
+   * If **Admin → Tax Exemptions** shows **Not applied: company email**, the buyer is on a company email and only their company's exemption counts. Approve the exemption for the company instead.
    * If `exemption_type` is still `non_exempt` → the request was never approved. Approve it in **Admin → Tax Exemption Requests**.
-   * If `taxjar_customer_id` is empty → the TaxJar customer record was never created. The record is created during admin approval (`applyExemption → syncCustomerExemption`), and only when the exemption is non-`non_exempt`. Re-run the approval / save flow for the customer to force creation.
-3. **Are you on staging with sandbox TaxJar?**
-   * Sandbox and production TaxJar have **separate customer records**. A customer synced to prod TaxJar does **not** exist in sandbox TaxJar. Re-running the admin approval flow creates/updates whichever environment staging is currently pointed at.
-4. **Is the customer covered by a company exemption?**
-   * Open the company at **Admin → Entitlements → Organizations** and confirm three things: the company holds an exemption, its exempt regions include the ship-to state, and this customer appears in the member list.
-   * If they are missing from the member list, their email domain is not registered to the company and no guest link has been approved for them. A HubSpot association on its own grants nothing. File **Link Guest Email to Company** from the contact card and approve it under **Requests → Membership Requests**.
+   * If `taxjar_customer_id` is empty → the TaxJar customer record was never created. The record is created during admin approval (`applyExemption → syncCustomerExemption`), and only when the exemption is non-`non_exempt`. Re-run the approval for the customer to force creation.
+4. **Are you on staging with sandbox TaxJar?**
+   * Sandbox and production TaxJar have **separate customer records**. A customer synced to prod TaxJar does **not** exist in sandbox TaxJar. Re-running the admin approval flow creates/updates whichever environment staging is currently pointed at. (This affects personal exemptions only; company exemptions never touch TaxJar.)
 
 ***
 
@@ -374,7 +394,13 @@ If a quote or order is still charging tax for a customer you set as exempt, work
 
 Here is the full end-to-end flow of how tax exemptions work across all three systems:
 
-Tax exemption system flow An admin approves the exemption, SCW stores it, TaxJar applies it at checkoutApplied immediately on approvalExemption Requestcustomer-submitted, admin-created, or matched to an exempt org SCW Admin Reviewadmin approves via /admin/tax-exemption-requests → applyExemption() SCW Databasecustomers.exemption\_type, exempt\_regions, exemption\_source, taxjar\_customer\_id + tax\_exemption\_events audit row TaxJar Customer APIPOST/PUT /v2/customers/{id} Tax CalculationPOST /v2/taxes returns amount\_to\_collect: 0.00 when exemptEmpty exempt regions means exempt in all nexus states; populated regions are synced as state-specific TaxJar exemptions. HubSpot is not in the tax-exemption data path.
+1. **Exemption request**: customer-submitted, or created by an admin or a rep from the HubSpot card.
+2. **SCW Admin review**: an admin approves it at `/admin/tax-exemption-requests`. Approval applies immediately.
+3. **SCW Database**: a company exemption is written to the company (`organizations`: exemption type, exempt states, certificate expiry, plus an edit history entry). A free email's personal exemption is written to the account (`customers.exemption_type`, `exempt_regions`, `exemption_source`, `taxjar_customer_id`, plus a `tax_exemption_events` audit row). A free-email applicant approved for a company gets both.
+4. **TaxJar Customer API** (personal exemptions only): `POST/PUT /v2/customers/{id}`.
+5. **Tax calculation**: SCW decides which company the order is for. If that company covers the ship-to state, tax is $0 and TaxJar is not asked. Otherwise SCW calls `POST /v2/taxes`, with the buyer's TaxJar customer id only when their personal exemption covers the state.
+
+Empty exempt regions mean exempt nowhere. HubSpot only displays the result: the contact properties `tax_exemption_type` and `tax_exempt_regions` are written by SCW and never read back.
 
 ***
 
@@ -382,19 +408,20 @@ Tax exemption system flow An admin approves the exemption, SCW stores it, TaxJar
 
 When a customer reaches checkout and enters a shipping address, the system:
 
-1. **Checks nexus** — Does SCW have a sales tax obligation in that state? SCW has nexus in 29 states. If no nexus, tax is always $0 (no API call needed).
-2. **Builds the request** — Sends to TaxJar:
+1. **Decides the exemption.** SCW works out which company the order is for. If that company's exemption covers the ship-to state, tax is $0 and TaxJar is not asked.
+2. **Checks nexus.** Does SCW have a sales tax obligation in that state? SCW has nexus in 29 states. If no nexus, tax is always $0 (no API call needed).
+3. **Builds the request.** Sends to TaxJar:
    * **From address:** SCW warehouse in Asheville, NC
    * **To address:** Customer's shipping address
    * **Line items:** Each product with quantity, price, and product tax code
    * **Shipping amount:** After discounts
-   * **Customer ID:** Links to the customer's TaxJar exemption record
-3. **TaxJar processes** — For each line item, TaxJar:
-   * Looks up the customer's exemption type and exempt regions
+   * **Customer ID:** sent only when the buyer is on a free email and their personal exemption covers the ship-to state
+4. **TaxJar processes.** For each line item, TaxJar:
+   * Applies the personal exemption, when a customer ID was sent
    * Checks if the product tax code has state-specific rules
    * Calculates tax by jurisdiction (state, county, city, special district)
    * Returns $0 for exempt items/states
-4. **Tax is displayed** — The checkout shows the total tax. Exempt customers see $0 in their exempt states.
+5. **Tax is displayed.** The checkout shows the total tax. Exempt orders show $0 in their exempt states.
 
 ***
 
@@ -428,9 +455,18 @@ Orders shipping to states **not** on this list are never taxed, regardless of ex
 
 ### Current Exempt Customer Data
 
-The system was seeded with exempt customers migrated from the previous Magento 2 platform. These migrated rows carry `exemption_source = 'hubspot_legacy'`, and each has its exempt regions (specific US states) already configured. New exemptions are managed through the SCW admin review queue going forward (`exemption_source = 'admin'`) or reach an account from its company through a registered email domain (`exemption_source = 'org'`).
+The system was seeded with exempt customers migrated from the previous Magento 2 platform. These migrated rows carry `exemption_source = 'hubspot_legacy'`, and each has its exempt regions (specific US states) already configured. New exemptions are managed through the SCW admin review queue going forward: company exemptions are stored on the company (`organizations`), and personal exemptions for free-email buyers on the account (`exemption_source = 'admin'`). Account rows with `exemption_source = 'org'` are legacy copies of company exemptions; tax ignores them and no new ones are written.
 
-> To get current counts by exemption type, query the production database:
+> To get current counts by exemption type, query the production database. Companies:
+>
+> ```sql
+> SELECT exemption_type, COUNT(*)
+> FROM organizations
+> WHERE exemption_type <> 'non_exempt'
+> GROUP BY exemption_type;
+> ```
+>
+> Account rows (personal exemptions plus legacy `org` copies):
 >
 > ```sql
 > SELECT exemption_type, COUNT(*)
@@ -445,14 +481,14 @@ The system was seeded with exempt customers migrated from the previous Magento 2
 
 **Customer says they should be tax-exempt but are seeing tax:**
 
-1. Check `customers.exemption_type` in the SCW Commerce database — is it set to something other than `non_exempt`?
-2. Check `customers.exempt_regions` — does it include the shipping state (or is it empty for a blanket exemption)?
-3. Confirm the admin has **approved** the customer's exemption request in **Admin → Tax Exemption Requests**. There are no HubSpot webhook subscriptions for tax exemptions and no daily tax-exemption cron — approval is what applies the exemption.
-4. If the exemption should come from their company, open the company at **Admin → Entitlements → Organizations** and confirm the customer is in its member list. A HubSpot association on its own grants nothing; membership comes from a registered email domain or an approved guest link.
+1. Work out which company the order is for (see [Troubleshooting: Tax Still Charged](#troubleshooting-tax-still-charged-when-customer-is-marked-exempt)). Did they pick a different company, or **Myself** on a free email, at checkout?
+2. Open that company at **Admin → Entitlements → Organizations**: does it hold an exemption, and do its exempt states include the shipping state? Empty states mean exempt nowhere.
+3. Confirm the admin has **approved** the customer's exemption request in **Admin → Tax Exemption Requests**. There are no HubSpot webhook subscriptions for tax exemptions and no daily tax-exemption cron: approval is what applies the exemption.
+4. For a personal exemption, check the account is on a free email. A personal exemption on a company email is never applied (**Admin → Tax Exemptions** shows **Not applied: company email**).
 
 **Tax is $0 for a customer who shouldn't be exempt:**
 
-1. Check `customers.exemption_type` in the SCW Commerce database — make sure it is `non_exempt`. If it is exempt, revoke it in the **Tax Exemptions** admin UI.
+1. Find the company the order is for and check its exemption on the company page. Revoke it there with **Revoke** if it is wrong. For a free-email buyer, also check the personal exemption on their account.
 2. Verify the shipping state is in SCW's nexus list (non-nexus states always show $0).
 
-**How to check a customer's exemption status in the database:** An admin can verify by checking the customer's record in the SCW Commerce database for `exemption_type` and `exempt_regions` fields.
+**How to check a customer's exemption status:** the customer's **Tax Exemption** account page, the HubSpot Storefront Account card, and the HubSpot contact properties `tax_exemption_type` / `tax_exempt_regions` all show the same answer checkout uses. In the database, a company's exemption is on `organizations` (`exemption_type`, `exempt_regions`) and a personal one on `customers` (same field names).

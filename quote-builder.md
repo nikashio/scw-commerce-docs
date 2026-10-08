@@ -123,6 +123,18 @@ When the quote email matches an SCW Commerce account, checkout auto-populates th
 * Tax calculation (TaxJar needs a shipping address)
 * Pre-filling the checkout form when the payment link is opened
 
+### Tax Exemption on a Quote
+
+Tax on a quote follows the **company the quote is for**. SCW picks that company the same way everywhere the quote is priced: the Quote Builder tax line, the quote PDF and email, the payment link checkout, and quote to order.
+
+1. The quote's associated company, when the quote has exactly one.
+2. Otherwise the deal's **primary** company.
+3. Otherwise the deal's only company.
+
+If the quote or deal has several companies and none is primary, SCW picks the same one every time, but it may not be the one you meant. Set a primary company on the deal, or leave just one company on the quote.
+
+The quote is exempt in that company's exempt states, whoever the contact on the quote is. In any other state it is taxed (a contact on a free email can still use their personal exemption). The HubSpot company counts only when it is linked to a company in SCW (**Admin → Entitlements → Organizations**). When the quote has no such company, tax falls back to the quote's contact: their only company, the company that owns their email domain, or (free email only) their personal exemption. See [Tax-Exemption Management](tax-exemption-webhook.md).
+
 ***
 
 ## Generating a Payment Link
@@ -145,6 +157,7 @@ Behind the scenes:
 4. A cart is created in the SCW Commerce database with:
    * All products at the quoted prices (prices are **locked** — they won't change even if the catalog price updates)
    * The customer's email from the quote or associated HubSpot Contact, when available
+   * The company the quote is for, so checkout charges the same tax exemption the quote showed
    * A link back to the Ecommerce Quote ID
 5. The customer is redirected to checkout with the new quote cart.
 

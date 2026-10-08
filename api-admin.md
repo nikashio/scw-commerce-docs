@@ -439,12 +439,12 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `POST /api/admin/tax/calculate`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Calculate tax for an address without going through a cart. Supports customer exemption lookup by email.
+- **Purpose:** Calculate tax for an address without going through a cart. Used by the HubSpot integration to refresh quote tax for the quote PDF and quote email. Applies the same exemption rule as checkout: the quote's company when there is one; otherwise the contact in `customerEmail` (their only company, or their email domain's company). A free-email contact's personal exemption still applies in states the company does not cover.
 - **Path params:** none
 - **Query params:** none
-- **Request body:** `{ shippingAddress, subtotal, shippingAmount?, lineItems?, customerEmail? }`
-- **Response (200):** `{ success, tax: { amount, rate, hasNexus, freightTaxable, fallback, breakdown? } }`
-- **Side effects:** TaxJar API call; DB read for customer-exemption lookup.
+- **Request body:** `{ shippingAddress, subtotal, shippingAmount?, lineItems?, customerEmail?, hubspotQuoteId?, organizationId?, hubspotCompanyId? }`. With `hubspotQuoteId` (digits only), SCW Commerce resolves the quote's company itself (the quote's only company, else the deal's primary company, else the deal's only company) and ignores `organizationId` / `hubspotCompanyId`. Without it, the company the caller names is used.
+- **Response (200):** `{ success, hubspotQuoteId?, tax: { amount, rate, hasNexus, freightTaxable, fallback, breakdown? } }`. `hubspotQuoteId` is echoed when it was sent.
+- **Side effects:** HubSpot reads to resolve the quote's company (cached 60 seconds per quote); DB reads for the exemption decision; a TaxJar API call unless the company's exemption covers the ship-to state.
 
 ---
 
@@ -551,23 +551,23 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `GET /api/admin/tax-exemptions`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Read-only list of tax-exempt customers. Changes to exemption status are made through the exemption-request approval flow or org-level domain config, not directly through this endpoint.
+- **Purpose:** Read-only list of customer accounts holding an exemption row of their own. Each row carries `personalOnCompanyEmail: true` when it is a personal exemption on a company email, which tax does not apply. Exempt companies are listed on the admin page from `organizations`. Changes to exemption status are made through the exemption-request approval flow or on the company page (`/api/admin/organizations/*`), not directly through this endpoint.
 - **Path params:** none
-- **Query params:** pagination + filter params
-- **Response (200):** `{ exemptions[], total, page, limit, totalPages }`
+- **Query params:** `page`, `pageSize`, `search` (email), `type`, `source` (`admin`, `org`, `hubspot_legacy`, `magento_legacy`)
+- **Response (200):** `{ rows[], pagination: { page, pageSize, total, totalPages } }`
 - **Side effects:** read-only
 
 #### `POST /api/admin/tax-exemptions/sync-hubspot`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Backfill — enqueues a `contact.exemption_changed` HubSpot outbox row for every currently exempt customer. Idempotent per run (run-scoped idempotency key). Delivery happens via the `process-hubspot-outbox` cron.
+- **Purpose:** Backfill. Enqueues a `contact.exemption_changed` HubSpot outbox row for every customer whose contact may show an exemption: qualifying members of exempt companies, accounts on those companies' domains, and every account whose own row is not `non_exempt` (personal exemptions, plus legacy copies whose stale contact values must be cleared). Each row writes the answer checkout uses at delivery time. Idempotent per run (run-scoped idempotency key). Delivery happens via the `process-hubspot-outbox` cron.
 - **Path params:** none
 - **Query params:** none
 - **Request body:** none
 - **Response (200):** `{ runId, enqueued }`
 - **Side effects:** HubSpot outbox rows created; delivery kicked off for each.
 
-> **Note: there are no `/api/admin/tax-exempt-orgs` routes.** The `tax-exempt-org.service.ts` service is still what applies a company exemption to a matching email domain (it runs inside exemption approval), but it has no admin API routes and no admin screen of its own. Companies, their domains, their members, and their entitlements are managed through **Admin → Entitlements → Organizations** (`/api/admin/organizations/*`).
+> **Note: there are no `/api/admin/tax-exempt-orgs` routes.** The legacy `tax_exempt_orgs` domain records are no longer used for tax or shown in the admin: company exemptions live on `organizations`. Companies, their domains, their members, and their entitlements (including the tax exemption) are managed through **Admin → Entitlements → Organizations** (`/api/admin/organizations/*`).
 
 #### `GET /api/admin/tax-exemption-requests`
 
@@ -594,10 +594,11 @@ Cron and webhook endpoints (outside this page's scope) use separate schemes — 
 #### `POST /api/admin/tax-exemption-requests/[id]/approve`
 
 - **Auth:** Admin (session or API key)
-- **Purpose:** Approve an exemption request — marks the customer tax-exempt and syncs to TaxJar.
+- **Purpose:** Approve (or amend) an exemption request. A company email's exemption always lands on a company: the one in `organizationId`, else the company owning the email domain (created for the domain when none exists). A free email gets a personal exemption, plus the company's exemption and a membership when `organizationId` names one.
 - **Path params:** `id: number`
-- **Response (200):** `{ ok: true }`
-- **Side effects:** DB write (request status + customer exemption flag); TaxJar customer sync.
+- **Request body:** `{ type: 'wholesale' | 'government' | 'other', regions: string[] (at least one US state), organizationId?: number | null, expiresAt?: string | null }`. `organizationId: null` means "this person only" and is refused for a company email.
+- **Response (200):** `{ ok: true }`. Errors: `404` request or company not found; `409` request rejected, or the domain was claimed concurrently; `422` validation, `personal_exemption_needs_free_email`, `organization_required`; `502 approve_failed`.
+- **Side effects:** DB write (request status, company exemption and membership, or personal exemption); TaxJar customer sync for a personal exemption only; HubSpot contact outbox rows; Make `tax_exemption.approved` event; approval email.
 
 #### `POST /api/admin/tax-exemption-requests/[id]/reject`
 

@@ -29,7 +29,7 @@ Every company offered is one the customer is a **member** of. A contact a rep me
 
 | Choice | What it applies |
 | --- | --- |
-| **Myself** | _"Sales tax applies. Pay by card, check, or ACH."_ The consumer path: no company exemption, no company credit terms. |
+| **Myself** | _"Sales tax applies. Pay by card, check, or ACH."_ The consumer path: no company credit terms. Despite the wording, sales tax is not always charged: a buyer on a company email still gets the exemption of the company that owns their email domain, and a buyer on a free email keeps their personal exemption. |
 | A company | The company's tax exemption (the row names the exempt states) and, when the company's credit terms are active, the option to bill the company account on NET30. |
 
 Each company row states both halves so the customer knows before the payment step whether the company account is on offer. When it is not, the row says why: the company is not set up to pay on account, or its credit terms are due for revalidation.
@@ -37,14 +37,14 @@ Each company row states both halves so the customer knows before the payment ste
 ### What Is Preselected
 
 * **Exactly one membership**: the company is preselected for the customer. This is deliberate: with one company there is only one thing they could have meant, and leaving it unselected charged tax to exempt buyers who never noticed the chooser.
-* **Two or more memberships**: the order stays on **Myself** until the customer picks. Guessing between an employer and a church could apply the wrong exemption to a real order.
+* **Two or more memberships**: the order stays on **Myself** until the customer picks. Guessing between an employer and a church could apply the wrong exemption to a real order. Until they pick, none of their memberships applies (the company that owns their email domain still does).
 * **An explicit "Myself"** is remembered and never overridden by the preselect on a later page load.
 * **No memberships**: the section is not shown at all, so a consumer never sees an empty box implying they are missing something.
 * **Guests and quote payment links** do not see it. Neither has memberships to offer.
 
 The chooser is never a gate. If the choice cannot be saved, checkout continues as a **personal order** and the customer is told: _"We could not apply that company to this order. It will check out as a personal order."_
 
-The choice is stored on the cart, so tax computation, the credit-terms gate, and the order record all read the same answer. The customer can review the same information any time at **My Companies** (`/account/organizations`). See [Customer Accounts](customer-accounts.md).
+The choice is stored on the cart, so tax computation, the credit-terms gate, and the order record all read the same answer. A company picked here beats every other company: if it is not exempt in the ship-to state, the order is taxed even when the buyer's email domain company would exempt it (a free-email buyer can still use a personal exemption). See [Tax-Exemption Management](tax-exemption-webhook.md) for the full rule. The customer can review the same information any time at **My Companies** (`/account/organizations`). See [Customer Accounts](customer-accounts.md).
 
 > \[SCREENSHOT: The checkout "Who is this order for?" section showing the Myself row and a company row with its tax and NET30 detail line - images/checkout-who-is-this-order-for.png]
 
@@ -293,7 +293,7 @@ No paymentBank details are emailed after checkoutOrder: Pending PaymentWaits for
 
 Sales tax is calculated by **TaxJar** at checkout (and when a quote is saved with a shipping address). TaxJar sources tax from the **destination ZIP code**, not just the State dropdown — it resolves the actual jurisdiction from the full address. SCW collects sales tax only in the states where it has tax nexus (currently 29). Orders shipping to **no-sales-tax states (OR, DE, MT, NH)** and **US territories / military addresses (PR, GU, APO/FPO)** are correctly taxed at **$0**.
 
-Customer **tax exemptions still apply** to everything below — an approved exempt customer is charged $0 regardless of pickup or ship-to. See the [Tax Exemption](key-concepts.md) glossary entry and the [Tax-Exemption Validation Webhook](tax-exemption-webhook.md).
+**Tax exemptions still apply** to everything below. An order is $0 when the company it is for (or, for a free-email buyer, their personal exemption) covers the state tax is sourced to: the ship-to state, or NC for in-store pickup. See the [Tax Exemption](key-concepts.md) glossary entry and [Tax-Exemption Management](tax-exemption-webhook.md).
 
 ### In-Store Pickup — Taxed at the NC Store Origin
 
@@ -304,7 +304,7 @@ When a customer chooses **in-store pickup** as the shipping method, the order is
 | **Before** | Pickup tax was computed from the entered ship-to address. A pickup buyer with an out-of-state address could be charged **$0** (e.g., an Oregon address) or **another state's tax** (e.g., California's) — neither correct for a counter sale in NC.                           |
 | **Now**    | Every in-store-pickup order is taxed at **NC**, regardless of the address on file. The store-origin jurisdiction is saved on the order, so the figure SCW _files_ with TaxJar matches what it _collected_ — including on the retry path if the initial tax report is delayed. |
 
-> Tax exemptions are unaffected: an exempt customer picking up in-store is still charged $0.
+> Tax exemptions still apply, checked against NC: a pickup order is charged $0 when its exemption covers NC.
 
 ### When the Sale Is Filed with TaxJar
 
@@ -317,7 +317,7 @@ A sale is reported to TaxJar only when **money is actually collected**, on the d
 | **Check / Wire**                                   | When the admin **records the payment** (the order is invoiced and marked paid), on that date                       |
 | **Credit Terms (NET30)**                           | At checkout, when the invoice is auto-created — the sale is on the books even though the customer pays later       |
 
-Filed transactions carry the customer's TaxJar ID (so exempt customers' sales file as exempt sales, not taxable-with-$0), and per-line product tax codes (installation services, software licensing) so category-level filings are accurate. If TaxJar is unreachable, the report is queued and retried automatically.
+Filed transactions carry the exemption the order was sold under, so exempt sales file as exempt sales, not taxable-with-$0: a company exemption files with its exemption type, and a $0 sale under a personal exemption files with the customer's TaxJar ID. A sale that collected tax files with neither. Filings also carry per-line product tax codes (installation services, software licensing) so category-level filings are accurate. If TaxJar is unreachable, the report is queued and retried automatically.
 
 ### Proactive Address Validation — "Suggested address"
 

@@ -167,23 +167,40 @@ When a check order comes in:
 
 ## Tax Exemptions (View Only)
 
-The **Tax Exemptions** page is accessible under the **Operations** group in the admin navigation at `/admin/tax-exemptions`.
+The **Tax Exemptions** page is accessible under the **Entitlements** group in the admin navigation at `/admin/tax-exemptions`.
 
 ### What it shows
 
-| Column         | Description                                                                                                                                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Email          | Email address of the exempt customer                                                                                                                                                                                   |
-| Name           | First and last name of the exempt customer                                                                                                                                                                             |
-| Exemption Type | `wholesale`, `government`, or `other`                                                                                                                                                                                  |
-| Exempt Regions | The US states where tax exemption applies                                                                                                                                                                              |
-| Source         | Provenance of the exemption: `admin` (set via the admin exemption-request approval flow), `org` (set via an org-level email-domain rule), or `hubspot_legacy` (migrated from the old HubSpot-managed exemption system) |
-| Validated By   | The person or system that validated the exemption document                                                                                                                                                             |
-| Document       | A "View" link to the supporting document (e.g., the uploaded reseller certificate). Shows "—" when no document is on file                                                                                              |
+**Exempt organizations** lists every company that holds a tax exemption. Tax exemptions belong to companies, so this is the main list.
+
+| Column        | Description                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| Organization  | The company name                                                                                          |
+| Type          | `wholesale`, `government`, or `other`                                                                     |
+| Exempt states | The US states where the company's orders are tax exempt                                                   |
+| Domains       | The email domains registered to the company                                                               |
+| Certificate   | Certificate expiry status and date. For review only: an expired certificate still prices exempt           |
+| Accounts      | How many accounts the exemption reaches: the company's members plus the accounts on its domains           |
+
+**Individual customer exemptions** lists every account that holds an exemption row of its own.
+
+| Column         | Description |
+| -------------- | ----------- |
+| Email          | Email address of the customer |
+| Name           | First and last name of the customer |
+| Exemption Type | `wholesale`, `government`, or `other` |
+| Exempt Regions | The US states on the row. **Not applied: company email** means a personal exemption on a company email: tax ignores it and uses the company's exemption. **Needs certificate** means a type with no states, which is exempt nowhere. |
+| Source         | Provenance of the exemption: `admin` (a personal exemption approved in the exemption-request flow), `org` (a legacy copy of a company exemption from before exemptions moved to companies; tax ignores it), `hubspot_legacy` or `magento_legacy` (migrated from the old systems) |
+| Validated By   | The person or system that validated the exemption document |
+| Document       | A "View" link to the supporting document (e.g., the uploaded reseller certificate). Shows "—" when no document is on file |
+
+Personal exemptions apply only to buyers on a free email address (gmail, yahoo, and similar). See [Tax-Exemption Management](tax-exemption-webhook.md) for which exemption an order gets.
 
 ### Important: view only
 
-This page is read-only. Exemptions cannot be created, edited, or removed directly on this page. All changes go through the **Exemption Requests** workflow: admins submit a request at `/admin/tax-exemption-requests`, upload supporting documents, and approve or reject via the admin approval flow (`POST /api/admin/tax-exemption-requests/[id]/approve` or `/reject`). There is no `POST /api/webhooks/tax-exemption` endpoint.
+This page is read-only. Exemptions cannot be created, edited, or removed directly on this page. Requests go through the **Exemption Requests** workflow: admins submit a request at `/admin/tax-exemption-requests`, upload supporting documents, and approve or reject via the admin approval flow (`POST /api/admin/tax-exemption-requests/[id]/approve` or `/reject`). A company's exemption can also be edited or revoked on the company page at **Admin → Entitlements → Organizations**. There is no `POST /api/webhooks/tax-exemption` endpoint.
+
+The **Sync to HubSpot** button re-queues the display-only HubSpot contact properties `tax_exemption_type` and `tax_exempt_regions` for every contact that may show an exemption.
 
 ![The SCW Admin Tax Exemptions page showing the table with Email, Name, Type, Regions, Source, Validated By, and Document columns.](.gitbook/assets/admin-tax-exemptions-list.png)
 

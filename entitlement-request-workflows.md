@@ -53,12 +53,14 @@ Removing a domain matched person is a manual admin task: remove them on the comp
 
 ### Grandfathered Personal Grants
 
-Approvals made before the company model keep working exactly as they did. Personal NET30 terms, personal tax exemptions, and roughly 300 partner accounts on personal email addresses are all still honored and are never re-decided by this system.
+Approvals made before the company model keep working exactly as they did. Personal NET30 terms and roughly 300 partner accounts on personal email addresses are still honored and are never re-decided by this system.
+
+Personal tax exemptions follow a stricter rule: they apply only to buyers on a free email address (Gmail, Yahoo, and similar), such as a church volunteer. A buyer with a company email always uses their company's exemption, and an old personal exemption on a company email is not applied. See [Tax-Exemption Management](tax-exemption-webhook.md).
 
 The HubSpot Storefront Account card labels where each entitlement comes from, so a representative can tell the two apart at a glance:
 
 * **(personal)** means the grant sits on the contact's own account and survives any company change.
-* **via `<company>`** means the grant comes through a company membership and ends with that membership.
+* **via `<company>`** means the grant comes through a company and ends with it: a membership, or, for tax exemption, the company that owns the contact's email domain.
 
 ## What Was Shipped
 
@@ -114,7 +116,7 @@ Each queue has Pending, Approved, and Rejected tabs, a search field, status coun
 
 ### Entitlements
 
-* **Tax Exemptions** is the searchable list of active customer tax exemptions.
+* **Tax Exemptions** is the read-only list of exempt companies and of exemptions held on individual accounts.
 * **Organizations** is the company, membership, and shared credit view.
 * **Credit Terms** is the active credit terms list and manual management surface.
 
@@ -190,9 +192,14 @@ To approve a tax exemption, the administrator selects:
 * One or more exempt states
 * Certificate expiry date, when one is available
 
-At least one supporting document and one exempt state are required for approval. SCW Commerce applies the exemption before it closes the request. If the TaxJar update fails, the request is not marked approved and no success email is sent.
+At least one supporting document and one exempt state are required for approval. SCW Commerce applies the exemption before it closes the request. If it cannot be applied (for example a TaxJar error on a personal exemption), the request is not marked approved and no success email is sent.
 
-For a company email domain, approval creates or updates the company exemption and applies it to existing and future accounts on that domain. A public email domain such as Gmail or Yahoo stays limited to the individual account, and a person on such an address reaches a company exemption through an approved guest link instead.
+The **Company** field on the review card decides where the exemption lands:
+
+* **Company email**: always on a company. The field starts on the company that owns the email domain; if none does, approval creates one for that domain. The reviewer can pick another company instead, and the applicant is added to it as a member. The exemption reaches the company's members and existing and future accounts on its domains. **This person only** is not offered.
+* **Free email** (Gmail, Yahoo, and similar): **This person only** gives a personal exemption. Picking a company puts the exemption on that company, adds the applicant as a member, and also gives the applicant the exemption as their own, so it still applies when they buy as **Myself**.
+
+A person on a free email who buys for a company that is already exempt does not need an exemption request: an approved guest link carries the company's exemption.
 
 An approved request can be amended in place if the reviewer selected the wrong type or state. Reapproval applies the corrected values and records a new audit event.
 
@@ -214,7 +221,7 @@ An administrator can also choose **New request** from the Exemption Requests que
 
 ### Approval Result
 
-Approval applies the selected type and states, updates TaxJar, records the decision, sends the customer an approval email, and creates a `tax_exemption.approved` Make event. Rejection leaves tax treatment unchanged, records the reason, sends the customer a rejection email, and creates a `tax_exemption.rejected` event.
+Approval applies the selected type and states (on the company, or on the account for a personal exemption, which also updates TaxJar), records the decision, sends the customer an approval email, and creates a `tax_exemption.approved` Make event. Rejection leaves tax treatment unchanged, records the reason, sends the customer a rejection email, and creates a `tax_exemption.rejected` event.
 
 ## Trusted Installer and Partner Pro
 
@@ -415,7 +422,7 @@ Before approval:
 * Verify the customer and company identity.
 * Review every supplied answer and document.
 * Confirm the entitlement scope shown in the approval dialog.
-* For tax exemption, select at least one state and verify the certificate.
+* For tax exemption, select at least one state, verify the certificate, and check the **Company** field: a company email's exemption always lands on a company.
 * For partner pricing, read any pricing downgrade or fraud warning, and check that a free email applicant is linked to exactly one company.
 * For purchase order terms, confirm the limit and revalidation window.
 * For membership, confirm the contact really buys for that company.
