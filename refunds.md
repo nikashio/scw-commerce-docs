@@ -32,15 +32,15 @@ On the Invoice record, click the **Credit Memo** tab. This shows:
 | Type                        | When to Use                          | What Happens                                            |
 | --------------------------- | ------------------------------------ | ------------------------------------------------------- |
 | **Full Refund**             | Customer wants everything back       | Refunds entire invoice amount. Order status → Cancelled |
-| **Partial (Dollar Amount)** | Goodwill credit, price match, etc.   | Refunds a custom dollar amount you specify              |
-| **Per Item**                | Customer returning specific products | Select items and quantities to refund                   |
+| **Partial (Dollar Amount)** | Goodwill credit, price match, etc.   | Refunds the before-tax amount you enter, plus its sales tax |
+| **Per Item**                | Customer returning specific products | Select items (or one part of a bundle) and quantities to refund |
 
 ### Step 4: Submit
 
 1. Select the refund type
 2. Enter the reason (required)
-3. For partial: enter the dollar amount
-4. For per-item: select items and quantities
+3. For partial: enter the amount **before tax**. The card adds the sales tax and shows the total before you confirm.
+4. For per-item: select items and quantities. A product bought with an option (for example a camera with an Electrical Box Mount) shows one row per part, so you can refund just the camera, just the mount, or both.
 5. Click **Create Refund**
 
 The system will:
@@ -73,11 +73,12 @@ Refunds the entire invoice amount. The order moves to **Cancelled** status and i
 
 Refunds a specific dollar amount, up to the invoice total.
 
-* **Use when:** Price adjustment, goodwill credit, shipping refund, damage discount
-* **Payment:** Specified amount returned to original payment method
+* **Use when:** Price adjustment, goodwill credit, shipping refund, damage discount, or returning an item the per-item list can't express
+* **Payment:** The amount you enter plus its sales tax, returned to the original payment method
 * **Order status:** No automatic change (admin decides)
-* **The customer receives exactly what you enter:** the refund total is `amount + shipping refund − restocking fee`, to the cent — the same figure shown on the card before you confirm. Internally SCW splits that gross into a pre-tax base and its embedded tax (at the invoice's tax ratio) so TaxJar is reported the correct sales tax, without changing the customer's total.
-* A restocking fee that equals or exceeds the refund gross is rejected — a refund must always be a positive amount.
+* **Enter the price before tax.** The field is labelled **Refund amount (before tax)**. The card adds sales tax at the invoice's rate and shows the total: on an invoice taxed at 9.75%, entering $400 refunds $439.00 ($400.00 + $39.00 tax). Shipping you refund is taxed the same way, and a restocking fee comes off the total after tax, exactly like a per-item refund.
+* **If the field says "Refund amount (tax included)"** the card couldn't reach SCW Commerce when it loaded. In that state the customer receives exactly what you enter, tax included, and SCW works the tax out of it. Refresh the card to get the before-tax field back.
+* A restocking fee that equals or exceeds the refund total is rejected, since a refund must always be a positive amount.
 
 ### Per-Item Refund
 
@@ -87,6 +88,9 @@ Refunds specific line items by selecting products and quantities.
 * **Payment:** Calculated total for selected items returned
 * **Order status:** No automatic change (admin decides)
 * **Quantity is the money lever:** each line refunds `quantity × invoice unit price`; the Amount column is display-only. Proportional tax is added on top of the goods + shipping being refunded, and per-line restocking percentages are summed into a single deduction.
+* **Bundles are split into parts.** A product sold with a paid option (a camera with an Electrical Box Mount, an NVR with a hard drive) shows one row per part, marked "Part of" the original SKU. Each part refunds at the price it actually sold for on that order, and a mount is refunded under its own warehouse SKU. Free options (such as an included warranty) have no row.
+* **Already-refunded parts are locked.** A part or line that has been fully refunded shows **Refunded** and can't be selected again. Once any part of a unit is refunded, that unit can only be finished part by part.
+* Orders imported from Magento, and older orders placed before part prices were recorded, show the line as a single row only. Use a partial refund for one part of those.
 
 > **Full refunds take no adjustments:** shipping-refund and restocking-fee fields don't apply to a full refund (it returns the entire invoice, shipping included) and are rejected server-side if supplied.
 
@@ -206,9 +210,11 @@ taxRefund = invoice.taxAmount × (refundSubtotal + refundShipping) / (invoice.su
 
 Example: an invoice of $100 subtotal + $10 shipping + $7.70 tax ($117.70 total). Customer returns $50 of goods. Tax refund is `7.70 × 50 / 110 = $3.50`. The customer gets $53.50 back; TaxJar shows `-$3.50` sales tax. Without proportional math, TaxJar would see $0 refunded tax and SCW would over-remit $3.50 to the state.
 
-### Tax on Custom-Amount Refunds (embedded in the amount)
+### Tax on Custom-Amount Refunds (added on top)
 
-For **partial (custom amount)** refunds, the entered amount is the gross the customer receives — tax is backed **out of** it (at the invoice's tax ratio) rather than added on top. Same invoice, $50 entered: the customer gets exactly $50.00; SCW records \~$46.73 pre-tax + \~$3.27 tax, and TaxJar shows `-$3.27` sales tax.
+For **partial (custom amount)** refunds, the entered amount is the before-tax price and tax is added on top with the same proportional formula as per-item refunds. Same invoice, $50 entered: tax is `7.70 × 50 / 110 = $3.50`, the customer gets $53.50 back, and TaxJar shows `-$3.50` sales tax.
+
+When the card shows **Refund amount (tax included)** (it couldn't reach SCW Commerce), the entered amount is instead the gross the customer receives and tax is backed out of it: $50 entered refunds exactly $50.00, recorded as \~$46.73 pre-tax + \~$3.27 tax.
 
 ### Where the Refund Is Filed
 
