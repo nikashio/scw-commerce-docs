@@ -260,7 +260,7 @@ The refund form includes a **Notes to Customer** field. Use this for:
 * Return shipping instructions
 * Approval status details
 
-These notes are stored on the refund record (`refunds.customer_notes`). They are **not** currently synced to the HubSpot Credit Memo (the credit-memo property set has no notes field), and the customer email template does not yet include those notes.
+These notes are stored on the refund record (`refunds.customer_notes`) and are **included in the refund confirmation email** sent to the customer, shown as a **"Notes:"** section in the credit-memo email. They are **not** synced to the HubSpot Credit Memo object (the credit-memo property set has no notes field).
 
 ### Refund Adjustments
 
