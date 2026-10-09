@@ -441,15 +441,17 @@ Product tax codes are automatically mapped from the product's `tax_class_id` fie
 
 ### SCW Nexus States (29 states)
 
-SCW is registered to collect sales tax in these states:
+SCW charges sales tax only in the states set up as nexus states in our **TaxJar account**. The site reads that list from TaxJar automatically, so adding or removing a state in TaxJar changes checkout within about an hour, with no change needed on the site.
+
+As of October 2026 the TaxJar list is:
 
 ```
-AK  AZ  CA  CO  FL  GA  HI  ID  IL  IN
-KS  KY  LA  MA  MD  MI  MO  NC  ND  NJ
+AZ  CA  CO  FL  GA  HI  ID  IL  IN  KS
+KY  LA  MA  MD  MI  MN  MO  NC  ND  NJ
 OH  OK  PA  SC  TN  TX  VA  WA  WI
 ```
 
-Orders shipping to states **not** on this list are never taxed, regardless of exemption status.
+Orders shipping to states **not** on this list are never taxed, regardless of exemption status. Alaska is not on the list, so Alaska orders are not charged sales tax. If SCW registers in Alaska, add Alaska as a nexus state in TaxJar and the site starts charging it.
 
 ***
 
