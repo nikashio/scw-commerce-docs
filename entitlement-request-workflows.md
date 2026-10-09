@@ -315,7 +315,7 @@ An administrator can file the same request from **Credit Terms Requests > New re
 
 ### Approval Result
 
-Approval grants NET30 purchase order terms with the selected limit and revalidation window. It records the credit audit event, schedules the HubSpot update, emails the customer, and creates a `credit_terms_request.approved` Make event.
+Approval grants NET30 purchase order terms with the selected limit and revalidation window. It records the credit audit event, schedules the HubSpot update, emails the customer, and creates a `credit_terms_request.approved` Make event. When the approval switches on credit for a company, it also creates an `organization.credit_approved` event (see [Make Automation](#make-automation)).
 
 When the approval goes to a company that has no AP contact yet, the accounts payable email from the application becomes the company's AP contact, with an audit entry on the company page. An AP contact the company already has is never replaced.
 
@@ -395,6 +395,8 @@ SCW Commerce emits status events for each request family.
 | Trusted Installer | `partner_application.submitted` | `partner_application.approved` | `partner_application.rejected` |
 | Purchase order terms | `credit_terms_request.submitted` | `credit_terms_request.approved` | `credit_terms_request.rejected` |
 | Company membership | `membership_request.submitted` | Not emitted | Not emitted |
+
+**Company approved for credit terms.** When a company's purchase order terms are switched on, SCW Commerce sends `organization.credit_approved` to its own webhook, separate from the purchase order terms events above. It fires whether the credit came from an approved purchase order terms request or from the company page. It fires once per approval: saving a company that already has credit sends nothing, revoking credit sends nothing, and an approval for the person only (no company) never sends it. The event carries the company's HubSpot company ID, its name, its email domains, the credit limit (blank means uncapped), and the revalidation window. The HubSpot company ID is blank for the rare company that is not linked to HubSpot yet. The Knack sync uses this event to mark the matching company approved.
 
 Use **SCW Admin > Integrations > Make Webhooks** to review each event. Every card has a webhook URL, an Enabled switch, a source status, and a Save action.
 
