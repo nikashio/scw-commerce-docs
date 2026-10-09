@@ -279,6 +279,7 @@ The credit terms request detail page contains the company, tax ID, submitter not
 The administrator decides the financial terms at approval time:
 
 * Credit limit, or no ceiling when the field is intentionally left blank
+* Payment terms in days, when the credit goes on a company: 60 for a NET60 agreement, blank for the standard NET30. The field starts from the company's current term.
 * Revalidation window in months
 * An internal note for the credit terms audit record
 
@@ -315,7 +316,7 @@ An administrator can file the same request from **Credit Terms Requests > New re
 
 ### Approval Result
 
-Approval grants NET30 purchase order terms with the selected limit and revalidation window. It records the credit audit event, schedules the HubSpot update, emails the customer, and creates a `credit_terms_request.approved` Make event.
+Approval grants purchase order terms with the selected limit, payment term, and revalidation window. The approval email names the term (NET30 unless a longer one was set). It records the credit audit event, schedules the HubSpot update, emails the customer, and creates a `credit_terms_request.approved` Make event.
 
 When the approval goes to a company that has no AP contact yet, the accounts payable email from the application becomes the company's AP contact, with an audit entry on the company page. An AP contact the company already has is never replaced.
 

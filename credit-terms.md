@@ -14,6 +14,17 @@ Credit terms belong to a **company**, and a person reaches them by being a **mem
 
 The company holds **one shared credit pool**. Every open purchase order from any member counts against the company's limit until the order is paid. A blank limit means uncapped. The revalidation window (18 months by default) is checked at order time along with the pool balance.
 
+### Payment term (NET30, NET60)
+
+Each company has its own payment term: how many days it has to pay an invoice. It is NET30 unless the signed credit terms agreement says otherwise. When a company signs for a longer term (for example NET60), set **Payment terms** on the company page at **Admin → Entitlements → Organizations** (edit the entitlements, enter the number of days, save). Leaving the field blank means NET30. The change is recorded in the company's edit history.
+
+The term is used in two places:
+
+* **What buyers see.** Checkout shows the company's own term on the Credit Terms option (for example "Credit Terms (NET60)"), and so do the **My Companies** page and the approval emails.
+* **The Xero invoice due date.** When a credit terms order ships, the draft Xero invoice is due that many days after it is created. A company with no term set gets 30 days.
+
+Buyers on personal credit terms (no company) are always NET30.
+
 Company membership and the shared pool are managed at **Admin → Entitlements → Organizations**. New approvals are worked from **Admin → Requests → Credit Terms Requests**. See [Entitlement Request Workflows](entitlement-request-workflows.md) for the request and approval flow.
 
 ### One pool per business
@@ -186,7 +197,7 @@ To remove a customer's ability to use Purchase Orders:
 
 > \[SCREENSHOT: Checkout showing Credit Card, Credit Terms (NET30), Check / Money Order, ACH / Wire Transfer]
 
-The approved customer sees four payment methods: **Credit Card**, **Credit Terms (NET30)** (labeled "Purchase Order (NET30)" before July 2026), **Check / Money Order**, and **ACH / Wire Transfer**. The Credit Terms option shows the subtitle "Subject to credit approval."
+The approved customer sees four payment methods: **Credit Card**, **Credit Terms (NET30)** (labeled "Purchase Order (NET30)" before July 2026), **Check / Money Order**, and **ACH / Wire Transfer**. A company on a longer term shows its own term instead, for example **Credit Terms (NET60)**. The Credit Terms option shows the subtitle "Subject to credit approval."
 
 ### Non-Approved Customer (3 payment methods)
 
