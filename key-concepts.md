@@ -86,13 +86,15 @@ _A HubSpot Ecommerce Quote record showing the Quote Builder card and the sidebar
 
 * Linked to a **Contact**
 * Linked to an **Ecommerce Quote** (if the order originated from a quote/payment link)
-* Linked to **Ecommerce Line Items** (the products ordered)
+* Linked to **Ecommerce Line Items** (the products ordered). Each order line item carries the order's **Order Date**
 * Linked to **Ecommerce Invoices** (when invoiced)
 * Linked to **Ecommerce Shipments** (when shipped)
 
 ![A HubSpot Ecommerce Order record showing eo\_order\_id, eo\_status, eo\_total, eo\_payment\_method\_type and associations to Contact, Invoice, Shipment, and Line Items.](.gitbook/assets/hubspot-ecommerce-order-record.png)
 
 _A HubSpot Ecommerce Order record showing eo\_order\_id, eo\_status, eo\_total, eo\_payment\_method\_type and associations to Contact, Invoice, Shipment, and Line Items._
+
+**Reporting on products sold:** build line item reports on the line item's **Order Date**, not **Create Date**. Every historical Magento order was loaded into HubSpot in July 2026, so Create Date puts years of sales in that one month. Order Date is the day the order was placed (in UTC, so an order placed after 8pm Eastern shows the next day, the same as the order's own Order Date). Quote line items have no Order Date, so filtering on "Order Date is known" counts only items that were actually ordered.
 
 ***
 
