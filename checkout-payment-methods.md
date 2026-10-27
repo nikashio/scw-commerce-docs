@@ -291,7 +291,7 @@ No paymentBank details are emailed after checkoutOrder: Pending PaymentWaits for
 
 ## Sales Tax at Checkout
 
-Sales tax is calculated by **TaxJar** at checkout (and when a quote is saved with a shipping address). TaxJar sources tax from the **destination ZIP code**, not just the State dropdown — it resolves the actual jurisdiction from the full address. SCW collects sales tax only in the states where it has tax nexus (currently 29). Orders shipping to **no-sales-tax states (OR, DE, MT, NH)** and **US territories / military addresses (PR, GU, APO/FPO)** are correctly taxed at **$0**.
+Sales tax is calculated by **TaxJar** at checkout (and when a quote is saved with a shipping address). TaxJar sources tax from the **destination ZIP code**, not just the State dropdown — it resolves the actual jurisdiction from the full address. SCW collects sales tax only in the states set up as nexus states in our TaxJar account (currently 29; see the list on the Credit Terms page). Orders shipping to **no-sales-tax states (OR, DE, MT, NH)** and **US territories / military addresses (PR, GU, APO/FPO)** are correctly taxed at **$0**.
 
 **Tax exemptions still apply** to everything below. An order is $0 when the company it is for (or, for a free-email buyer, their personal exemption) covers the state tax is sourced to: the ship-to state, or NC for in-store pickup. See the [Tax Exemption](key-concepts.md) glossary entry and [Tax-Exemption Management](tax-exemption-webhook.md).
 
