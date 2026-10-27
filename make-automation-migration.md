@@ -53,6 +53,7 @@ The SCW deploy owner will provide these values to Make. Do not paste real secret
 | `MAKE_MONITORING_ORDER_WEBHOOK_URL` | SCW -> Make | Optional separate webhook for `order.created.monitoring_candidate` events. Now also editable in the admin UI — a saved value there overrides this env var. |
 | `MAKE_REFUND_CREATED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for `refund.created` events. Editable in the admin UI. |
 | `MAKE_TAX_EXEMPTION_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for `tax_exemption.submitted`, `tax_exemption.approved`, and `tax_exemption.rejected` events (all three share one URL by default; any can be overridden per-event in the admin UI). |
+| `MAKE_ORGANIZATION_CREDIT_APPROVED_WEBHOOK_URL` | SCW -> Make | Make custom webhook URL for `organization.credit_approved` events (a company approved for purchase order terms). Editable in the admin UI. |
 | `MAKE_OUTBOX_ENABLED` | SCW | Must be enabled before SCW sends Make webhooks |
 | `MAKE_OUTBOX_TIMEOUT_MS` | SCW | Timeout for each Make webhook delivery attempt |
 | `MAKE_OUTBOX_BATCH_SIZE` | SCW | Maximum due webhook rows processed per cron tick |
